@@ -88,6 +88,17 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   opacity:0;pointer-events:none;transition:opacity .3s;z-index:50;white-space:nowrap;}
 .toast.show{opacity:1;}
 .hidden{display:none !important;}
+/* 성도 화면 미리보기 */
+.preview-frame{border:2px solid var(--accent);border-radius:18px;overflow:hidden;background:var(--bg);}
+.preview-bar{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;
+  background:var(--surface);border-bottom:1px solid var(--line);font-size:calc(var(--fs) - 4px);color:var(--muted);}
+.preview-body{padding:16px;}
+.pv-h1{font-size:var(--fs-lg);font-weight:700;}
+.pv-week{font-size:calc(var(--fs) - 3px);color:var(--muted);margin-bottom:10px;}
+.pv-verse{background:var(--surface);border-left:4px solid var(--accent);border-radius:8px;padding:14px;margin-bottom:12px;}
+.pv-ref{color:var(--accent);font-weight:700;font-size:calc(var(--fs) - 2px);margin-bottom:6px;}
+.pv-text{font-size:var(--fs);line-height:1.7;}
+.pv-btn{background:var(--accent);color:#04231a;font-weight:700;text-align:center;padding:12px;border-radius:10px;font-size:calc(var(--fs) - 1px);}
 </style>
 </head>
 <body>
@@ -133,10 +144,28 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <div class="card" style="margin-top:14px">
       <h2>이번 주 암송 구절 입력</h2>
       <p class="muted" style="margin:6px 0 12px">전 성도에게 실시간으로 동기화됩니다</p>
-      <input class="field" id="inRef" placeholder="구절 출처 (예: 요한복음 3:16)">
-      <input class="field" id="inWeek" placeholder="적용 주차 (예: 2026년 6월 1주차)">
-      <textarea class="field" id="inText" rows="4" placeholder="구절 본문을 입력하세요"></textarea>
+      <input class="field" id="inRef" placeholder="구절 출처 (예: 요한복음 3:16)" oninput="renderPreview()">
+      <input class="field" id="inWeek" placeholder="적용 주차 (예: 2026년 6월 1주차)" oninput="renderPreview()">
+      <textarea class="field" id="inText" rows="4" placeholder="구절 본문을 입력하세요" oninput="renderPreview()"></textarea>
       <button class="btn" onclick="registerVerse()">구절 등록 (전 성도 동기화)</button>
+    </div>
+
+    <!-- 성도 화면 미리보기 -->
+    <div class="card">
+      <h2>👁️ 성도에게 보이는 화면 미리보기</h2>
+      <p class="muted" style="margin:6px 0 12px">성도가 "구절 보기"에서 실제로 보게 될 모습입니다</p>
+      <div class="preview-frame">
+        <div class="preview-bar"><span>📱 성도 화면</span><span id="pvChurch">세광교회</span></div>
+        <div class="preview-body">
+          <div class="pv-h1">이번 주 구절</div>
+          <div class="pv-week" id="pvWeek">2026년 6월 1주차</div>
+          <div class="pv-verse">
+            <div class="pv-ref" id="pvRef">요한복음 3:16</div>
+            <div class="pv-text" id="pvText">하나님이 세상을 이처럼 사랑하사...</div>
+          </div>
+          <div class="pv-btn">암송 시작</div>
+        </div>
+      </div>
     </div>
 
     <!-- 교회 이름 등록 권한 -->
@@ -344,6 +373,17 @@ function renderAdmin(){
   document.getElementById('inChurchName').value = DB.church.name;
   document.getElementById('inWeek').value = DB.verse.weekOf;
   renderVerseList();
+  renderPreview();
+}
+// 성도 화면 미리보기 (입력 중인 값 우선, 없으면 현재 구절)
+function renderPreview(){
+  const ref = (document.getElementById('inRef').value.trim()) || DB.verse.ref;
+  const week = (document.getElementById('inWeek').value.trim()) || DB.verse.weekOf;
+  const text = (document.getElementById('inText').value.trim()) || DB.verse.text;
+  document.getElementById('pvChurch').textContent = DB.church.name;
+  document.getElementById('pvRef').textContent = ref;
+  document.getElementById('pvWeek').textContent = week;
+  document.getElementById('pvText').textContent = text;
 }
 function saveChurchName(){
   const name=document.getElementById('inChurchName').value.trim();
@@ -351,6 +391,7 @@ function saveChurchName(){
   DB.church.name=name;
   localStorage.setItem('pat_church_name', name);
   document.getElementById('adminChurchLabel').textContent='관리 교회: '+name;
+  renderPreview();
   toast('✓ 교회 이름이 저장되었습니다');
 }
 function registerVerse(){
@@ -366,6 +407,7 @@ function registerVerse(){
   document.getElementById('inRef').value='';
   document.getElementById('inText').value='';
   renderVerseList();
+  renderPreview();
   toast('✓ 구절 등록 완료 — 전 성도에게 동기화되었습니다');
 }
 function renderVerseList(){
@@ -384,6 +426,7 @@ function useVerse(i){
   vs.unshift(picked); saveVerses(vs);
   DB.verse={ ref:picked.ref, weekOf:picked.weekOf, text:picked.text };
   renderVerseList();
+  renderPreview();
   toast('✓ 해당 구절을 현재 구절로 적용했습니다');
 }
 
