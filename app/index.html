@@ -200,6 +200,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <div class="bar"><span id="familyBar"></span></div>
       <div id="memberList"></div>
     </div>
+    <div class="verse">
+      <div class="ref" id="famVerseRef">요한복음 3:16</div>
+      <div class="verse-text" id="famVerseText" style="font-size:var(--fs)"></div>
+    </div>
     <button class="btn" onclick="go('s-verse')">📖 이번 주 구절 보기</button>
     <button class="btn ghost" onclick="toast('체험판: 초대 기능은 정식 버전에서 제공됩니다')">가족 구성원 초대</button>
   </section>
@@ -471,9 +475,13 @@ function go(id){
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);
   });
+  // 화면 진입 시 자동 렌더링 (어느 경로로 들어오든 최신 데이터 표시)
+  if(id==='s-verse'){ renderVerse(); }
+  else if(id==='s-family'){ renderFamily(); }
+  else if(id==='s-dashboard'){ renderDashboard(); }
   window.scrollTo(0,0);
 }
-function tabGo(id){ if(id==='s-verse'){ renderVerse(); } if(id==='s-family'){ renderFamily(); } go(id); }
+function tabGo(id){ go(id); }
 
 // ====== S1 교회 입장 ======
 function enterChurch(){
@@ -498,6 +506,11 @@ function renderFamily(){
     `<div class="member"><span>${m.name}${m.me?' (나)':''}</span>
      <span class="${m.done?'tag-ok':'tag-wait'}">${m.done?'✔ 완료':'대기'}</span></div>`).join('');
   document.getElementById('memberList').innerHTML = list;
+  // 가족방에서도 이번 주 구절 표시
+  document.getElementById('churchName').textContent = DB.church.name;
+  document.getElementById('weekLabel').textContent = DB.verse.weekOf;
+  document.getElementById('famVerseRef').textContent = DB.verse.ref;
+  document.getElementById('famVerseText').textContent = DB.verse.text;
 }
 
 // ====== S4 구절 ======
