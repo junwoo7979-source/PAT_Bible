@@ -220,7 +220,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     </div>
     <div class="card">
       <b>암송 방법</b>
-      <p class="muted" style="margin-top:6px">① 음성 1차 낭독 → ② 음성 2차 검증 → ③ 직접 타이핑 → 완료!<br>음성 2회 + 타이핑 1회의 3중 검증으로 진짜 암송을 확인합니다.</p>
+      <p class="muted" style="margin-top:6px">① 음성 1차 → ② 음성 2차 → ③ 타이핑 1차 → ④ 타이핑 2차 → 완료!<br>음성 2회 + 타이핑 2회의 4중 검증으로 진짜 암송을 확인합니다.</p>
     </div>
     <div class="spacer"></div>
     <button class="btn" onclick="startMemorize()">암송 시작</button>
@@ -230,7 +230,8 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <section class="screen" id="s-voice">
     <button class="back" onclick="go('s-verse')">‹ 구절</button>
     <div class="step-ind">
-      <div class="step-dot on"></div><div class="step-dot" id="d2"></div><div class="step-dot" id="d3"></div>
+      <div class="step-dot on"></div><div class="step-dot" id="d2"></div>
+      <div class="step-dot" id="d3"></div><div class="step-dot" id="d4"></div>
     </div>
     <h1>음성 암송 <span style="color:var(--accent)" id="voiceStage">1차</span></h1>
     <p class="muted">마이크를 켜고 아래 구절을 낭독하세요</p>
@@ -260,9 +261,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <section class="screen" id="s-typing">
     <button class="back" onclick="go('s-voice')">‹ 음성</button>
     <div class="step-ind">
-      <div class="step-dot on"></div><div class="step-dot on"></div><div class="step-dot on"></div>
+      <div class="step-dot on"></div><div class="step-dot on"></div>
+      <div class="step-dot on"></div><div class="step-dot" id="td2"></div>
     </div>
-    <h1>직접 입력</h1>
+    <h1>직접 입력 <span style="color:var(--accent)" id="typeStage">1차</span></h1>
     <p class="muted">복사 불가 · 한 글자씩 정확히 입력하세요</p>
     <div class="card">
       <small class="muted" id="typeRef"></small>
@@ -273,7 +275,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <div class="bar"><span id="typeBar"></span></div>
     <small class="muted" id="typeStatus">진행률 0%</small>
     <div class="spacer"></div>
-    <button class="btn" id="typeDone" disabled onclick="completeMemorize()">완료 확인</button>
+    <button class="btn" id="typeDone" disabled onclick="typingNext()">완료 확인</button>
   </section>
 
   <!-- S7: 완료 -->
@@ -286,7 +288,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <div class="row">
         <div><b style="color:var(--accent);font-size:var(--fs-lg)" id="cVoice1">—</b><br><small class="muted">음성1차</small></div>
         <div><b style="color:var(--accent);font-size:var(--fs-lg)" id="cVoice2">—</b><br><small class="muted">음성2차</small></div>
-        <div><b style="color:var(--accent);font-size:var(--fs-lg)">100%</b><br><small class="muted">타이핑</small></div>
+        <div><b style="color:var(--accent);font-size:var(--fs-lg)">✓✓</b><br><small class="muted">타이핑 2회</small></div>
       </div>
     </div>
     <p class="center" style="margin-top:16px">🎉 가족·교회 대시보드에 실시간 반영되었습니다</p>
@@ -508,7 +510,7 @@ function renderVerse(){
 function startMemorize(){ resetMemorizeState(); renderVoice(); go('s-voice'); }
 
 // ====== S5 음성 암송 ======
-let voiceStage=1, voiceScore1=0, voiceScore2=0, recognizing=false, recog=null;
+let voiceStage=1, voiceScore1=0, voiceScore2=0, recognizing=false, recog=null, typeStage=1;
 function renderVoice(){
   document.getElementById('vRef').textContent = DB.verse.ref;
   document.getElementById('vText').textContent = DB.verse.text;
@@ -533,7 +535,11 @@ function manualVoiceCheck(){
   document.getElementById('recognized').textContent = t;
   evalVoice(t);
 }
-function resetMemorizeState(){ voiceStage=1; voiceScore1=0; voiceScore2=0; document.getElementById('d3').classList.remove('on'); }
+function resetMemorizeState(){
+  voiceStage=1; voiceScore1=0; voiceScore2=0; typeStage=1;
+  document.getElementById('d3').classList.remove('on');
+  document.getElementById('d4').classList.remove('on');
+}
 
 // 텍스트 정규화 + 유사도(레벤슈타인 기반)
 function normalize(s){ return (s||'').replace(/[\s.,!?;:'"·…]/g,'').toLowerCase(); }
@@ -619,15 +625,29 @@ function evalVoice(text){
 }
 function voiceNext(){
   if(voiceStage===1){ voiceStage=2; renderVoice(); }
-  else { document.getElementById('d3').classList.add('on'); renderTyping(); go('s-typing'); }
+  else { document.getElementById('d3').classList.add('on'); typeStage=1; renderTyping(); go('s-typing'); }
 }
 
-// ====== S6 타이핑 ======
+// ====== S6 타이핑 (2회) ======
 function renderTyping(){
+  document.getElementById('typeStage').textContent = typeStage+'차';
+  document.getElementById('td2').classList.toggle('on', typeStage>=2);
   document.getElementById('typeRef').textContent = DB.verse.ref;
   document.getElementById('typeInput').value='';
   document.getElementById('typeDone').disabled=true;
+  document.getElementById('typeDone').textContent = (typeStage===1) ? '1차 완료 → 2차 진행' : '완료 확인';
   updateTyped('');
+  document.getElementById('typeInput').focus();
+}
+function typingNext(){
+  if(typeStage===1){
+    typeStage=2;
+    document.getElementById('d4').classList.add('on');
+    renderTyping();
+    toast('✓ 타이핑 1차 통과! 2차 입력하세요');
+  } else {
+    completeMemorize();
+  }
 }
 function blockPaste(e){ e.preventDefault(); toast('붙여넣기는 사용할 수 없습니다'); return false; }
 function onType(){ updateTyped(document.getElementById('typeInput').value); }
