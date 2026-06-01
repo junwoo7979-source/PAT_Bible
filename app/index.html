@@ -99,6 +99,11 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 .pv-ref{color:var(--accent);font-weight:700;font-size:calc(var(--fs) - 2px);margin-bottom:6px;}
 .pv-text{font-size:var(--fs);line-height:1.7;}
 .pv-btn{background:var(--accent);color:#04231a;font-weight:700;text-align:center;padding:12px;border-radius:10px;font-size:calc(var(--fs) - 1px);}
+/* 빠른 선택 칩 */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.chip{background:var(--surface);border:1px solid var(--line);color:var(--text);
+  padding:8px 12px;border-radius:18px;font-size:calc(var(--fs) - 4px);cursor:pointer;font-family:inherit;}
+.chip:active{border-color:var(--accent);color:var(--accent);}
 </style>
 </head>
 <body>
@@ -143,7 +148,9 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <!-- 메인: 성경 구절 입력 -->
     <div class="card" style="margin-top:14px">
       <h2>이번 주 암송 구절 입력</h2>
-      <p class="muted" style="margin:6px 0 12px">전 성도에게 실시간으로 동기화됩니다</p>
+      <p class="muted" style="margin:6px 0 10px">전 성도에게 실시간으로 동기화됩니다</p>
+      <p class="muted" style="font-size:calc(var(--fs) - 4px);margin-bottom:6px">⚡ 자주 쓰는 구절 빠른 선택</p>
+      <div class="chips" id="verseChips"></div>
       <input class="field" id="inRef" placeholder="구절 출처 (예: 요한복음 3:16)" oninput="renderPreview()">
       <input class="field" id="inWeek" placeholder="적용 주차 (예: 2026년 6월 1주차)" oninput="renderPreview()">
       <textarea class="field" id="inText" rows="4" placeholder="구절 본문을 입력하세요" oninput="renderPreview()"></textarea>
@@ -359,6 +366,29 @@ function applyStoredData(){
 
 // ====== 관리자 ======
 const ADMIN = { id:'admin', pw:'1234' };
+// 자주 쓰는 구절 라이브러리 (개역개정)
+const VERSE_LIB = [
+  { ref:'요한복음 3:16', text:'하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라' },
+  { ref:'빌립보서 4:13', text:'내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라' },
+  { ref:'시편 23:1', text:'여호와는 나의 목자시니 내게 부족함이 없으리로다' },
+  { ref:'잠언 3:5', text:'너는 마음을 다하여 여호와를 신뢰하고 네 명철을 의지하지 말라' },
+  { ref:'이사야 41:10', text:'두려워하지 말라 내가 너와 함께 함이라 놀라지 말라 나는 네 하나님이 됨이라 내가 너를 굳세게 하리라 참으로 너를 도와 주리라 참으로 나의 의로운 오른손으로 너를 붙들리라' },
+  { ref:'로마서 8:28', text:'우리가 알거니와 하나님을 사랑하는 자 곧 그의 뜻대로 부르심을 입은 자들에게는 모든 것이 합력하여 선을 이루느니라' },
+  { ref:'마태복음 6:33', text:'그런즉 너희는 먼저 그의 나라와 그의 의를 구하라 그리하면 이 모든 것을 너희에게 더하시리라' },
+  { ref:'여호수아 1:9', text:'내가 네게 명령한 것이 아니냐 강하고 담대하라 두려워하지 말며 놀라지 말라 네가 어디로 가든지 네 하나님 여호와가 너와 함께 하느니라' }
+];
+function renderChips(){
+  const el=document.getElementById('verseChips');
+  if(!el) return;
+  el.innerHTML = VERSE_LIB.map((v,i)=>`<button class="chip" onclick="fillVerse(${i})">${esc(v.ref)}</button>`).join('');
+}
+function fillVerse(i){
+  const v=VERSE_LIB[i];
+  document.getElementById('inRef').value=v.ref;
+  document.getElementById('inText').value=v.text;
+  renderPreview();
+  toast('구절을 불러왔습니다 — 주차 확인 후 등록하세요');
+}
 function adminLogin(){
   const id=document.getElementById('adminId').value.trim();
   const pw=document.getElementById('adminPw').value.trim();
@@ -372,6 +402,7 @@ function renderAdmin(){
   document.getElementById('adminChurchLabel').textContent = '관리 교회: '+DB.church.name;
   document.getElementById('inChurchName').value = DB.church.name;
   document.getElementById('inWeek').value = DB.verse.weekOf;
+  renderChips();
   renderVerseList();
   renderPreview();
 }
