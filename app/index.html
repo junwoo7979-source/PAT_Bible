@@ -243,6 +243,15 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <div class="bar"><span id="simBar"></span></div>
       <small class="muted" id="simLabel">유사도 분석 대기 중</small>
     </div>
+
+    <!-- 마이크가 안 될 때: 수동 입력 대체 -->
+    <div class="card" id="manualBox" style="display:none">
+      <small class="muted">🎤 마이크가 작동하지 않나요? 낭독한 내용을 입력해 검증하세요</small>
+      <textarea class="field" id="voiceManual" rows="2" style="margin-top:8px" placeholder="낭독한 구절을 입력"></textarea>
+      <button class="btn ghost" onclick="manualVoiceCheck()">입력 내용으로 검증</button>
+    </div>
+    <button class="back" id="manualToggle" style="margin:8px auto 0;display:block" onclick="showManual()">🔇 마이크가 안 되면 여기를 누르세요</button>
+
     <div class="spacer"></div>
     <button class="btn" id="voiceNext" disabled onclick="voiceNext()">다음 단계</button>
   </section>
@@ -509,6 +518,20 @@ function renderVoice(){
   document.getElementById('simBar').style.width = '0';
   document.getElementById('simLabel').textContent = '유사도 분석 대기 중';
   document.getElementById('voiceNext').disabled = true;
+  document.getElementById('manualBox').style.display = 'none';
+  document.getElementById('voiceManual').value = '';
+  // file:// 등 비보안 환경이면 마이크가 막히므로 안내
+  const insecure = location.protocol === 'file:' || (!window.isSecureContext && location.hostname!=='localhost');
+  document.getElementById('micHint').textContent = insecure
+    ? '⚠ 이 환경에선 마이크가 제한될 수 있어요 — 아래 대체 입력 사용'
+    : '탭하여 녹음 시작';
+}
+function showManual(){ document.getElementById('manualBox').style.display='block'; document.getElementById('voiceManual').focus(); }
+function manualVoiceCheck(){
+  const t = document.getElementById('voiceManual').value.trim();
+  if(!t){ toast('낭독한 내용을 입력하세요'); return; }
+  document.getElementById('recognized').textContent = t;
+  evalVoice(t);
 }
 function resetMemorizeState(){ voiceStage=1; voiceScore1=0; voiceScore2=0; document.getElementById('d3').classList.remove('on'); }
 
@@ -528,20 +551,39 @@ function similarity(a,b){
 
 function toggleMic(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ // STT 미지원 → 시뮬레이션
-    simulateVoice(); return;
+  const insecure = location.protocol === 'file:' || (!window.isSecureContext && location.hostname!=='localhost');
+  if(!SR || insecure){
+    // STT 미지원 또는 비보안(file://) → 대체 입력 안내
+    toast(!SR ? '이 브라우저는 음성인식을 지원하지 않습니다' : '브라우저 보안 정책으로 마이크가 제한됩니다');
+    showManual();
+    return;
   }
   if(recognizing){ recog && recog.stop(); return; }
-  recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true; recog.continuous=false;
-  recognizing=true; setMicRec(true);
-  let finalText='';
-  recog.onresult=(e)=>{
-    let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript;
-    finalText=t; document.getElementById('recognized').textContent=t;
+
+  let finalText='', handled=false;
+  const fail=(msg)=>{
+    if(handled) return; handled=true;
+    recognizing=false; setMicRec(false);
+    toast(msg); showManual();
   };
-  recog.onerror=()=>{ toast('음성 인식 오류 — 시뮬레이션으로 진행'); recognizing=false; setMicRec(false); simulateVoice(); };
-  recog.onend=()=>{ recognizing=false; setMicRec(false); evalVoice(finalText); };
-  recog.start();
+  try{
+    recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true; recog.continuous=false;
+    recognizing=true; setMicRec(true);
+    recog.onresult=(e)=>{
+      let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript;
+      finalText=t; document.getElementById('recognized').textContent=t;
+    };
+    recog.onerror=(e)=>{ fail('음성 인식 오류('+(e&&e.error||'unknown')+') — 아래 대체 입력 사용'); };
+    recog.onend=()=>{
+      if(handled) return; handled=true;       // 오류 후 중복 평가 방지
+      recognizing=false; setMicRec(false);
+      if(finalText.trim()) evalVoice(finalText);
+      else { toast('음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용'); showManual(); }
+    };
+    recog.start();
+  }catch(err){
+    fail('마이크를 시작할 수 없습니다 — 아래 대체 입력 사용');
+  }
 }
 function setMicRec(on){
   const b=document.getElementById('micBtn');
