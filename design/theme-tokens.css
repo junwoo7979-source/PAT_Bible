@@ -1,0 +1,48 @@
+/* PAT Bible — 테마 색상 토큰 (PHASE 1 산출물)
+   다크 모드 / 크림 모드 2종. PHASE 2 Tailwind 설정에 그대로 이식. */
+
+:root {
+  /* ===== 다크 모드 (기본) ===== */
+  --bg:       #1a1a2e;  /* 배경 */
+  --surface:  #16213e;  /* 카드·표면 */
+  --accent:   #16c784;  /* 강조(그린) */
+  --text:     #e8e8e8;  /* 본문 텍스트 */
+  --muted:    #8b93a7;  /* 보조 텍스트 */
+  --line:     #2a3a5e;  /* 구분선 */
+  --danger:   #ff5d5d;  /* 오타·경고 */
+
+  /* ===== 타이포그래피 (접근성: 큰 글씨 기본) ===== */
+  --font-base: 18px;     /* 본문 최소 18px */
+  --font-lg:   22px;
+  --font-xl:   28px;
+  --radius:    12px;     /* 기본 모서리 */
+  --radius-lg: 24px;     /* 카드·폰 프레임 */
+}
+
+/* ===== 크림(라이트) 모드 ===== */
+[data-theme="cream"] {
+  --bg:       #faf7f0;
+  --surface:  #ffffff;
+  --accent:   #16c784;
+  --text:     #2d2d2d;
+  --muted:    #7a7a7a;
+  --line:     #e5e0d5;
+  --danger:   #e23d3d;
+}
+
+/* ===== 접근성: 큰 글씨 모드 (노년층) ===== */
+[data-fontsize="large"] {
+  --font-base: 22px;
+  --font-lg:   28px;
+  --font-xl:   36px;
+}
+
+/* 적용 예시 */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--font-base);
+}
+.accent { color: var(--accent); }
+.card   { background: var(--surface); border:1px solid var(--line); border-radius: var(--radius); }
+.error  { color: var(--danger); }

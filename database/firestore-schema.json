@@ -1,0 +1,129 @@
+{
+  "_meta": {
+    "project": "PAT Bible",
+    "phase": "PHASE 1 - 기획·설계",
+    "db": "Firebase Firestore",
+    "description": "교회·가족·개인 성경 암송 웹앱 데이터 구조. 5개 컬렉션 양방향 집계 구조.",
+    "version": "1.0",
+    "date": "2026-06-01"
+  },
+  "collections": {
+    "churches": {
+      "_desc": "교회 정보",
+      "_pk": "churchId",
+      "fields": {
+        "churchId": "string (PK)",
+        "name": "string - 교회명",
+        "accessCode": "string - 공용 입장 코드 (예: 11111)",
+        "adminUids": "array<string> - 관리자 사용자 ID 목록",
+        "memberCount": "number - 등록 성도 수",
+        "createdAt": "timestamp"
+      },
+      "_sample": {
+        "churchId": "sgch_001",
+        "name": "세광교회",
+        "accessCode": "11111",
+        "adminUids": ["uid_admin01"],
+        "memberCount": 248,
+        "createdAt": "2026-05-19T00:00:00Z"
+      }
+    },
+    "families": {
+      "_desc": "가족방",
+      "_pk": "familyId",
+      "fields": {
+        "familyId": "string (PK)",
+        "churchId": "string (FK -> churches)",
+        "name": "string - 가족방 이름",
+        "password": "string - 비밀번호 해시",
+        "leaderUid": "string - 가족 대표 사용자 ID",
+        "memberUids": "array<string> - 구성원 ID 목록",
+        "createdAt": "timestamp"
+      },
+      "_sample": {
+        "familyId": "fam_1001",
+        "churchId": "sgch_001",
+        "name": "김씨네 가족",
+        "password": "$2b$10$hashed...",
+        "leaderUid": "uid_dad01",
+        "memberUids": ["uid_dad01", "uid_mom01", "uid_son01", "uid_dau01"],
+        "createdAt": "2026-06-01T09:00:00Z"
+      }
+    },
+    "users": {
+      "_desc": "사용자",
+      "_pk": "uid",
+      "fields": {
+        "uid": "string (PK)",
+        "churchId": "string (FK -> churches)",
+        "familyId": "string (FK -> families)",
+        "name": "string - 이름",
+        "role": "string - church_admin | family_leader | member",
+        "createdAt": "timestamp"
+      },
+      "_sample": {
+        "uid": "uid_son01",
+        "churchId": "sgch_001",
+        "familyId": "fam_1001",
+        "name": "김지훈",
+        "role": "member",
+        "createdAt": "2026-06-01T09:05:00Z"
+      }
+    },
+    "verses": {
+      "_desc": "주간 암송 구절",
+      "_pk": "verseId",
+      "fields": {
+        "verseId": "string (PK)",
+        "churchId": "string (FK -> churches)",
+        "reference": "string - 성경 출처 (예: 요한복음 3:16)",
+        "text": "string - 구절 본문",
+        "weekOf": "string - 적용 주차 (예: 2026-W23)",
+        "createdAt": "timestamp"
+      },
+      "_sample": {
+        "verseId": "vs_2026W23",
+        "churchId": "sgch_001",
+        "reference": "요한복음 3:16",
+        "text": "하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라",
+        "weekOf": "2026-W23",
+        "createdAt": "2026-06-01T08:00:00Z"
+      }
+    },
+    "records": {
+      "_desc": "암송 완료 기록",
+      "_pk": "recordId",
+      "fields": {
+        "recordId": "string (PK)",
+        "uid": "string (FK -> users)",
+        "verseId": "string (FK -> verses)",
+        "familyId": "string (FK -> families)",
+        "churchId": "string (FK -> churches)",
+        "voiceScore1": "number - 음성 1차 유사도(%)",
+        "voiceScore2": "number - 음성 2차 유사도(%)",
+        "typingPassed": "boolean - 타이핑 100% 통과 여부",
+        "completedAt": "timestamp",
+        "badge": "string - 지급 뱃지 종류"
+      },
+      "_sample": {
+        "recordId": "rec_88001",
+        "uid": "uid_son01",
+        "verseId": "vs_2026W23",
+        "familyId": "fam_1001",
+        "churchId": "sgch_001",
+        "voiceScore1": 87,
+        "voiceScore2": 91,
+        "typingPassed": true,
+        "completedAt": "2026-06-01T20:30:00Z",
+        "badge": "weekly_complete"
+      }
+    }
+  },
+  "dataFlow": "관리자 구절 등록(verses) -> 전 성도 동기화 -> 개인 암송 완료(records) -> 가족방 실시간 반영(families) -> 교회 대시보드 집계(churches)",
+  "indexes": [
+    "records: churchId + weekOf (교회 주간 집계)",
+    "records: familyId + completedAt (가족 달성률)",
+    "records: uid + completedAt (개인 누적 기록)",
+    "verses: churchId + weekOf (현재 주차 구절 조회)"
+  ]
+}

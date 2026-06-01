@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAT Bible — 화면 설계도 (8화면)</title>
+<style>
+  :root{
+    --bg:#1a1a2e; --surface:#16213e; --accent:#16c784;
+    --text:#e8e8e8; --muted:#8b93a7; --line:#2a3a5e; --danger:#ff5d5d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    background:#0f1424;color:var(--text);padding:32px;line-height:1.5;}
+  h1{font-size:28px;margin-bottom:6px;}
+  .sub{color:var(--muted);margin-bottom:28px;font-size:15px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;}
+  .phone{
+    background:var(--bg);border:1px solid var(--line);border-radius:24px;
+    padding:0;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.4);
+  }
+  .phone-head{background:var(--surface);padding:10px 16px;font-size:12px;
+    color:var(--muted);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);}
+  .tag{background:var(--accent);color:#04231a;font-weight:700;font-size:11px;padding:2px 8px;border-radius:10px;}
+  .screen{padding:20px 16px;min-height:440px;display:flex;flex-direction:column;}
+  .scr-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+  .scr-desc{font-size:12px;color:var(--muted);margin-bottom:16px;}
+  .field{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:14px;font-size:14px;color:var(--muted);margin-bottom:12px;}
+  .field.big{font-size:22px;text-align:center;letter-spacing:6px;color:var(--text);font-weight:700;}
+  .btn{background:var(--accent);color:#04231a;font-weight:700;text-align:center;
+    padding:14px;border-radius:12px;font-size:15px;margin-top:auto;}
+  .btn.ghost{background:transparent;border:1px solid var(--accent);color:var(--accent);margin-top:12px;}
+  .verse{background:var(--surface);border-left:3px solid var(--accent);border-radius:8px;
+    padding:18px;font-size:16px;line-height:1.7;margin-bottom:14px;}
+  .ref{color:var(--accent);font-size:13px;font-weight:700;margin-bottom:8px;}
+  .mic{width:80px;height:80px;border-radius:50%;background:var(--accent);
+    margin:24px auto;display:flex;align-items:center;justify-content:center;font-size:34px;}
+  .bar{height:8px;background:var(--line);border-radius:4px;margin:8px 0;overflow:hidden;}
+  .bar > span{display:block;height:100%;background:var(--accent);}
+  .row{display:flex;gap:10px;margin-bottom:12px;}
+  .card{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;}
+  .card b{font-size:22px;color:var(--accent);display:block;}
+  .card small{color:var(--muted);font-size:11px;}
+  .member{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .member span.ok{color:var(--accent);}
+  .typed{font-size:18px;letter-spacing:1px;}
+  .typed .g{color:var(--accent);}
+  .typed .b{color:var(--danger);text-decoration:underline;}
+  .typed .n{color:var(--muted);}
+  .tabbar{display:flex;justify-content:space-around;background:var(--surface);
+    margin:16px -16px -20px;padding:12px 0;border-top:1px solid var(--line);font-size:11px;color:var(--muted);}
+  .tabbar .active{color:var(--accent);}
+  .badge{font-size:48px;text-align:center;margin:16px 0;}
+  .toggle{display:flex;justify-content:space-between;align-items:center;
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;font-size:14px;}
+  .sw{width:42px;height:24px;background:var(--accent);border-radius:12px;position:relative;}
+  .sw::after{content:'';position:absolute;right:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;}
+  .flow{margin-top:36px;padding:24px;background:var(--surface);border-radius:16px;font-size:14px;color:var(--muted);}
+  .flow code{color:var(--accent);}
+</style>
+</head>
+<body>
+  <h1>PAT Bible — 화면 설계도</h1>
+  <p class="sub">PHASE 1 기획·설계 산출물 · 8개 화면 와이어프레임 · 다크 테마 기준</p>
+
+  <div class="grid">
+
+    <!-- S1 로그인/시작 -->
+    <div class="phone"><div class="phone-head"><span>S1 로그인/시작</span><span class="tag">START</span></div>
+      <div class="screen">
+        <div class="scr-title">📖 PAT Bible</div>
+        <div class="scr-desc">교회·가족·개인 성경 암송</div>
+        <div class="field big">- - - - -</div>
+        <div class="scr-desc" style="text-align:center">교회 코드를 입력하세요</div>
+        <div class="btn">시작하기</div>
+      </div>
+    </div>
+
+    <!-- S2 교회 입장 -->
+    <div class="phone"><div class="phone-head"><span>S2 교회 입장</span><span class="tag">F1</span></div>
+      <div class="screen">
+        <div class="scr-title">교회 확인</div>
+        <div class="scr-desc">입력한 코드의 교회를 확인합니다</div>
+        <div class="verse"><div class="ref">CHURCH</div>세광교회<br><small style="color:var(--muted)">코드 11111 · 등록 성도 248명</small></div>
+        <div class="btn">입장하기</div>
+        <div class="btn ghost">다른 코드 입력</div>
+      </div>
+    </div>
+
+    <!-- S3 가족방 -->
+    <div class="phone"><div class="phone-head"><span>S3 가족방</span><span class="tag">F2</span></div>
+      <div class="screen">
+        <div class="scr-title">우리 가족방</div>
+        <div class="scr-desc">가족 구성원 달성률</div>
+        <div class="member"><span>아빠</span><span class="ok">✔ 완료</span></div>
+        <div class="member"><span>엄마</span><span class="ok">✔ 완료</span></div>
+        <div class="member"><span>지훈</span><span style="color:var(--muted)">진행중</span></div>
+        <div class="member"><span>지민</span><span style="color:var(--muted)">대기</span></div>
+        <div class="btn">구성원 초대</div>
+        <div class="btn ghost">가족방 개설</div>
+      </div>
+    </div>
+
+    <!-- S4 구절 보기 -->
+    <div class="phone"><div class="phone-head"><span>S4 구절 보기</span><span class="tag">F3</span></div>
+      <div class="screen">
+        <div class="scr-title">이번 주 구절</div>
+        <div class="scr-desc">2026년 6월 1주차</div>
+        <div class="verse"><div class="ref">요한복음 3:16</div>하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니...</div>
+        <div class="btn">암송 시작</div>
+      </div>
+    </div>
+
+    <!-- S5 음성 암송 -->
+    <div class="phone"><div class="phone-head"><span>S5 음성 암송</span><span class="tag">F4</span></div>
+      <div class="screen">
+        <div class="scr-title">음성 암송 <small style="color:var(--accent)">1차</small></div>
+        <div class="scr-desc">마이크를 켜고 구절을 낭독하세요</div>
+        <div class="mic">🎙️</div>
+        <div class="field">인식된 텍스트가 여기에 표시됩니다...</div>
+        <div class="scr-desc">유사도 87% · 통과 기준 85%</div>
+        <div class="bar"><span style="width:87%"></span></div>
+        <div class="btn">다음 (2차 검증)</div>
+      </div>
+    </div>
+
+    <!-- S6 타이핑 암송 -->
+    <div class="phone"><div class="phone-head"><span>S6 타이핑 암송</span><span class="tag">F5</span></div>
+      <div class="screen">
+        <div class="scr-title">직접 입력</div>
+        <div class="scr-desc">복사 불가 · 한 글자씩 정확히</div>
+        <div class="field typed"><span class="g">하나님이 세상을</span> <span class="b">이</span><span class="n">처럼 사랑하사...</span></div>
+        <div class="scr-desc">진행률 42% · 오타 1</div>
+        <div class="bar"><span style="width:42%"></span></div>
+        <div class="btn">완료 확인</div>
+      </div>
+    </div>
+
+    <!-- S7 대시보드 -->
+    <div class="phone"><div class="phone-head"><span>S7 대시보드</span><span class="tag">F6·F7·F8</span></div>
+      <div class="screen">
+        <div class="scr-title">성취도</div>
+        <div class="scr-desc">개인 · 가족 · 교회</div>
+        <div class="row">
+          <div class="card"><b>12</b><small>이번주 완료</small></div>
+          <div class="card"><b>89%</b><small>가족 달성률</small></div>
+        </div>
+        <div class="row">
+          <div class="card"><b>🏆</b><small>이번주 암송왕</small></div>
+          <div class="card"><b>5</b><small>획득 뱃지</small></div>
+        </div>
+        <div class="verse"><div class="ref">교회 전체</div>참여율 76% · 248명 중 188명</div>
+        <div class="tabbar"><span class="active">대시보드</span><span>암송</span><span>가족</span><span>설정</span></div>
+      </div>
+    </div>
+
+    <!-- S8 설정 -->
+    <div class="phone"><div class="phone-head"><span>S8 설정</span><span class="tag">F9</span></div>
+      <div class="screen">
+        <div class="scr-title">설정</div>
+        <div class="scr-desc">접근성 · 테마</div>
+        <div class="toggle"><span>🌙 다크 모드</span><div class="sw"></div></div>
+        <div class="toggle"><span>🔠 큰 글씨</span><div class="sw"></div></div>
+        <div class="toggle"><span>👵 관대 모드(노년층)</span><div class="sw"></div></div>
+        <div class="toggle"><span>🔔 푸시 알림</span><div class="sw"></div></div>
+        <div class="tabbar"><span>대시보드</span><span>암송</span><span>가족</span><span class="active">설정</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="flow">
+    <b style="color:var(--text)">화면 흐름</b><br><br>
+    <code>S1 로그인</code> → <code>S2 교회입장</code> → <code>S3 가족방</code> → <code>S4 구절보기</code> →
+    <code>S5 음성암송(1·2차)</code> → <code>S6 타이핑암송</code> → 완료<br>
+    [하단 탭 상시] <code>S7 대시보드</code> · <code>S8 설정</code>
+  </div>
+
+</body>
+</html>
