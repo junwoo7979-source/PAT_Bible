@@ -631,24 +631,32 @@ function renderTyping(){
 }
 function blockPaste(e){ e.preventDefault(); toast('붙여넣기는 사용할 수 없습니다'); return false; }
 function onType(){ updateTyped(document.getElementById('typeInput').value); }
-function updateTyped(input){
+function updateTyped(rawInput){
+  const input = (rawInput||'').replace(/\s+$/,''); // 끝 공백/줄바꿈 제거
   const target = DB.verse.text;
-  let html=''; let correct=0;
-  for(let i=0;i<target.length;i++){
-    const tc=target[i];
-    if(i<input.length){
-      if(input[i]===tc){ html+=`<span class="g">${esc(tc)}</span>`; correct++; }
-      else html+=`<span class="b">${esc(tc)}</span>`;
-    } else if(i===input.length){ html+=`<span class="cur n">${esc(tc)}</span>`; }
-    else html+=`<span class="n">${esc(tc)}</span>`;
+  const nInput = normalize(input); // 띄어쓰기·문장부호 제거 + 소문자화
+  // 1) 화면 표시: 정규화 기준으로 글자 대조 (공백·문장부호는 중립 처리)
+  let html=''; let pos=0;
+  for(const tc of target){
+    const ntc = normalize(tc);
+    if(!ntc){ html += (tc===' ' ? '&nbsp;' : `<span class="n">${esc(tc)}</span>`); continue; }
+    if(pos < nInput.length){
+      html += `<span class="${nInput[pos]===ntc ? 'g':'b'}">${esc(tc)}</span>`; pos++;
+    } else if(pos === nInput.length){ html += `<span class="cur n">${esc(tc)}</span>`; pos++; }
+    else html += `<span class="n">${esc(tc)}</span>`;
   }
-  document.getElementById('typedDisplay').innerHTML=html;
-  const pct = Math.round(correct/target.length*100);
-  document.getElementById('typeBar').style.width=pct+'%';
-  const exactLen = input.length===target.length;
+  document.getElementById('typedDisplay').innerHTML = html;
+
+  // 2) 통과 판정: 정규화 비교 (띄어쓰기·문장부호 무시)
+  const nt = normalize(target);
+  const pct = similarity(input, target);
+  const typedEnough = nInput.length >= nt.length;
+  const pass = pct >= TH().typing && typedEnough;
+
+  document.getElementById('typeBar').style.width = pct+'%';
   document.getElementById('typeStatus').textContent =
-    `진행률 ${pct}% · ${correct}/${target.length}자 정확`;
-  document.getElementById('typeDone').disabled = !(pct>=TH().typing && exactLen);
+    `진행률 ${pct}%` + (typedEnough ? (pass ? ' · 통과! 완료 확인을 누르세요' : '') : ' · 끝까지 입력하세요');
+  document.getElementById('typeDone').disabled = !pass;
 }
 function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;'); }
 
