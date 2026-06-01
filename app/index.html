@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark" data-fontsize="normal">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PAT Bible — 성경 암송</title>
+<style>
+:root{
+  --bg:#1a1a2e; --surface:#16213e; --accent:#16c784; --accent-d:#0fa066;
+  --text:#e8e8e8; --muted:#8b93a7; --line:#2a3a5e; --danger:#ff5d5d;
+  --fs:16px; --fs-lg:20px; --fs-xl:26px; --radius:14px;
+}
+[data-theme="cream"]{
+  --bg:#faf7f0; --surface:#ffffff; --accent:#16c784; --accent-d:#0fa066;
+  --text:#2d2d2d; --muted:#7a7a7a; --line:#e5e0d5; --danger:#e23d3d;
+}
+[data-fontsize="large"]{ --fs:20px; --fs-lg:25px; --fs-xl:32px; }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);
+  color:var(--text);font-size:var(--fs);line-height:1.6;transition:background .3s,color .3s;}
+.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
+.screen{flex:1;padding:24px 20px 90px;display:none;animation:fade .25s;}
+.screen.active{display:flex;flex-direction:column;}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+h1{font-size:var(--fs-xl);margin-bottom:6px;}
+h2{font-size:var(--fs-lg);margin-bottom:4px;}
+.muted{color:var(--muted);font-size:calc(var(--fs) - 2px);}
+.logo{font-size:46px;text-align:center;margin:40px 0 8px;}
+.center{text-align:center;}
+.spacer{flex:1;}
+.field{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;font-size:var(--fs);color:var(--text);margin-bottom:14px;outline:none;font-family:inherit;}
+.field:focus{border-color:var(--accent);}
+.code-input{font-size:var(--fs-xl);text-align:center;letter-spacing:10px;font-weight:700;}
+.btn{width:100%;background:var(--accent);color:#04231a;font-weight:700;text-align:center;
+  padding:16px;border-radius:var(--radius);font-size:var(--fs);border:none;cursor:pointer;
+  margin-top:8px;transition:background .15s;font-family:inherit;}
+.btn:active{background:var(--accent-d);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn.ghost{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+.btn.sm{width:auto;padding:10px 16px;font-size:calc(var(--fs) - 2px);margin:0;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.verse{background:var(--surface);border-left:4px solid var(--accent);border-radius:10px;padding:20px;margin:14px 0;}
+.ref{color:var(--accent);font-weight:700;font-size:calc(var(--fs) - 1px);margin-bottom:10px;}
+.verse-text{font-size:var(--fs-lg);line-height:1.8;}
+.row{display:flex;gap:12px;}
+.row>*{flex:1;}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;text-align:center;}
+.stat b{display:block;font-size:var(--fs-xl);color:var(--accent);}
+.stat small{color:var(--muted);font-size:calc(var(--fs) - 3px);}
+.member{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);}
+.member:last-child{border:none;}
+.tag-ok{color:var(--accent);font-weight:700;}
+.tag-wait{color:var(--muted);}
+.mic{width:96px;height:96px;border-radius:50%;background:var(--accent);margin:24px auto;
+  display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer;border:none;
+  transition:transform .15s;}
+.mic:active{transform:scale(.93);}
+.mic.rec{background:var(--danger);animation:pulse 1.2s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,93,93,.5)}70%{box-shadow:0 0 0 18px rgba(255,93,93,0)}100%{box-shadow:0 0 0 0 rgba(255,93,93,0)}}
+.bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin:10px 0;}
+.bar>span{display:block;height:100%;background:var(--accent);width:0;transition:width .3s;}
+.typed-display{font-size:var(--fs-lg);line-height:1.9;letter-spacing:.5px;word-break:break-all;min-height:60px;}
+.typed-display .g{color:var(--accent);}
+.typed-display .b{color:var(--danger);text-decoration:underline;background:rgba(255,93,93,.12);border-radius:3px;}
+.typed-display .n{color:var(--muted);}
+.typed-display .cur{border-bottom:2px solid var(--accent);animation:blink 1s infinite;}
+@keyframes blink{50%{border-color:transparent}}
+.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
+  display:flex;background:var(--surface);border-top:1px solid var(--line);}
+.tab{flex:1;text-align:center;padding:12px 0;font-size:calc(var(--fs) - 4px);color:var(--muted);cursor:pointer;border:none;background:none;font-family:inherit;}
+.tab.active{color:var(--accent);}
+.tab .ico{font-size:20px;display:block;}
+.toggle{display:flex;justify-content:space-between;align-items:center;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.sw{width:48px;height:28px;background:var(--line);border-radius:14px;position:relative;cursor:pointer;transition:background .2s;}
+.sw.on{background:var(--accent);}
+.sw::after{content:'';position:absolute;left:3px;top:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:left .2s;}
+.sw.on::after{left:23px;}
+.badge-anim{font-size:90px;text-align:center;margin:30px 0;animation:pop .5s;}
+@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+.step-ind{display:flex;gap:6px;justify-content:center;margin-bottom:18px;}
+.step-dot{width:34px;height:4px;border-radius:2px;background:var(--line);}
+.step-dot.on{background:var(--accent);}
+.back{background:none;border:none;color:var(--muted);font-size:var(--fs);cursor:pointer;margin-bottom:10px;padding:0;font-family:inherit;}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--surface);
+  border:1px solid var(--line);color:var(--text);padding:12px 20px;border-radius:30px;font-size:calc(var(--fs) - 2px);
+  opacity:0;pointer-events:none;transition:opacity .3s;z-index:50;white-space:nowrap;}
+.toast.show{opacity:1;}
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- S1: 로그인/교회입장 -->
+  <section class="screen active" id="s-login">
+    <div class="logo">📖</div>
+    <h1 class="center">PAT Bible</h1>
+    <p class="center muted">교회·가족·개인 성경 암송</p>
+    <div class="spacer"></div>
+    <p class="muted center" style="margin-bottom:12px">교회 코드를 입력하세요</p>
+    <input class="field code-input" id="churchCode" maxlength="5" inputmode="numeric" placeholder="-----">
+    <button class="btn" onclick="enterChurch()">시작하기</button>
+    <p class="center muted" style="margin-top:14px">체험용 코드: <b style="color:var(--accent)">11111</b></p>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- S3: 가족방 -->
+  <section class="screen" id="s-family">
+    <h1 id="churchName">세광교회</h1>
+    <p class="muted" id="weekLabel"></p>
+    <div class="card" style="margin-top:16px">
+      <h2>👨‍👩‍👧 우리 가족방</h2>
+      <p class="muted" id="familyProgress">이번 주 달성률</p>
+      <div class="bar"><span id="familyBar"></span></div>
+      <div id="memberList"></div>
+    </div>
+    <button class="btn" onclick="go('s-verse')">📖 이번 주 구절 보기</button>
+    <button class="btn ghost" onclick="toast('체험판: 초대 기능은 정식 버전에서 제공됩니다')">가족 구성원 초대</button>
+  </section>
+
+  <!-- S4: 구절 보기 -->
+  <section class="screen" id="s-verse">
+    <button class="back" onclick="go('s-family')">‹ 가족방</button>
+    <h1>이번 주 구절</h1>
+    <p class="muted" id="verseWeek"></p>
+    <div class="verse">
+      <div class="ref" id="verseRef"></div>
+      <div class="verse-text" id="verseText"></div>
+    </div>
+    <div class="card">
+      <b>암송 방법</b>
+      <p class="muted" style="margin-top:6px">① 음성 1차 낭독 → ② 음성 2차 검증 → ③ 직접 타이핑 → 완료!<br>음성 2회 + 타이핑 1회의 3중 검증으로 진짜 암송을 확인합니다.</p>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" onclick="startMemorize()">암송 시작</button>
+  </section>
+
+  <!-- S5: 음성 암송 -->
+  <section class="screen" id="s-voice">
+    <button class="back" onclick="go('s-verse')">‹ 구절</button>
+    <div class="step-ind">
+      <div class="step-dot on"></div><div class="step-dot" id="d2"></div><div class="step-dot" id="d3"></div>
+    </div>
+    <h1>음성 암송 <span style="color:var(--accent)" id="voiceStage">1차</span></h1>
+    <p class="muted">마이크를 켜고 아래 구절을 낭독하세요</p>
+    <div class="verse"><div class="ref" id="vRef"></div><div class="verse-text" id="vText" style="font-size:var(--fs)"></div></div>
+    <button class="mic" id="micBtn" onclick="toggleMic()">🎙️</button>
+    <p class="center muted" id="micHint">탭하여 녹음 시작</p>
+    <div class="card">
+      <small class="muted">인식된 내용</small>
+      <p id="recognized" style="min-height:30px;margin-top:6px">—</p>
+      <div class="bar"><span id="simBar"></span></div>
+      <small class="muted" id="simLabel">유사도 분석 대기 중</small>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="voiceNext" disabled onclick="voiceNext()">다음 단계</button>
+  </section>
+
+  <!-- S6: 타이핑 암송 -->
+  <section class="screen" id="s-typing">
+    <button class="back" onclick="go('s-voice')">‹ 음성</button>
+    <div class="step-ind">
+      <div class="step-dot on"></div><div class="step-dot on"></div><div class="step-dot on"></div>
+    </div>
+    <h1>직접 입력</h1>
+    <p class="muted">복사 불가 · 한 글자씩 정확히 입력하세요</p>
+    <div class="card">
+      <small class="muted" id="typeRef"></small>
+      <div class="typed-display" id="typedDisplay" style="margin-top:10px"></div>
+    </div>
+    <textarea class="field" id="typeInput" rows="3" placeholder="여기에 입력하세요..." oninput="onType()"
+      onpaste="return blockPaste(event)" oncopy="return false" oncut="return false" oncontextmenu="return false"></textarea>
+    <div class="bar"><span id="typeBar"></span></div>
+    <small class="muted" id="typeStatus">진행률 0%</small>
+    <div class="spacer"></div>
+    <button class="btn" id="typeDone" disabled onclick="completeMemorize()">완료 확인</button>
+  </section>
+
+  <!-- S7: 완료 -->
+  <section class="screen" id="s-complete">
+    <div class="spacer"></div>
+    <div class="badge-anim">🏆</div>
+    <h1 class="center">암송 완료!</h1>
+    <p class="center muted" id="completeRef"></p>
+    <div class="card center" style="margin-top:20px">
+      <div class="row">
+        <div><b style="color:var(--accent);font-size:var(--fs-lg)" id="cVoice1">—</b><br><small class="muted">음성1차</small></div>
+        <div><b style="color:var(--accent);font-size:var(--fs-lg)" id="cVoice2">—</b><br><small class="muted">음성2차</small></div>
+        <div><b style="color:var(--accent);font-size:var(--fs-lg)">100%</b><br><small class="muted">타이핑</small></div>
+      </div>
+    </div>
+    <p class="center" style="margin-top:16px">🎉 가족·교회 대시보드에 실시간 반영되었습니다</p>
+    <div class="spacer"></div>
+    <button class="btn" onclick="go('s-dashboard');renderDashboard()">대시보드 보기</button>
+    <button class="btn ghost" onclick="go('s-family');renderFamily()">가족방으로</button>
+  </section>
+
+  <!-- S7b: 대시보드 -->
+  <section class="screen" id="s-dashboard">
+    <h1>성취도</h1>
+    <p class="muted">개인 · 가족 · 교회</p>
+    <div class="row" style="margin-top:16px">
+      <div class="stat"><b id="dMyCount">0</b><small>내 완료(주)</small></div>
+      <div class="stat"><b id="dStreak">0</b><small>연속 일수</small></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="stat"><b id="dFamily">0%</b><small>가족 달성률</small></div>
+      <div class="stat"><b id="dBadge">0</b><small>획득 뱃지</small></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>🔥 교회 전체 현황</h2>
+      <p class="muted" id="dChurch" style="margin-top:6px"></p>
+      <div class="bar"><span id="dChurchBar"></span></div>
+    </div>
+    <div class="card">
+      <h2>🏆 이번 주 암송왕</h2>
+      <div class="member"><span>1. 김은혜 집사</span><span class="tag-ok">7회</span></div>
+      <div class="member"><span>2. 박소망 성도</span><span class="tag-ok">6회</span></div>
+      <div class="member"><span id="dMyRank">3. 나</span><span class="tag-ok" id="dMyScore">0회</span></div>
+    </div>
+  </section>
+
+  <!-- S8: 설정 -->
+  <section class="screen" id="s-settings">
+    <h1>설정</h1>
+    <p class="muted">접근성 · 테마</p>
+    <div style="margin-top:16px">
+      <div class="toggle"><span>🌙 다크 모드</span><div class="sw on" id="swTheme" onclick="toggleTheme()"></div></div>
+      <div class="toggle"><span>🔠 큰 글씨</span><div class="sw" id="swFont" onclick="toggleFont()"></div></div>
+      <div class="toggle"><span>👵 관대 모드 (노년층)</span><div class="sw" id="swLenient" onclick="toggleLenient()"></div></div>
+    </div>
+    <div class="card">
+      <small class="muted">관대 모드: 음성 유사도 기준을 85%→70%, 타이핑을 100%→90%로 낮춰 노년층도 쉽게 통과할 수 있습니다.</small>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn ghost" onclick="resetData()">기록 초기화 (체험용)</button>
+  </section>
+
+  <!-- 하단 탭 -->
+  <nav class="tabbar" id="tabbar">
+    <button class="tab active" data-screen="s-family" onclick="tabGo('s-family')"><span class="ico">🏠</span>홈</button>
+    <button class="tab" data-screen="s-verse" onclick="tabGo('s-verse')"><span class="ico">📖</span>암송</button>
+    <button class="tab" data-screen="s-dashboard" onclick="tabGo('s-dashboard');renderDashboard()"><span class="ico">📊</span>현황</button>
+    <button class="tab" data-screen="s-settings" onclick="tabGo('s-settings')"><span class="ico">⚙️</span>설정</button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ====== 데이터 (DB 스키마 기반 더미) ======
+const DB = {
+  church: { name:'세광교회', code:'11111', memberCount:248 },
+  verse: { ref:'요한복음 3:16', weekOf:'2026년 6월 1주차',
+    text:'하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라' },
+  members: [
+    { name:'아빠', done:true }, { name:'엄마', done:true },
+    { name:'나', done:false, me:true }, { name:'동생', done:false }
+  ]
+};
+// 검증 임계값
+let LENIENT = false;
+const TH = () => LENIENT ? { voice:70, typing:90 } : { voice:85, typing:100 };
+
+// 기록 (localStorage)
+function loadRec(){ try{ return JSON.parse(localStorage.getItem('pat_records')||'[]'); }catch(e){ return []; } }
+function saveRec(r){ localStorage.setItem('pat_records', JSON.stringify(r)); }
+
+// ====== 화면 전환 ======
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabbar = document.getElementById('tabbar');
+  const tabScreens = ['s-family','s-verse','s-dashboard','s-settings'];
+  tabbar.style.display = (id==='s-login') ? 'none' : 'flex';
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.screen===id);
+  });
+  window.scrollTo(0,0);
+}
+function tabGo(id){ if(id==='s-verse'){ renderVerse(); } if(id==='s-family'){ renderFamily(); } go(id); }
+
+// ====== S1 교회 입장 ======
+function enterChurch(){
+  const code = document.getElementById('churchCode').value.trim();
+  if(code !== DB.church.code){ toast('존재하지 않는 교회 코드입니다'); return; }
+  document.getElementById('churchName').textContent = DB.church.name;
+  document.getElementById('weekLabel').textContent = DB.verse.weekOf;
+  renderFamily();
+  go('s-family');
+}
+
+// ====== S3 가족방 ======
+function renderFamily(){
+  const recs = loadRec();
+  const me = DB.members.find(m=>m.me);
+  if(recs.length>0) me.done = true;
+  const doneCount = DB.members.filter(m=>m.done).length;
+  const pct = Math.round(doneCount/DB.members.length*100);
+  document.getElementById('familyProgress').textContent = `이번 주 달성률 ${doneCount}/${DB.members.length}명`;
+  document.getElementById('familyBar').style.width = pct+'%';
+  const list = DB.members.map(m=>
+    `<div class="member"><span>${m.name}${m.me?' (나)':''}</span>
+     <span class="${m.done?'tag-ok':'tag-wait'}">${m.done?'✔ 완료':'대기'}</span></div>`).join('');
+  document.getElementById('memberList').innerHTML = list;
+}
+
+// ====== S4 구절 ======
+function renderVerse(){
+  document.getElementById('verseWeek').textContent = DB.verse.weekOf;
+  document.getElementById('verseRef').textContent = DB.verse.ref;
+  document.getElementById('verseText').textContent = DB.verse.text;
+}
+function startMemorize(){ resetMemorizeState(); renderVoice(); go('s-voice'); }
+
+// ====== S5 음성 암송 ======
+let voiceStage=1, voiceScore1=0, voiceScore2=0, recognizing=false, recog=null;
+function renderVoice(){
+  document.getElementById('vRef').textContent = DB.verse.ref;
+  document.getElementById('vText').textContent = DB.verse.text;
+  document.getElementById('voiceStage').textContent = voiceStage+'차';
+  document.getElementById('d2').classList.toggle('on', voiceStage>=2);
+  document.getElementById('recognized').textContent = '—';
+  document.getElementById('simBar').style.width = '0';
+  document.getElementById('simLabel').textContent = '유사도 분석 대기 중';
+  document.getElementById('voiceNext').disabled = true;
+}
+function resetMemorizeState(){ voiceStage=1; voiceScore1=0; voiceScore2=0; document.getElementById('d3').classList.remove('on'); }
+
+// 텍스트 정규화 + 유사도(레벤슈타인 기반)
+function normalize(s){ return (s||'').replace(/[\s.,!?;:'"·…]/g,'').toLowerCase(); }
+function similarity(a,b){
+  a=normalize(a); b=normalize(b);
+  if(!a||!b) return 0;
+  const m=a.length,n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  const dist=dp[m][n]; const maxL=Math.max(m,n);
+  return Math.round((1-dist/maxL)*100);
+}
+
+function toggleMic(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ // STT 미지원 → 시뮬레이션
+    simulateVoice(); return;
+  }
+  if(recognizing){ recog && recog.stop(); return; }
+  recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true; recog.continuous=false;
+  recognizing=true; setMicRec(true);
+  let finalText='';
+  recog.onresult=(e)=>{
+    let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript;
+    finalText=t; document.getElementById('recognized').textContent=t;
+  };
+  recog.onerror=()=>{ toast('음성 인식 오류 — 시뮬레이션으로 진행'); recognizing=false; setMicRec(false); simulateVoice(); };
+  recog.onend=()=>{ recognizing=false; setMicRec(false); evalVoice(finalText); };
+  recog.start();
+}
+function setMicRec(on){
+  const b=document.getElementById('micBtn');
+  b.classList.toggle('rec',on); b.textContent = on?'⏹️':'🎙️';
+  document.getElementById('micHint').textContent = on?'녹음 중... 탭하여 종료':'탭하여 녹음 시작';
+}
+function simulateVoice(){
+  setMicRec(true);
+  document.getElementById('micHint').textContent='인식 중...(체험 모드)';
+  setTimeout(()=>{
+    setMicRec(false);
+    // 체험: 원문의 약 90% 인식되었다고 가정
+    const words = DB.verse.text.split(' ');
+    const keep = Math.ceil(words.length*0.9);
+    const simulated = words.slice(0,keep).join(' ');
+    document.getElementById('recognized').textContent = simulated + ' …';
+    evalVoice(simulated);
+  }, 1200);
+}
+function evalVoice(text){
+  const sim = similarity(text, DB.verse.text);
+  document.getElementById('simBar').style.width = sim+'%';
+  const pass = sim >= TH().voice;
+  document.getElementById('simLabel').innerHTML =
+    `유사도 <b style="color:${pass?'var(--accent)':'var(--danger)'}">${sim}%</b> · 통과 기준 ${TH().voice}%`;
+  if(pass){
+    if(voiceStage===1) voiceScore1=sim; else voiceScore2=sim;
+    document.getElementById('voiceNext').disabled=false;
+    toast('✓ '+voiceStage+'차 통과!');
+  }else{
+    toast('기준 미달 — 다시 낭독해주세요');
+  }
+}
+function voiceNext(){
+  if(voiceStage===1){ voiceStage=2; renderVoice(); }
+  else { document.getElementById('d3').classList.add('on'); renderTyping(); go('s-typing'); }
+}
+
+// ====== S6 타이핑 ======
+function renderTyping(){
+  document.getElementById('typeRef').textContent = DB.verse.ref;
+  document.getElementById('typeInput').value='';
+  document.getElementById('typeDone').disabled=true;
+  updateTyped('');
+}
+function blockPaste(e){ e.preventDefault(); toast('붙여넣기는 사용할 수 없습니다'); return false; }
+function onType(){ updateTyped(document.getElementById('typeInput').value); }
+function updateTyped(input){
+  const target = DB.verse.text;
+  let html=''; let correct=0;
+  for(let i=0;i<target.length;i++){
+    const tc=target[i];
+    if(i<input.length){
+      if(input[i]===tc){ html+=`<span class="g">${esc(tc)}</span>`; correct++; }
+      else html+=`<span class="b">${esc(tc)}</span>`;
+    } else if(i===input.length){ html+=`<span class="cur n">${esc(tc)}</span>`; }
+    else html+=`<span class="n">${esc(tc)}</span>`;
+  }
+  document.getElementById('typedDisplay').innerHTML=html;
+  const pct = Math.round(correct/target.length*100);
+  document.getElementById('typeBar').style.width=pct+'%';
+  const exactLen = input.length===target.length;
+  document.getElementById('typeStatus').textContent =
+    `진행률 ${pct}% · ${correct}/${target.length}자 정확`;
+  document.getElementById('typeDone').disabled = !(pct>=TH().typing && exactLen);
+}
+function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;'); }
+
+// ====== 완료 ======
+function completeMemorize(){
+  const recs = loadRec();
+  recs.push({ ref:DB.verse.ref, voiceScore1, voiceScore2, typingPassed:true,
+    completedAt:new Date().toISOString(), badge:'weekly_complete' });
+  saveRec(recs);
+  document.getElementById('completeRef').textContent = DB.verse.ref+' 암송 성공';
+  document.getElementById('cVoice1').textContent = (voiceScore1||90)+'%';
+  document.getElementById('cVoice2').textContent = (voiceScore2||92)+'%';
+  go('s-complete');
+}
+
+// ====== 대시보드 ======
+function renderDashboard(){
+  const recs = loadRec();
+  const myCount = recs.length;
+  document.getElementById('dMyCount').textContent = myCount;
+  document.getElementById('dStreak').textContent = myCount>0?1:0;
+  document.getElementById('dBadge').textContent = myCount;
+  const me = DB.members.find(m=>m.me); if(myCount>0) me.done=true;
+  const doneCount = DB.members.filter(m=>m.done).length;
+  document.getElementById('dFamily').textContent = Math.round(doneCount/DB.members.length*100)+'%';
+  const base = 188 + (myCount>0?1:0);
+  document.getElementById('dChurch').textContent = `참여율 ${Math.round(base/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${base}명`;
+  document.getElementById('dChurchBar').style.width = Math.round(base/DB.church.memberCount*100)+'%';
+  document.getElementById('dMyScore').textContent = myCount+'회';
+}
+
+// ====== 설정 ======
+function toggleTheme(){
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme', dark?'cream':'dark');
+  document.getElementById('swTheme').classList.toggle('on', !dark);
+}
+function toggleFont(){
+  const lg = document.documentElement.getAttribute('data-fontsize')==='large';
+  document.documentElement.setAttribute('data-fontsize', lg?'normal':'large');
+  document.getElementById('swFont').classList.toggle('on', !lg);
+}
+function toggleLenient(){
+  LENIENT=!LENIENT;
+  document.getElementById('swLenient').classList.toggle('on', LENIENT);
+  toast(LENIENT?'관대 모드 ON (기준 완화)':'관대 모드 OFF');
+}
+function resetData(){ localStorage.removeItem('pat_records'); DB.members.find(m=>m.me).done=false; toast('기록이 초기화되었습니다'); renderFamily(); }
+
+// ====== 토스트 ======
+let toastT;
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// 코드 입력 자동 진행
+document.getElementById('churchCode').addEventListener('keyup',e=>{ if(e.key==='Enter') enterChurch(); });
+</script>
+</body>
+</html>
