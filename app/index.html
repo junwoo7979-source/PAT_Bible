@@ -82,6 +82,13 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 .step-ind{display:flex;gap:6px;justify-content:center;margin-bottom:18px;}
 .step-dot{width:34px;height:4px;border-radius:2px;background:var(--line);}
 .step-dot.on{background:var(--accent);}
+/* 이름 붙은 진행 단계 바 */
+.steps{display:flex;gap:6px;margin-bottom:16px;}
+.steps .st{flex:1;text-align:center;padding:8px 2px;border-radius:10px;background:var(--surface);
+  border:1px solid var(--line);font-size:calc(var(--fs) - 5px);color:var(--muted);line-height:1.3;}
+.steps .st .no{display:block;font-weight:700;font-size:calc(var(--fs) - 3px);}
+.steps .st.done{border-color:var(--accent);color:var(--accent);}
+.steps .st.cur{background:var(--accent);border-color:var(--accent);color:#04231a;font-weight:700;}
 .back{background:none;border:none;color:var(--muted);font-size:var(--fs);cursor:pointer;margin-bottom:10px;padding:0;font-family:inherit;}
 .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--surface);
   border:1px solid var(--line);color:var(--text);padding:12px 20px;border-radius:30px;font-size:calc(var(--fs) - 2px);
@@ -229,10 +236,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <!-- S5: 음성 암송 -->
   <section class="screen" id="s-voice">
     <button class="back" onclick="go('s-verse')">‹ 구절</button>
-    <div class="step-ind">
-      <div class="step-dot on"></div><div class="step-dot" id="d2"></div>
-      <div class="step-dot" id="d3"></div><div class="step-dot" id="d4"></div>
-    </div>
+    <div class="steps" id="stepsVoice"></div>
     <h1>음성 암송 <span style="color:var(--accent)" id="voiceStage">1차</span></h1>
     <p class="muted">마이크를 켜고 아래 구절을 낭독하세요</p>
     <div class="verse"><div class="ref" id="vRef"></div><div class="verse-text" id="vText" style="font-size:var(--fs)"></div></div>
@@ -260,10 +264,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <!-- S6: 타이핑 암송 -->
   <section class="screen" id="s-typing">
     <button class="back" onclick="go('s-voice')">‹ 음성</button>
-    <div class="step-ind">
-      <div class="step-dot on"></div><div class="step-dot on"></div>
-      <div class="step-dot on"></div><div class="step-dot" id="td2"></div>
-    </div>
+    <div class="steps" id="stepsTyping"></div>
     <h1>직접 입력 <span style="color:var(--accent)" id="typeStage">1차</span></h1>
     <p class="muted">복사 불가 · 한 글자씩 정확히 입력하세요</p>
     <div class="card">
@@ -511,11 +512,21 @@ function startMemorize(){ resetMemorizeState(); renderVoice(); go('s-voice'); }
 
 // ====== S5 음성 암송 ======
 let voiceStage=1, voiceScore1=0, voiceScore2=0, recognizing=false, recog=null, typeStage=1;
+// 진행 단계 바 (1:음성1 2:음성2 3:타이핑1 4:타이핑2)
+const STEP_NAMES = ['음성 1차','음성 2차','타이핑 1차','타이핑 2차'];
+function renderSteps(active){
+  const html = STEP_NAMES.map((nm,i)=>{
+    const n=i+1; const cls = n<active?'done':(n===active?'cur':'');
+    const mark = n<active?'✓':n;
+    return `<div class="st ${cls}"><span class="no">${mark}</span>${nm}</div>`;
+  }).join('');
+  ['stepsVoice','stepsTyping'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
+}
 function renderVoice(){
   document.getElementById('vRef').textContent = DB.verse.ref;
   document.getElementById('vText').textContent = DB.verse.text;
   document.getElementById('voiceStage').textContent = voiceStage+'차';
-  document.getElementById('d2').classList.toggle('on', voiceStage>=2);
+  renderSteps(voiceStage);
   document.getElementById('recognized').textContent = '—';
   document.getElementById('simBar').style.width = '0';
   document.getElementById('simLabel').textContent = '유사도 분석 대기 중';
@@ -537,8 +548,6 @@ function manualVoiceCheck(){
 }
 function resetMemorizeState(){
   voiceStage=1; voiceScore1=0; voiceScore2=0; typeStage=1;
-  document.getElementById('d3').classList.remove('on');
-  document.getElementById('d4').classList.remove('on');
 }
 
 // 텍스트 정규화 + 유사도(레벤슈타인 기반)
@@ -625,13 +634,13 @@ function evalVoice(text){
 }
 function voiceNext(){
   if(voiceStage===1){ voiceStage=2; renderVoice(); }
-  else { document.getElementById('d3').classList.add('on'); typeStage=1; renderTyping(); go('s-typing'); }
+  else { typeStage=1; renderTyping(); go('s-typing'); }
 }
 
 // ====== S6 타이핑 (2회) ======
 function renderTyping(){
   document.getElementById('typeStage').textContent = typeStage+'차';
-  document.getElementById('td2').classList.toggle('on', typeStage>=2);
+  renderSteps(2 + typeStage);
   document.getElementById('typeRef').textContent = DB.verse.ref;
   document.getElementById('typeInput').value='';
   document.getElementById('typeDone').disabled=true;
@@ -642,7 +651,6 @@ function renderTyping(){
 function typingNext(){
   if(typeStage===1){
     typeStage=2;
-    document.getElementById('d4').classList.add('on');
     renderTyping();
     toast('✓ 타이핑 1차 통과! 2차 입력하세요');
   } else {
