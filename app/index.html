@@ -116,7 +116,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <!-- S1: 로그인/교회입장 -->
   <section class="screen active" id="s-login">
     <div class="logo">📖</div>
-    <h1 class="center">PAT Bible</h1>
+    <h1 class="center" id="loginAppTitle">PAT Bible</h1>
     <p class="center muted">교회·가족·개인 성경 암송</p>
     <div class="spacer"></div>
     <p class="muted center" style="margin-bottom:12px">교회 코드를 입력하세요</p>
@@ -189,7 +189,11 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <!-- 교회 이름 등록 권한 -->
     <div class="card">
       <h2>⛪ 교회 정보 관리</h2>
-      <p class="muted" style="margin:6px 0 10px">교회 이름 등록·수정 권한</p>
+      <p class="muted" style="margin:6px 0 10px">교회 이름과 로그인 화면 제목 등록·수정 권한</p>
+      <label class="lbl">앱 상단 제목</label>
+      <input class="field" id="inAppTitle" placeholder="예: PAT Bible">
+      <button class="btn ghost" onclick="saveAppTitle()">앱 제목 저장</button>
+      <label class="lbl">교회 이름</label>
       <input class="field" id="inChurchName" placeholder="교회 이름">
       <button class="btn ghost" onclick="saveChurchName()">교회 이름 저장</button>
     </div>
@@ -379,7 +383,14 @@ function saveRec(r){ localStorage.setItem('pat_records', JSON.stringify(r)); }
 // ====== 교회/구절 영속화 (관리자 등록분 반영) ======
 function loadVerses(){ try{ return JSON.parse(localStorage.getItem('pat_verses')||'[]'); }catch(e){ return []; } }
 function saveVerses(v){ localStorage.setItem('pat_verses', JSON.stringify(v)); }
+const APP_TITLE_DEFAULT='PAT Bible';
+function applyAppTitle(){
+  const title=localStorage.getItem('pat_app_title')||APP_TITLE_DEFAULT;
+  document.getElementById('loginAppTitle').textContent=title;
+  return title;
+}
 function applyStoredData(){
+  applyAppTitle();
   // 저장된 교회 이름
   const cn = localStorage.getItem('pat_church_name');
   if(cn) DB.church.name = cn;
@@ -401,6 +412,7 @@ function adminLogin(){
 function adminLogout(){ go('s-login'); toast('로그아웃되었습니다'); }
 function renderAdmin(){
   document.getElementById('adminChurchLabel').textContent = '관리 교회: '+DB.church.name;
+  document.getElementById('inAppTitle').value = applyAppTitle();
   document.getElementById('inChurchName').value = DB.church.name;
   if(!document.getElementById('inDate').value){
     document.getElementById('inDate').value = new Date().toISOString().slice(0,10);
@@ -462,6 +474,13 @@ function saveChurchName(){
   document.getElementById('adminChurchLabel').textContent='관리 교회: '+name;
   renderPreview();
   toast('✓ 교회 이름이 저장되었습니다');
+}
+function saveAppTitle(){
+  const title=document.getElementById('inAppTitle').value.trim();
+  if(!title){ toast('앱 상단 제목을 입력하세요'); return; }
+  localStorage.setItem('pat_app_title', title);
+  applyAppTitle();
+  toast('✓ 앱 상단 제목이 저장되었습니다');
 }
 function registerVerse(){
   const ref=document.getElementById('inRef').value.trim();
