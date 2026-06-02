@@ -580,9 +580,15 @@ function enterChurch(){
   const code = document.getElementById('churchCode').value.trim();
   const profile = loadFamilyProfile();
   const famPw = profile?.familyPassword;
-  // 교회 입장 코드 또는 등록된 가족 비밀번호로 입장 가능
-  if(code !== DB.church.code && !(famPw && code === famPw)){
-    toast('교회 코드 또는 가족 비밀번호가 올바르지 않습니다'); return;
+  const hasCustomPw = famPw && famPw !== DB.church.code;
+  if(hasCustomPw){
+    // 가족이 전용 비밀번호를 설정함 → 그 비밀번호로만 입장 (가족 외 접근 차단)
+    if(code !== famPw){ toast('가족 비밀번호가 올바르지 않습니다 — 가족 외 접근 불가'); return; }
+  } else {
+    // 전용 비밀번호 미설정 → 교회 코드(또는 기존 비번)로 입장하여 가족방 등록·비번 설정
+    if(code !== DB.church.code && !(famPw && code === famPw)){
+      toast('교회 코드가 올바르지 않습니다'); return;
+    }
   }
   document.getElementById('churchName').textContent = memberHomeTitle();
   renderMemberDateLabels();
