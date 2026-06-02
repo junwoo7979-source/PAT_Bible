@@ -342,6 +342,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <div class="stat"><b id="dBadge">0</b><small>획득 뱃지</small></div>
     </div>
     <div class="card" style="margin-top:16px">
+      <h2>🧭 교구별 현황</h2>
+      <div id="dParishList" style="margin-top:6px"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
       <h2>🔥 교회 전체 현황</h2>
       <p class="muted" id="dChurch" style="margin-top:6px"></p>
       <div class="bar"><span id="dChurchBar"></span></div>
@@ -880,6 +884,22 @@ function completeMemorize(){
 }
 
 // ====== 대시보드 ======
+const PARISH_STATS = [
+  { name:'1블레싱', done:52, total:80 },
+  { name:'2블레싱', done:48, total:72 },
+  { name:'3블레싱', done:44, total:68 },
+];
+function renderParishStats(myCount){
+  const profile=loadFamilyProfile();
+  document.getElementById('dParishList').innerHTML = PARISH_STATS.map(item=>{
+    const isMine=profile?.parish===item.name;
+    const done=item.done+(isMine&&myCount>0?1:0);
+    const pct=Math.round(done/item.total*100);
+    return `<div class="member"><span><b>${item.name}</b>${isMine?' <small class="tag-ok">내 교구</small>':''}<br>
+      <small class="muted">${done}/${item.total}명 · ${pct}%</small>
+      <div class="bar"><span style="width:${pct}%"></span></div></span></div>`;
+  }).join('');
+}
 function renderDashboard(){
   const recs = loadRec();
   const myCount = recs.length;
@@ -889,6 +909,7 @@ function renderDashboard(){
   const me = DB.members.find(m=>m.me); if(myCount>0) me.done=true;
   const doneCount = DB.members.filter(m=>m.done).length;
   document.getElementById('dFamily').textContent = Math.round(doneCount/DB.members.length*100)+'%';
+  renderParishStats(myCount);
   const base = 188 + (myCount>0?1:0);
   document.getElementById('dChurch').textContent = `참여율 ${Math.round(base/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${base}명`;
   document.getElementById('dChurchBar').style.width = Math.round(base/DB.church.memberCount*100)+'%';
