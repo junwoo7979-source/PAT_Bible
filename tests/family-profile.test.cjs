@@ -50,22 +50,25 @@ assert.match(
 
 getElement('familyRoomName').value = '믿음 가족방';
 getElement('familyLeaderName').value = '김민수';
+getElement('familyParish').value = '동부교구';
 getElement('familyDistrict').value = '3구역';
 context.saveFamilyProfile();
 
 assert.deepEqual(
   JSON.parse(storage.get('pat_family_profile')),
-  { roomName: '믿음 가족방', leaderName: '김민수', district: '3구역' },
+  { roomName: '믿음 가족방', leaderName: '김민수', parish: '동부교구', district: '3구역' },
 );
 assert.equal(getElement('familyRoomTitle').textContent, '👨‍👩‍👧 믿음 가족방');
-assert.equal(getElement('familyProfile').textContent, '대표 김민수 · 3구역');
+assert.equal(getElement('familyProfile').textContent, '대표 김민수 · 동부교구 · 3구역');
 
 getElement('familyRoomName').value = '';
 getElement('familyLeaderName').value = '';
+getElement('familyParish').value = '';
 getElement('familyDistrict').value = '';
 context.openFamilyRegister();
 assert.equal(getElement('familyRoomName').value, '믿음 가족방');
 assert.equal(getElement('familyLeaderName').value, '김민수');
+assert.equal(getElement('familyParish').value, '동부교구');
 assert.equal(getElement('familyDistrict').value, '3구역');
 
 console.log('family profile persistence: PASS');
