@@ -203,7 +203,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
   <!-- S3: 가족방 -->
   <section class="screen" id="s-family">
-    <h1 id="churchName">세광교회</h1>
+    <h1 id="churchName">세광교회 PAT</h1>
     <p class="muted" id="weekLabel"></p>
     <p class="muted" id="familyToday"></p>
     <div class="card" style="margin-top:16px">
@@ -521,13 +521,14 @@ function tabGo(id){ go(id); }
 function enterChurch(){
   const code = document.getElementById('churchCode').value.trim();
   if(code !== DB.church.code){ toast('존재하지 않는 교회 코드입니다'); return; }
-  document.getElementById('churchName').textContent = DB.church.name;
+  document.getElementById('churchName').textContent = memberHomeTitle();
   renderMemberDateLabels();
   renderFamily();
   go('s-family');
 }
 
 // ====== S3 가족방 ======
+function memberHomeTitle(){ return DB.church.name+' PAT'; }
 function renderFamily(){
   const recs = loadRec();
   const me = DB.members.find(m=>m.me);
@@ -541,7 +542,7 @@ function renderFamily(){
      <span class="${m.done?'tag-ok':'tag-wait'}">${m.done?'✔ 완료':'대기'}</span></div>`).join('');
   document.getElementById('memberList').innerHTML = list;
   // 가족방에서도 이번 주 구절 표시
-  document.getElementById('churchName').textContent = DB.church.name;
+  document.getElementById('churchName').textContent = memberHomeTitle();
   renderMemberDateLabels();
   document.getElementById('famVerseRef').textContent = DB.verse.ref;
   document.getElementById('famVerseText').textContent = DB.verse.text;
