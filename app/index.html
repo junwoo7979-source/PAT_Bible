@@ -605,9 +605,14 @@ function renderFamilyProfile(){
   document.getElementById('familyRoomTitle').textContent = profile
     ? `👨‍👩‍👧 ${profile.roomName}`
     : '👨‍👩‍👧 우리 가족방';
-  document.getElementById('familyProfile').textContent = profile
-    ? `대표 ${profile.leaderName}${profile.parish?' · '+profile.parish:''} · ${profile.district}`
-    : '가족방을 등록해주세요';
+  if(profile){
+    const parishLabel = profile.parish ? (/교구$/.test(profile.parish) ? profile.parish : profile.parish+'교구') : '';
+    const districtLabel = profile.district ? (/구역$/.test(profile.district) ? profile.district : profile.district+'구역') : '';
+    const parts = ['대표 '+profile.leaderName, parishLabel, districtLabel].filter(Boolean);
+    document.getElementById('familyProfile').textContent = parts.join(' ');
+  } else {
+    document.getElementById('familyProfile').textContent = '가족방을 등록해주세요';
+  }
 }
 function openFamilyRegister(){
   const profile=loadFamilyProfile();
