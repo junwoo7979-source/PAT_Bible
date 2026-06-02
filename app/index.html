@@ -341,10 +341,8 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <div class="stat"><b id="dFamily">0%</b><small>가족 달성률</small></div>
       <div class="stat"><b id="dBadge">0</b><small>획득 뱃지</small></div>
     </div>
-    <div class="card" style="margin-top:16px">
-      <h2>🧭 교구별 현황</h2>
-      <div id="dParishList" style="margin-top:6px"></div>
-    </div>
+    <h2 style="margin-top:18px">🧭 교구별 블레싱 진행표</h2>
+    <div id="dParishList"></div>
     <div class="card" style="margin-top:16px">
       <h2>🔥 교회 전체 현황</h2>
       <p class="muted" id="dChurch" style="margin-top:6px"></p>
@@ -884,20 +882,28 @@ function completeMemorize(){
 }
 
 // ====== 대시보드 ======
-const PARISH_STATS = [
-  { name:'1블레싱', done:52, total:80 },
-  { name:'2블레싱', done:48, total:72 },
-  { name:'3블레싱', done:44, total:68 },
+// 교구별 블레싱 진행표 (1·2·3교구 각각 1·2·3블레싱 진행)
+const PARISH_BLESSINGS = [
+  { parish:'1교구', blessings:[ {name:'1블레싱',done:18,total:24}, {name:'2블레싱',done:14,total:24}, {name:'3블레싱',done:9,total:24} ] },
+  { parish:'2교구', blessings:[ {name:'1블레싱',done:20,total:28}, {name:'2블레싱',done:16,total:28}, {name:'3블레싱',done:11,total:28} ] },
+  { parish:'3교구', blessings:[ {name:'1블레싱',done:14,total:20}, {name:'2블레싱',done:12,total:20}, {name:'3블레싱',done:7,total:20} ] },
 ];
 function renderParishStats(myCount){
   const profile=loadFamilyProfile();
-  document.getElementById('dParishList').innerHTML = PARISH_STATS.map(item=>{
-    const isMine=profile?.parish===item.name;
-    const done=item.done+(isMine&&myCount>0?1:0);
-    const pct=Math.round(done/item.total*100);
-    return `<div class="member"><span><b>${item.name}</b>${isMine?' <small class="tag-ok">내 교구</small>':''}<br>
-      <small class="muted">${done}/${item.total}명 · ${pct}%</small>
-      <div class="bar"><span style="width:${pct}%"></span></div></span></div>`;
+  document.getElementById('dParishList').innerHTML = PARISH_BLESSINGS.map(p=>{
+    const isMine = profile?.parish && (profile.parish===p.parish || profile.parish.includes(p.parish));
+    const rows = p.blessings.map(b=>{
+      // 내 교구의 첫 블레싱에 내 완료 1건 반영(체험)
+      const done = b.done + (isMine && b.name==='1블레싱' && myCount>0 ? 1 : 0);
+      const pct = Math.round(done/b.total*100);
+      return `<div class="member"><span><b>${b.name}</b><br>
+        <small class="muted">${done}/${b.total}명 · ${pct}%</small>
+        <div class="bar"><span style="width:${pct}%"></span></div></span></div>`;
+    }).join('');
+    return `<div class="card" style="margin-top:12px${isMine?';border-color:var(--accent)':''}">
+      <h2>${p.parish} 블레싱 진행표${isMine?' <small class="tag-ok">내 교구</small>':''}</h2>
+      ${rows}
+    </div>`;
   }).join('');
 }
 function renderDashboard(){
