@@ -341,8 +341,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <div class="stat"><b id="dFamily">0%</b><small>가족 달성률</small></div>
       <div class="stat"><b id="dBadge">0</b><small>획득 뱃지</small></div>
     </div>
-    <h2 style="margin-top:18px">🧭 블레싱별 진행표 (교구별)</h2>
-    <div id="dParishList"></div>
+    <div class="card" style="margin-top:16px">
+      <h2>🧭 교구별 현황</h2>
+      <div id="dParishList" style="margin-top:6px"></div>
+    </div>
     <div class="card" style="margin-top:16px">
       <h2>🔥 교회 전체 현황</h2>
       <p class="muted" id="dChurch" style="margin-top:6px"></p>
@@ -882,28 +884,24 @@ function completeMemorize(){
 }
 
 // ====== 대시보드 ======
-// 블레싱별 교구 진행표 (1·2·3블레싱 각각 1·2·3교구 진행)
-const BLESSING_PARISHES = [
-  { name:'1블레싱', parishes:[ {parish:'1교구',done:18,total:24}, {parish:'2교구',done:20,total:28}, {parish:'3교구',done:14,total:20} ] },
-  { name:'2블레싱', parishes:[ {parish:'1교구',done:14,total:24}, {parish:'2교구',done:16,total:28}, {parish:'3교구',done:12,total:20} ] },
-  { name:'3블레싱', parishes:[ {parish:'1교구',done:9,total:24},  {parish:'2교구',done:11,total:28}, {parish:'3교구',done:7,total:20} ] },
+// 교구별 현황 (교구 3개 + 블레싱 총합)
+const PARISH_STATS = [
+  { name:'1교구', done:52, total:80 },
+  { name:'2교구', done:48, total:72 },
+  { name:'3교구', done:44, total:68 },
+  { name:'블레싱', done:30, total:400, isTotal:true },
 ];
 function renderParishStats(myCount){
   const profile=loadFamilyProfile();
-  document.getElementById('dParishList').innerHTML = BLESSING_PARISHES.map((b,bi)=>{
-    const rows = b.parishes.map(p=>{
-      const isMine = profile?.parish && (profile.parish===p.parish || profile.parish.includes(p.parish));
-      // 내 교구의 1블레싱에 내 완료 1건 반영(체험)
-      const done = p.done + (isMine && bi===0 && myCount>0 ? 1 : 0);
-      const pct = Math.round(done/p.total*100);
-      return `<div class="member"><span><b>${p.parish}</b>${isMine?' <small class="tag-ok">내 교구</small>':''}<br>
-        <small class="muted">${done}/${p.total}명 · ${pct}%</small>
-        <div class="bar"><span style="width:${pct}%"></span></div></span></div>`;
-    }).join('');
-    return `<div class="card" style="margin-top:12px">
-      <h2>${b.name} 진행표</h2>
-      ${rows}
-    </div>`;
+  document.getElementById('dParishList').innerHTML = PARISH_STATS.map(item=>{
+    const isMine = !item.isTotal && profile?.parish && (profile.parish===item.name || profile.parish.includes(item.name));
+    // 블레싱 총합에는 내 완료 건수 반영
+    const done = item.done + (item.isTotal && myCount>0 ? myCount : 0);
+    const pct = Math.round(done/item.total*100);
+    const cls = item.isTotal ? 'border-top:1px solid var(--line);margin-top:8px;padding-top:14px' : '';
+    return `<div class="member" style="${cls}"><span><b>${item.name}</b>${isMine?' <small class="tag-ok">내 교구</small>':''}<br>
+      <small class="muted">${done}/${item.total}명 · ${pct}%</small>
+      <div class="bar"><span style="width:${pct}%"></span></div></span></div>`;
   }).join('');
 }
 function renderDashboard(){
