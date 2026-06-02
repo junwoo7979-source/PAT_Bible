@@ -119,10 +119,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <h1 class="center" id="loginAppTitle">PAT Bible</h1>
     <p class="center muted">교회·가족·개인 성경 암송</p>
     <div class="spacer"></div>
-    <p class="muted center" style="margin-bottom:12px">교회 코드를 입력하세요</p>
-    <input class="field code-input" id="churchCode" maxlength="5" inputmode="numeric" placeholder="-----">
+    <p class="muted center" style="margin-bottom:12px">교회 코드 또는 가족 비밀번호를 입력하세요</p>
+    <input class="field code-input" id="churchCode" maxlength="20" placeholder="· · · · ·" style="letter-spacing:4px">
     <button class="btn" onclick="enterChurch()">시작하기</button>
-    <p class="center muted" style="margin-top:14px">체험용 코드: <b style="color:var(--accent)">11111</b></p>
+    <p class="center muted" style="margin-top:14px">체험용 교회 코드: <b style="color:var(--accent)">11111</b></p>
     <button class="back" style="margin:18px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
     <div class="spacer"></div>
   </section>
@@ -243,6 +243,11 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <input class="field" id="familyParish" placeholder="예: 동부교구">
       <label class="lbl">구역</label>
       <input class="field" id="familyDistrict" placeholder="예: 3구역">
+      <label class="lbl">가족 비밀번호</label>
+      <input class="field" id="familyPassword" placeholder="가족방 전용 비밀번호">
+      <p class="muted" style="font-size:calc(var(--fs) - 5px);margin:-4px 2px 10px">
+        처음엔 교회 입장 코드를 받지만, 여기서 가족만의 비밀번호로 변경할 수 있습니다.
+        이후 교회 코드 또는 가족 비밀번호 둘 다로 입장 가능합니다.</p>
       <button class="btn" onclick="saveFamilyProfile()">가족방 등록 저장</button>
     </div>
   </section>
@@ -573,7 +578,12 @@ function tabGo(id){ go(id); }
 // ====== S1 교회 입장 ======
 function enterChurch(){
   const code = document.getElementById('churchCode').value.trim();
-  if(code !== DB.church.code){ toast('존재하지 않는 교회 코드입니다'); return; }
+  const profile = loadFamilyProfile();
+  const famPw = profile?.familyPassword;
+  // 교회 입장 코드 또는 등록된 가족 비밀번호로 입장 가능
+  if(code !== DB.church.code && !(famPw && code === famPw)){
+    toast('교회 코드 또는 가족 비밀번호가 올바르지 않습니다'); return;
+  }
   document.getElementById('churchName').textContent = memberHomeTitle();
   renderMemberDateLabels();
   renderFamily();
@@ -599,6 +609,8 @@ function openFamilyRegister(){
   document.getElementById('familyLeaderName').value=profile?.leaderName||'';
   document.getElementById('familyParish').value=profile?.parish||'';
   document.getElementById('familyDistrict').value=profile?.district||'';
+  // 가족 비밀번호: 기존 값, 없으면 교회 입장 코드를 기본으로 부여
+  document.getElementById('familyPassword').value=profile?.familyPassword||DB.church.code;
   go('s-family-register');
 }
 function saveFamilyProfile(){
@@ -606,11 +618,13 @@ function saveFamilyProfile(){
   const leaderName=document.getElementById('familyLeaderName').value.trim();
   const parish=document.getElementById('familyParish').value.trim();
   const district=document.getElementById('familyDistrict').value.trim();
+  let familyPassword=document.getElementById('familyPassword').value.trim();
   if(!roomName||!leaderName||!parish||!district){ toast('가족방 이름, 대표 이름, 교구와 구역을 입력하세요'); return; }
-  localStorage.setItem('pat_family_profile', JSON.stringify({ roomName, leaderName, parish, district }));
+  if(!familyPassword) familyPassword=DB.church.code; // 비우면 교회 코드로 유지
+  localStorage.setItem('pat_family_profile', JSON.stringify({ roomName, leaderName, parish, district, familyPassword }));
   renderFamilyProfile();
   go('s-family');
-  toast('✓ 가족방 등록 정보가 저장되었습니다');
+  toast('✓ 가족방 정보가 저장되었습니다 (가족 비밀번호 적용)');
 }
 function memberHomeTitle(){ return DB.church.name+' PAT'; }
 function renderFamily(){
