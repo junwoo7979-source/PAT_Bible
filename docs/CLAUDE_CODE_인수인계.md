@@ -37,6 +37,13 @@
 - 제목은 `pat_app_title` localStorage에 저장된다.
 - 저장 값이 없으면 기본 제목 `PAT Bible`을 사용한다.
 
+### 가족방 대표 등록
+
+- 성도 홈에서 `가족방 등록` 버튼을 누르면 가족방 등록 화면으로 이동한다.
+- 가족 대표 이름과 구역을 입력해 저장한다.
+- 값은 `pat_family_profile` localStorage에 `{ leaderName, district }` 형식으로 저장한다.
+- 홈의 가족방 카드에서 `대표 이름 · 구역`을 표시한다.
+
 ## 테스트
 
 - `tests\voice-recognition-lifecycle.test.cjs`

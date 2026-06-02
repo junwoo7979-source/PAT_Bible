@@ -1,0 +1,62 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+
+const html = fs.readFileSync('app/index.html', 'utf8');
+const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const elements = new Map();
+const storage = new Map();
+
+function getElement(id) {
+  if (!elements.has(id)) {
+    elements.set(id, {
+      value: '',
+      textContent: '',
+      innerHTML: '',
+      style: {},
+      dataset: {},
+      classList: { add() {}, remove() {}, toggle() {} },
+      addEventListener() {},
+      focus() {},
+    });
+  }
+  return elements.get(id);
+}
+
+const context = {
+  console,
+  Date,
+  localStorage: {
+    getItem(key) { return storage.get(key) ?? null; },
+    setItem(key, value) { storage.set(key, value); },
+    removeItem(key) { storage.delete(key); },
+  },
+  document: {
+    documentElement: { getAttribute() { return 'dark'; }, setAttribute() {} },
+    getElementById: getElement,
+    querySelectorAll() { return []; },
+  },
+  window: { scrollTo() {} },
+  setTimeout() { return 1; },
+  clearTimeout() {},
+};
+
+vm.runInNewContext(script, context);
+
+getElement('familyLeaderName').value = '김민수';
+getElement('familyDistrict').value = '3구역';
+context.saveFamilyProfile();
+
+assert.deepEqual(
+  JSON.parse(storage.get('pat_family_profile')),
+  { leaderName: '김민수', district: '3구역' },
+);
+assert.equal(getElement('familyProfile').textContent, '대표 김민수 · 3구역');
+
+getElement('familyLeaderName').value = '';
+getElement('familyDistrict').value = '';
+context.openFamilyRegister();
+assert.equal(getElement('familyLeaderName').value, '김민수');
+assert.equal(getElement('familyDistrict').value, '3구역');
+
+console.log('family profile persistence: PASS');

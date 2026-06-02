@@ -212,16 +212,32 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <p class="muted" id="familyToday"></p>
     <div class="card" style="margin-top:16px">
       <h2>👨‍👩‍👧 우리 가족방</h2>
+      <p class="muted" id="familyProfile">가족방을 등록해주세요</p>
       <p class="muted" id="familyProgress">이번 주 달성률</p>
       <div class="bar"><span id="familyBar"></span></div>
       <div id="memberList"></div>
     </div>
+    <button class="btn ghost" onclick="openFamilyRegister()">가족방 등록</button>
     <div class="verse">
       <div class="ref" id="famVerseRef">요한복음 3:16</div>
       <div class="verse-text" id="famVerseText" style="font-size:var(--fs)"></div>
     </div>
     <button class="btn" onclick="go('s-verse')">📖 이번 주 구절 보기</button>
     <button class="btn ghost" onclick="toast('체험판: 초대 기능은 정식 버전에서 제공됩니다')">가족 구성원 초대</button>
+  </section>
+
+  <!-- S3b: 가족방 등록 -->
+  <section class="screen" id="s-family-register">
+    <button class="back" onclick="go('s-family')">‹ 가족방</button>
+    <h1>가족방 등록</h1>
+    <p class="muted">가족 대표 이름과 구역을 입력하세요</p>
+    <div class="card" style="margin-top:16px">
+      <label class="lbl">가족 대표 이름</label>
+      <input class="field" id="familyLeaderName" placeholder="예: 김민수">
+      <label class="lbl">구역</label>
+      <input class="field" id="familyDistrict" placeholder="예: 3구역">
+      <button class="btn" onclick="saveFamilyProfile()">가족방 등록 저장</button>
+    </div>
   </section>
 
   <!-- S4: 구절 보기 -->
@@ -547,6 +563,30 @@ function enterChurch(){
 }
 
 // ====== S3 가족방 ======
+function loadFamilyProfile(){
+  try{ return JSON.parse(localStorage.getItem('pat_family_profile')||'null'); }catch(e){ return null; }
+}
+function renderFamilyProfile(){
+  const profile=loadFamilyProfile();
+  document.getElementById('familyProfile').textContent = profile
+    ? `대표 ${profile.leaderName} · ${profile.district}`
+    : '가족방을 등록해주세요';
+}
+function openFamilyRegister(){
+  const profile=loadFamilyProfile();
+  document.getElementById('familyLeaderName').value=profile?.leaderName||'';
+  document.getElementById('familyDistrict').value=profile?.district||'';
+  go('s-family-register');
+}
+function saveFamilyProfile(){
+  const leaderName=document.getElementById('familyLeaderName').value.trim();
+  const district=document.getElementById('familyDistrict').value.trim();
+  if(!leaderName||!district){ toast('가족 대표 이름과 구역을 입력하세요'); return; }
+  localStorage.setItem('pat_family_profile', JSON.stringify({ leaderName, district }));
+  renderFamilyProfile();
+  go('s-family');
+  toast('✓ 가족방 등록 정보가 저장되었습니다');
+}
 function memberHomeTitle(){ return DB.church.name+' PAT'; }
 function renderFamily(){
   const recs = loadRec();
@@ -560,6 +600,7 @@ function renderFamily(){
     `<div class="member"><span>${m.name}${m.me?' (나)':''}</span>
      <span class="${m.done?'tag-ok':'tag-wait'}">${m.done?'✔ 완료':'대기'}</span></div>`).join('');
   document.getElementById('memberList').innerHTML = list;
+  renderFamilyProfile();
   // 가족방에서도 이번 주 구절 표시
   document.getElementById('churchName').textContent = memberHomeTitle();
   renderMemberDateLabels();
