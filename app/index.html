@@ -211,13 +211,13 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <p class="muted" id="weekLabel"></p>
     <p class="muted" id="familyToday"></p>
     <div class="card" style="margin-top:16px">
-      <h2>👨‍👩‍👧 우리 가족방</h2>
+      <h2 id="familyRoomTitle">👨‍👩‍👧 우리 가족방</h2>
       <p class="muted" id="familyProfile">가족방을 등록해주세요</p>
       <p class="muted" id="familyProgress">이번 주 달성률</p>
       <div class="bar"><span id="familyBar"></span></div>
       <div id="memberList"></div>
     </div>
-    <button class="btn ghost" onclick="openFamilyRegister()">가족방 등록</button>
+    <button class="btn" onclick="openFamilyRegister()">가족방 등록</button>
     <div class="verse">
       <div class="ref" id="famVerseRef">요한복음 3:16</div>
       <div class="verse-text" id="famVerseText" style="font-size:var(--fs)"></div>
@@ -230,8 +230,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <section class="screen" id="s-family-register">
     <button class="back" onclick="go('s-family')">‹ 가족방</button>
     <h1>가족방 등록</h1>
-    <p class="muted">가족 대표 이름과 구역을 입력하세요</p>
+    <p class="muted">가족방 이름, 가족 대표 이름과 구역을 입력하세요</p>
     <div class="card" style="margin-top:16px">
+      <label class="lbl">가족방 이름</label>
+      <input class="field" id="familyRoomName" placeholder="예: 믿음 가족방">
       <label class="lbl">가족 대표 이름</label>
       <input class="field" id="familyLeaderName" placeholder="예: 김민수">
       <label class="lbl">구역</label>
@@ -539,7 +541,7 @@ function go(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   const tabbar = document.getElementById('tabbar');
-  const noTab = ['s-login','s-adminlogin','s-admin'];
+  const noTab = ['s-login','s-adminlogin','s-admin','s-family-register'];
   tabbar.style.display = noTab.includes(id) ? 'none' : 'flex';
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);
@@ -568,21 +570,26 @@ function loadFamilyProfile(){
 }
 function renderFamilyProfile(){
   const profile=loadFamilyProfile();
+  document.getElementById('familyRoomTitle').textContent = profile
+    ? `👨‍👩‍👧 ${profile.roomName}`
+    : '👨‍👩‍👧 우리 가족방';
   document.getElementById('familyProfile').textContent = profile
     ? `대표 ${profile.leaderName} · ${profile.district}`
     : '가족방을 등록해주세요';
 }
 function openFamilyRegister(){
   const profile=loadFamilyProfile();
+  document.getElementById('familyRoomName').value=profile?.roomName||'';
   document.getElementById('familyLeaderName').value=profile?.leaderName||'';
   document.getElementById('familyDistrict').value=profile?.district||'';
   go('s-family-register');
 }
 function saveFamilyProfile(){
+  const roomName=document.getElementById('familyRoomName').value.trim();
   const leaderName=document.getElementById('familyLeaderName').value.trim();
   const district=document.getElementById('familyDistrict').value.trim();
-  if(!leaderName||!district){ toast('가족 대표 이름과 구역을 입력하세요'); return; }
-  localStorage.setItem('pat_family_profile', JSON.stringify({ leaderName, district }));
+  if(!roomName||!leaderName||!district){ toast('가족방 이름, 대표 이름과 구역을 입력하세요'); return; }
+  localStorage.setItem('pat_family_profile', JSON.stringify({ roomName, leaderName, district }));
   renderFamilyProfile();
   go('s-family');
   toast('✓ 가족방 등록 정보가 저장되었습니다');

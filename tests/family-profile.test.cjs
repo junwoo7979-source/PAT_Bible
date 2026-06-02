@@ -43,19 +43,28 @@ const context = {
 
 vm.runInNewContext(script, context);
 
+assert.match(
+  html,
+  /<button class="btn" onclick="openFamilyRegister\(\)">가족방 등록<\/button>/,
+);
+
+getElement('familyRoomName').value = '믿음 가족방';
 getElement('familyLeaderName').value = '김민수';
 getElement('familyDistrict').value = '3구역';
 context.saveFamilyProfile();
 
 assert.deepEqual(
   JSON.parse(storage.get('pat_family_profile')),
-  { leaderName: '김민수', district: '3구역' },
+  { roomName: '믿음 가족방', leaderName: '김민수', district: '3구역' },
 );
+assert.equal(getElement('familyRoomTitle').textContent, '👨‍👩‍👧 믿음 가족방');
 assert.equal(getElement('familyProfile').textContent, '대표 김민수 · 3구역');
 
+getElement('familyRoomName').value = '';
 getElement('familyLeaderName').value = '';
 getElement('familyDistrict').value = '';
 context.openFamilyRegister();
+assert.equal(getElement('familyRoomName').value, '믿음 가족방');
 assert.equal(getElement('familyLeaderName').value, '김민수');
 assert.equal(getElement('familyDistrict').value, '3구역');
 

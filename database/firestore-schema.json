@@ -34,7 +34,7 @@
       "fields": {
         "familyId": "string (PK)",
         "churchId": "string (FK -> churches)",
-        "name": "string - 가족방 이름",
+        "name": "string - 가족 대표가 수정 가능한 가족방 이름",
         "leaderName": "string - 가족 대표 이름",
         "district": "string - 교회 구역",
         "password": "string - 비밀번호 해시",
