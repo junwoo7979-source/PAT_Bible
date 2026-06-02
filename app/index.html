@@ -207,7 +207,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
   <!-- S3: 가족방 -->
   <section class="screen" id="s-family">
-    <h1 id="churchName">세광교회 PAT</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h1 id="churchName">세광교회 PAT</h1>
+      <button class="back" style="margin:0" onclick="memberLogout()">로그아웃</button>
+    </div>
     <p class="muted" id="weekLabel"></p>
     <p class="muted" id="familyToday"></p>
     <div class="card" style="margin-top:16px">
@@ -371,6 +374,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <small class="muted">관대 모드: 음성 유사도 기준을 85%→70%, 타이핑을 100%→90%로 낮춰 노년층도 쉽게 통과할 수 있습니다.</small>
     </div>
     <div class="spacer"></div>
+    <button class="btn" onclick="memberLogout()">로그아웃</button>
     <button class="btn ghost" onclick="resetData()">기록 초기화 (체험용)</button>
   </section>
 
@@ -434,6 +438,12 @@ function adminLogin(){
   go('s-admin'); // 입장 시 구절 입력 페이지가 메인으로 보임
 }
 function adminLogout(){ go('s-login'); toast('로그아웃되었습니다'); }
+function memberLogout(){
+  const code=document.getElementById('churchCode');
+  if(code) code.value='';
+  go('s-login');
+  toast('로그아웃되었습니다');
+}
 function renderAdmin(){
   document.getElementById('adminChurchLabel').textContent = '관리 교회: '+DB.church.name;
   document.getElementById('inAppTitle').value = applyAppTitle();
