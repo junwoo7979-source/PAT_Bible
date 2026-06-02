@@ -898,10 +898,15 @@ function renderParishStats(myCount){
     // 블레싱 총합에는 내 완료 건수 반영
     const done = item.done + (item.isTotal && myCount>0 ? myCount : 0);
     const pct = Math.round(done/item.total*100);
-    const cls = item.isTotal ? 'border-top:1px solid var(--line);margin-top:8px;padding-top:14px' : '';
-    return `<div class="member" style="${cls}"><span><b>${item.name}</b>${isMine?' <small class="tag-ok">내 교구</small>':''}<br>
-      <small class="muted">${done}/${item.total}명 · ${pct}%</small>
-      <div class="bar"><span style="width:${pct}%"></span></div></span></div>`;
+    const rowStyle = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);'
+      + (item.isTotal ? 'border-top:1px solid var(--line);margin-top:4px;' : '');
+    const nameStyle = 'min-width:48px;font-weight:700;' + (isMine?'color:var(--accent)':'');
+    return `<div style="${rowStyle}">
+      <span style="${nameStyle}">${item.name}${isMine?' ★':''}</span>
+      <small class="muted" style="min-width:74px">${done}/${item.total}명</small>
+      <div class="bar" style="flex:1;margin:0"><span style="width:${pct}%"></span></div>
+      <small style="min-width:36px;text-align:right;font-weight:700">${pct}%</small>
+    </div>`;
   }).join('');
 }
 function renderDashboard(){
