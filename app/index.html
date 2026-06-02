@@ -160,8 +160,11 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <label class="lbl">요절 내용</label>
       <textarea class="field" id="inText" rows="5" placeholder="요절 내용(본문)을 입력하세요" oninput="renderPreview()"></textarea>
 
-      <label class="lbl">적용 주차</label>
-      <input class="field" id="inWeek" placeholder="예: 2026년 6월 1주차" oninput="renderPreview()">
+      <label class="lbl">기준 날짜</label>
+      <input class="field" id="inDate" type="date" onchange="updateWeekFromDate()">
+
+      <label class="lbl">적용 주차 · 기간</label>
+      <input class="field" id="inWeek" placeholder="예: 2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 일요일" readonly>
       <button class="btn" onclick="registerVerse()">구절 등록 (전 성도 동기화)</button>
     </div>
 
@@ -173,7 +176,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
         <div class="preview-bar"><span>📱 성도 화면</span><span id="pvChurch">세광교회</span></div>
         <div class="preview-body">
           <div class="pv-h1">이번 주 구절</div>
-          <div class="pv-week" id="pvWeek">2026년 6월 1주차</div>
+          <div class="pv-week" id="pvWeek">2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 일요일</div>
           <div class="pv-verse">
             <div class="pv-ref" id="pvRef">요한복음 3:16</div>
             <div class="pv-text" id="pvText">하나님이 세상을 이처럼 사랑하사...</div>
@@ -202,6 +205,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <section class="screen" id="s-family">
     <h1 id="churchName">세광교회</h1>
     <p class="muted" id="weekLabel"></p>
+    <p class="muted" id="familyToday"></p>
     <div class="card" style="margin-top:16px">
       <h2>👨‍👩‍👧 우리 가족방</h2>
       <p class="muted" id="familyProgress">이번 주 달성률</p>
@@ -221,6 +225,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <button class="back" onclick="go('s-family')">‹ 가족방</button>
     <h1>이번 주 구절</h1>
     <p class="muted" id="verseWeek"></p>
+    <p class="muted" id="verseToday"></p>
     <div class="verse">
       <div class="ref" id="verseRef"></div>
       <div class="verse-text" id="verseText"></div>
@@ -258,6 +263,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <button class="back" id="manualToggle" style="margin:8px auto 0;display:block" onclick="showManual()">🔇 마이크가 안 되면 여기를 누르세요</button>
 
     <div class="spacer"></div>
+    <button class="btn ghost" id="voiceRestart" style="display:none" onclick="restartMemorize()">처음부터 다시 시작하기</button>
     <button class="btn" id="voiceNext" disabled onclick="voiceNext()">다음 단계</button>
   </section>
 
@@ -276,6 +282,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <div class="bar"><span id="typeBar"></span></div>
     <small class="muted" id="typeStatus">진행률 0%</small>
     <div class="spacer"></div>
+    <button class="btn ghost" id="typingRestart" style="display:none" onclick="restartMemorize()">처음부터 다시 시작하기</button>
     <button class="btn" id="typeDone" disabled onclick="typingNext()">완료 확인</button>
   </section>
 
@@ -354,7 +361,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 // ====== 데이터 (DB 스키마 기반 더미) ======
 const DB = {
   church: { name:'세광교회', code:'11111', memberCount:248 },
-  verse: { ref:'요한복음 3:16', weekOf:'2026년 6월 1주차',
+  verse: { ref:'요한복음 3:16', weekOf:'2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 일요일',
     text:'하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라' },
   members: [
     { name:'아빠', done:true }, { name:'엄마', done:true },
@@ -395,9 +402,47 @@ function adminLogout(){ go('s-login'); toast('로그아웃되었습니다'); }
 function renderAdmin(){
   document.getElementById('adminChurchLabel').textContent = '관리 교회: '+DB.church.name;
   document.getElementById('inChurchName').value = DB.church.name;
-  document.getElementById('inWeek').value = DB.verse.weekOf;
+  if(!document.getElementById('inDate').value){
+    document.getElementById('inDate').value = new Date().toISOString().slice(0,10);
+  }
+  updateWeekFromDate();
   renderVerseList();
   renderPreview();
+}
+function formatWeekPeriod(dateValue){
+  if(!dateValue) return '';
+  const picked=new Date(dateValue+'T00:00:00');
+  if(Number.isNaN(picked.getTime())) return '';
+  const monday=new Date(picked);
+  const day=(picked.getDay()+6)%7;
+  monday.setDate(picked.getDate()-day);
+  const sunday=new Date(monday);
+  sunday.setDate(monday.getDate()+6);
+  const monthStart=new Date(monday.getFullYear(), monday.getMonth(), 1);
+  const week=Math.floor((monday.getDate()-1)/7)+1;
+  const weekdays=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+  const dateLabel=d=>`${d.getMonth()+1}월 ${d.getDate()}일 ${weekdays[d.getDay()]}`;
+  return `${monthStart.getFullYear()}년 ${monthStart.getMonth()+1}월 ${week}주차 · ${dateLabel(monday)} ~ ${dateLabel(sunday)}`;
+}
+function updateWeekFromDate(){
+  const week=formatWeekPeriod(document.getElementById('inDate').value);
+  if(week) document.getElementById('inWeek').value=week;
+  renderPreview();
+}
+function formatTodayLabel(dateValue){
+  if(!dateValue) return '';
+  const date=new Date(dateValue+'T00:00:00');
+  if(Number.isNaN(date.getTime())) return '';
+  const weekdays=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+  return `오늘은 ${date.getMonth()+1}월 ${date.getDate()}일 ${weekdays[date.getDay()]}입니다`;
+}
+function renderMemberDateLabels(dateValue=new Date().toISOString().slice(0,10)){
+  const week=formatWeekPeriod(dateValue);
+  const today=formatTodayLabel(dateValue);
+  document.getElementById('weekLabel').textContent=week;
+  document.getElementById('familyToday').textContent=today;
+  document.getElementById('verseWeek').textContent=week;
+  document.getElementById('verseToday').textContent=today;
 }
 // 성도 화면 미리보기 (입력 중인 값 우선, 없으면 현재 구절)
 function renderPreview(){
@@ -477,7 +522,7 @@ function enterChurch(){
   const code = document.getElementById('churchCode').value.trim();
   if(code !== DB.church.code){ toast('존재하지 않는 교회 코드입니다'); return; }
   document.getElementById('churchName').textContent = DB.church.name;
-  document.getElementById('weekLabel').textContent = DB.verse.weekOf;
+  renderMemberDateLabels();
   renderFamily();
   go('s-family');
 }
@@ -497,14 +542,14 @@ function renderFamily(){
   document.getElementById('memberList').innerHTML = list;
   // 가족방에서도 이번 주 구절 표시
   document.getElementById('churchName').textContent = DB.church.name;
-  document.getElementById('weekLabel').textContent = DB.verse.weekOf;
+  renderMemberDateLabels();
   document.getElementById('famVerseRef').textContent = DB.verse.ref;
   document.getElementById('famVerseText').textContent = DB.verse.text;
 }
 
 // ====== S4 구절 ======
 function renderVerse(){
-  document.getElementById('verseWeek').textContent = DB.verse.weekOf;
+  renderMemberDateLabels();
   document.getElementById('verseRef').textContent = DB.verse.ref;
   document.getElementById('verseText').textContent = DB.verse.text;
 }
@@ -512,6 +557,8 @@ function startMemorize(){ resetMemorizeState(); renderVoice(); go('s-voice'); }
 
 // ====== S5 음성 암송 ======
 let voiceStage=1, voiceScore1=0, voiceScore2=0, recognizing=false, recog=null, typeStage=1;
+let voiceReadyAt=0, voiceStartTimer=null;
+const VOICE_RELEASE_DELAY=300;
 // 진행 단계 바 (1:음성1 2:음성2 3:타이핑1 4:타이핑2)
 const STEP_NAMES = ['음성 1차','음성 2차','타이핑 1차','타이핑 2차'];
 function renderSteps(active){
@@ -531,6 +578,7 @@ function renderVoice(){
   document.getElementById('simBar').style.width = '0';
   document.getElementById('simLabel').textContent = '유사도 분석 대기 중';
   document.getElementById('voiceNext').disabled = true;
+  document.getElementById('voiceRestart').style.display = 'none';
   document.getElementById('manualBox').style.display = 'none';
   document.getElementById('voiceManual').value = '';
   // file:// 등 비보안 환경이면 마이크가 막히므로 안내
@@ -547,7 +595,17 @@ function manualVoiceCheck(){
   evalVoice(t);
 }
 function resetMemorizeState(){
+  clearVoiceStartTimer();
+  clearVoiceRecognition(true);
+  recognizing=false;
+  setMicRec(false);
   voiceStage=1; voiceScore1=0; voiceScore2=0; typeStage=1;
+}
+function restartMemorize(){
+  resetMemorizeState();
+  renderVoice();
+  go('s-voice');
+  toast('음성 1차부터 다시 시작합니다');
 }
 
 // 텍스트 정규화 + 유사도(레벤슈타인 기반)
@@ -563,6 +621,24 @@ function similarity(a,b){
   const dist=dp[m][n]; const maxL=Math.max(m,n);
   return Math.round((1-dist/maxL)*100);
 }
+function clearVoiceRecognition(cancel=false){
+  const activeRecog=recog;
+  recog=null;
+  if(!activeRecog) return;
+  voiceReadyAt=Math.max(voiceReadyAt, Date.now()+VOICE_RELEASE_DELAY);
+  activeRecog.onstart=null;
+  activeRecog.onresult=null;
+  activeRecog.onerror=null;
+  activeRecog.onend=null;
+  if(cancel){
+    try{ activeRecog.abort ? activeRecog.abort() : activeRecog.stop(); }catch(err){}
+  }
+}
+function clearVoiceStartTimer(){
+  if(!voiceStartTimer) return;
+  clearTimeout(voiceStartTimer);
+  voiceStartTimer=null;
+}
 
 function toggleMic(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -574,24 +650,43 @@ function toggleMic(){
     return;
   }
   if(recognizing){ recog && recog.stop(); return; }
+  clearVoiceRecognition(true);
+  const wait=Math.max(0, voiceReadyAt-Date.now());
+  if(wait){
+    if(voiceStartTimer) return;
+    document.getElementById('micHint').textContent='마이크 준비 중... 잠시만 기다려주세요';
+    voiceStartTimer=setTimeout(()=>{
+      voiceStartTimer=null;
+      startVoiceRecognition(SR);
+    },wait);
+    return;
+  }
+  startVoiceRecognition(SR);
+}
+function startVoiceRecognition(SR){
+  document.getElementById('voiceRestart').style.display = 'none';
 
   let finalText='', handled=false;
   const fail=(msg)=>{
     if(handled) return; handled=true;
     recognizing=false; setMicRec(false);
+    clearVoiceRecognition();
     toast(msg); showManual();
   };
   try{
     recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true; recog.continuous=false;
-    recognizing=true; setMicRec(true);
+    recognizing=true; setMicPreparing();
+    recog.onstart=()=>{ setMicRec(true); };
     recog.onresult=(e)=>{
       let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript;
       finalText=t; document.getElementById('recognized').textContent=t;
+      previewVoice(t);
     };
     recog.onerror=(e)=>{ fail('음성 인식 오류('+(e&&e.error||'unknown')+') — 아래 대체 입력 사용'); };
     recog.onend=()=>{
       if(handled) return; handled=true;       // 오류 후 중복 평가 방지
       recognizing=false; setMicRec(false);
+      clearVoiceRecognition();
       if(finalText.trim()) evalVoice(finalText);
       else { toast('음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용'); showManual(); }
     };
@@ -599,6 +694,11 @@ function toggleMic(){
   }catch(err){
     fail('마이크를 시작할 수 없습니다 — 아래 대체 입력 사용');
   }
+}
+function setMicPreparing(){
+  const b=document.getElementById('micBtn');
+  b.classList.remove('rec'); b.textContent='🎙️';
+  document.getElementById('micHint').textContent='마이크 준비 중... 잠시만 기다려주세요';
 }
 function setMicRec(on){
   const b=document.getElementById('micBtn');
@@ -618,12 +718,17 @@ function simulateVoice(){
     evalVoice(simulated);
   }, 1200);
 }
-function evalVoice(text){
+function previewVoice(text){
   const sim = similarity(text, DB.verse.text);
   document.getElementById('simBar').style.width = sim+'%';
   const pass = sim >= TH().voice;
   document.getElementById('simLabel').innerHTML =
     `유사도 <b style="color:${pass?'var(--accent)':'var(--danger)'}">${sim}%</b> · 통과 기준 ${TH().voice}%`;
+  return { sim, pass };
+}
+function evalVoice(text){
+  const { sim, pass } = previewVoice(text);
+  document.getElementById('voiceRestart').style.display = sim < 100 ? 'block' : 'none';
   if(pass){
     if(voiceStage===1) voiceScore1=sim; else voiceScore2=sim;
     document.getElementById('voiceNext').disabled=false;
@@ -644,6 +749,7 @@ function renderTyping(){
   document.getElementById('typeRef').textContent = DB.verse.ref;
   document.getElementById('typeInput').value='';
   document.getElementById('typeDone').disabled=true;
+  document.getElementById('typingRestart').style.display='none';
   document.getElementById('typeDone').textContent = (typeStage===1) ? '1차 완료 → 2차 진행' : '완료 확인';
   updateTyped('');
   document.getElementById('typeInput').focus();
@@ -682,6 +788,7 @@ function updateTyped(rawInput){
   const pass = pct >= TH().typing && typedEnough;
 
   document.getElementById('typeBar').style.width = pct+'%';
+  document.getElementById('typingRestart').style.display = nInput.length && pct < 100 ? 'block' : 'none';
   document.getElementById('typeStatus').textContent =
     `진행률 ${pct}%` + (typedEnough ? (pass ? ' · 통과! 완료 확인을 누르세요' : '') : ' · 끝까지 입력하세요');
   document.getElementById('typeDone').disabled = !pass;
