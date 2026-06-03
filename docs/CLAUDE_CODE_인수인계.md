@@ -53,6 +53,22 @@
 - 가족방에 입력한 교구와 일치하는 행에는 별표를 붙인다.
 - 내 암송 기록이 있으면 `블레싱 진도표` 완료 인원에 반영한다.
 
+### Google Workspace / Calendar
+
+- Google Workspace OAuth 계정은 `junwoo7979@gmail.com`으로 등록되어 있다.
+- Docs, Sheets, Drive 계정은 OAuth 계정 목록과 Drive 조회 응답으로 확인했다.
+- Google Calendar는 OAuth 도구가 아니라 CalDAV 계정으로 연결했다.
+- CalDAV 계정 ID는 `7AlPhIz39aNYTeGlqyPW`다.
+- 등록 캘린더 목록 조회 결과 `junwoo7979@gmail.com`, `다모아즈` 캘린더가 확인됐다.
+- 앱 비밀번호는 민감정보이므로 어떤 문서에도 저장하지 않는다.
+- `tbot_google type=calendar`는 별도 OAuth 경로를 사용해 미연동 메시지를 반환할 수 있다. 캘린더 작업은 CalDAV 기준으로 확인한다.
+
+### 등록된 Google Calendar 일정
+
+- `2026년 6월 5일 금요일`에 `바이브코딩 홈페이지 구축` 종일 일정을 등록했다.
+- 등록 캘린더는 `다모아즈`다.
+- Google Calendar 화면에서 `일정이 저장되었습니다` 메시지와 해당 날짜의 종일 일정 표시를 확인했다.
+
 ## 테스트
 
 - `tests\voice-recognition-lifecycle.test.cjs`
@@ -90,3 +106,4 @@
 - 마이크 오류는 브라우저 Web Speech API 해제 타이밍과 관련되어 있다. `VOICE_RELEASE_DELAY=300`과 예약 시작 로직을 제거하지 않는다.
 - 성도 화면 기간은 저장된 관리자 기간이 아니라 접속한 오늘 날짜 기준으로 표시한다.
 - 날짜 요일은 `일요일/월요일/...` 형식으로 표시한다.
+- 캘린더 연동 관련 문서에는 앱 비밀번호나 토큰을 남기지 않는다.
