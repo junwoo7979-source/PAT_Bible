@@ -164,7 +164,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <input class="field" id="inDate" type="date" onchange="updateWeekFromDate()">
 
       <label class="lbl">적용 주차 · 기간</label>
-      <input class="field" id="inWeek" placeholder="예: 2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 주일" readonly>
+      <input class="field" id="inWeek" placeholder="예: 2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 일요일" readonly>
       <button class="btn" onclick="registerVerse()">구절 등록 (전 성도 동기화)</button>
     </div>
 
@@ -176,7 +176,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
         <div class="preview-bar"><span>📱 성도 화면</span><span id="pvChurch">세광교회</span></div>
         <div class="preview-body">
           <div class="pv-h1">이번 주 구절</div>
-          <div class="pv-week" id="pvWeek">2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 주일</div>
+          <div class="pv-week" id="pvWeek">2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 일요일</div>
           <div class="pv-verse">
             <div class="pv-ref" id="pvRef">요한복음 3:16</div>
             <div class="pv-text" id="pvText">하나님이 세상을 이처럼 사랑하사...</div>
@@ -398,7 +398,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 // ====== 데이터 (DB 스키마 기반 더미) ======
 const DB = {
   church: { name:'세광교회', code:'11111', memberCount:248 },
-  verse: { ref:'요한복음 3:16', weekOf:'2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 주일',
+  verse: { ref:'요한복음 3:16', weekOf:'2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 일요일',
     text:'하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라' },
   members: [
     { name:'아빠', done:true }, { name:'엄마', done:true },
@@ -471,7 +471,7 @@ function formatWeekPeriod(dateValue){
   sunday.setDate(monday.getDate()+6);
   const monthStart=new Date(monday.getFullYear(), monday.getMonth(), 1);
   const week=Math.floor((monday.getDate()-1)/7)+1;
-  const weekdays=['주일','월요일','화요일','수요일','목요일','금요일','토요일'];
+  const weekdays=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
   const dateLabel=d=>`${d.getMonth()+1}월 ${d.getDate()}일 ${weekdays[d.getDay()]}`;
   return `${monthStart.getFullYear()}년 ${monthStart.getMonth()+1}월 ${week}주차 · ${dateLabel(monday)} ~ ${dateLabel(sunday)}`;
 }
@@ -484,7 +484,7 @@ function formatTodayLabel(dateValue){
   if(!dateValue) return '';
   const date=new Date(dateValue+'T00:00:00');
   if(Number.isNaN(date.getTime())) return '';
-  const weekdays=['주일','월요일','화요일','수요일','목요일','금요일','토요일'];
+  const weekdays=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
   return `오늘은 ${date.getMonth()+1}월 ${date.getDate()}일 ${weekdays[date.getDay()]}입니다`;
 }
 function renderMemberDateLabels(dateValue=new Date().toISOString().slice(0,10)){
@@ -921,15 +921,15 @@ function completeMemorize(){
 // ====== 대시보드 ======
 // 교구별 현황 (교구 3개 + 블레싱 총합)
 const PARISH_STATS = [
-  { name:'1교구', done:52, total:80 },
-  { name:'2교구', done:48, total:72 },
-  { name:'3교구', done:44, total:68 },
-  { name:'블레싱', done:30, total:400, isTotal:true },
+  { name:'1교구 진도표', matchName:'1교구', done:52, total:80 },
+  { name:'2교구 진도표', matchName:'2교구', done:48, total:72 },
+  { name:'3교구 진도표', matchName:'3교구', done:44, total:68 },
+  { name:'블레싱 진도표', matchName:'블레싱', done:30, total:400, isTotal:true },
 ];
 function renderParishStats(myCount){
   const profile=loadFamilyProfile();
   document.getElementById('dParishList').innerHTML = PARISH_STATS.map(item=>{
-    const isMine = !item.isTotal && profile?.parish && (profile.parish===item.name || profile.parish.includes(item.name));
+    const isMine = !item.isTotal && profile?.parish && (profile.parish===item.matchName || profile.parish===item.name || profile.parish.includes(item.matchName));
     // 블레싱 총합에는 내 완료 건수 반영
     const done = item.done + (item.isTotal && myCount>0 ? myCount : 0);
     const pct = Math.round(done/item.total*100);

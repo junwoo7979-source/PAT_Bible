@@ -16,6 +16,9 @@
 ```powershell
 node tests\week-period.test.cjs
 node tests\voice-recognition-lifecycle.test.cjs
+node tests\app-title.test.cjs
+node tests\family-profile.test.cjs
+node tests\parish-dashboard.test.cjs
 node -e "const fs=require('fs'); const html=fs.readFileSync('app/index.html','utf8'); const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]); scripts.forEach(code=>new Function(code)); console.log('Inline scripts parsed:', scripts.length);"
 git diff --check
 ```
