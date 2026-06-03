@@ -118,3 +118,26 @@ KAKAO_TEMPLATE_CODE=
 
 민감정보는 Git, 문서, 실행문서에 저장하지 않는다.
 
+---
+
+## 1차 전송 방식: 카카오톡 나에게 보내기
+
+사용자가 개인 메시지로 먼저 받고 싶다고 요청했으므로 1차 연동은 사업자 인증이 필요한 알림톡/친구톡이 아니라 카카오 Developers의 `나에게 보내기` API로 진행한다.
+
+- 수신 위치: 로그인한 카카오 계정의 `나와의 채팅방`
+- 사업자등록증: 1차 나에게 보내기에는 필요 없음
+- 필수 권한: `talk_message`
+- 기본 템플릿 API: `POST https://kapi.kakao.com/v2/api/talk/memo/default/send`
+- 상세 가이드: `docs/kakao-send-to-me-guide.md`
+
+추가 환경변수 초안:
+
+```text
+KAKAO_REST_API_KEY=
+KAKAO_REDIRECT_URI=http://localhost:8766/oauth/kakao
+KAKAO_ACCESS_TOKEN=
+KAKAO_REFRESH_TOKEN=
+KAKAO_TOKEN_EXPIRES_AT=
+```
+
+실제 토큰과 앱 키는 Git, 문서, 실행내역서에 저장하지 않는다.
