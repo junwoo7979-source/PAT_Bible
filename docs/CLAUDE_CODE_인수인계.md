@@ -148,13 +148,21 @@
 - 구현 파일:
   - `scripts/kakao-oauth.cjs`: 인가 URL 생성 및 인가 코드 토큰 교환 헬퍼.
   - `scripts/kakao-send-to-me.cjs`: 카드뉴스 피드 템플릿 생성 및 `나에게 보내기` API 호출 헬퍼.
+  - `scripts/kakao-local-oauth.cjs`: 로컬 콜백 서버를 띄워 동의, 토큰 교환, 나에게 보내기 테스트 전송을 한 번에 처리하는 헬퍼.
 - 테스트 파일:
   - `tests/kakao-oauth.test.cjs`
   - `tests/kakao-send-to-me.test.cjs`
+  - `tests/kakao-local-oauth.test.cjs`
 - 토큰 없이 확인 가능한 명령:
   - `node scripts\kakao-send-to-me.cjs --dry-run`
   - `node tests\kakao-oauth.test.cjs`
   - `node tests\kakao-send-to-me.test.cjs`
+  - `node tests\kakao-local-oauth.test.cjs`
+- 실제 1차 전송 흐름:
+  - 카카오 Developers Redirect URI에 `http://localhost:8766/oauth/kakao` 등록
+  - `$env:KAKAO_REST_API_KEY="카카오_REST_API_키"`
+  - `node scripts\kakao-local-oauth.cjs`
+  - 출력된 authorize URL을 열고 본인 계정으로 동의
 ## 주의 사항
 
 - 앱은 단일 HTML 프로토타입이다. 큰 구조 변경 없이 기존 패턴을 유지한다.

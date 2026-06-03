@@ -196,3 +196,22 @@ node scripts\kakao-send-to-me.cjs
 ```
 
 성공 시 카카오 API 응답의 `result_code`가 `0`이어야 한다.
+
+### 로컬 OAuth 서버로 한 번에 테스트
+
+인가 URL 생성, 콜백 수신, 토큰 교환, 나에게 보내기까지 한 번에 처리하려면 아래 명령을 사용한다.
+
+```powershell
+$env:KAKAO_REST_API_KEY="카카오_REST_API_키"
+node scripts\kakao-local-oauth.cjs
+```
+
+실행 후 출력되는 `Register Redirect URI` 값을 카카오 Developers의 Redirect URI에 등록한다. 그 다음 출력되는 `Open this authorize URL` 주소를 브라우저에서 열고 본인 카카오 계정으로 동의하면, 콜백 서버가 받은 인가 코드로 토큰을 교환하고 카드뉴스 테스트 메시지를 `나와의 채팅방`으로 보낸다.
+
+기본 콜백 주소:
+
+```text
+http://localhost:8766/oauth/kakao
+```
+
+보안상 이 서버는 실제 토큰을 문서나 Git에 저장하지 않는다.
