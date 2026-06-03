@@ -65,6 +65,12 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 .typed-display .b{color:var(--danger);text-decoration:underline;background:rgba(255,93,93,.12);border-radius:3px;}
 .typed-display .n{color:var(--muted);}
 .typed-display .cur{border-bottom:2px solid var(--accent);animation:blink 1s infinite;}
+.voice-diff{font-size:calc(var(--fs) - 1px);line-height:1.8;word-break:break-all;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+.voice-diff .g{color:var(--accent);}
+.voice-diff .b{color:var(--danger);text-decoration:underline;background:rgba(255,93,93,.12);border-radius:3px;}
+.voice-diff .m{color:var(--danger);border-bottom:2px dotted var(--danger);}
+.voice-diff .n{color:var(--muted);}
+.voice-diff .hint{display:block;margin-bottom:6px;color:var(--muted);font-size:calc(var(--fs) - 4px);}
 @keyframes blink{50%{border-color:transparent}}
 .tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
   display:flex;background:var(--surface);border-top:1px solid var(--line);}
@@ -287,6 +293,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <p id="recognized" style="min-height:30px;margin-top:6px">—</p>
       <div class="bar"><span id="simBar"></span></div>
       <small class="muted" id="simLabel">유사도 분석 대기 중</small>
+      <div class="voice-diff" id="voiceDiff" style="display:none"></div>
     </div>
 
     <!-- 마이크가 안 될 때: 수동 입력 대체 -->
@@ -703,6 +710,8 @@ function renderVoice(){
   document.getElementById('recognized').textContent = '—';
   document.getElementById('simBar').style.width = '0';
   document.getElementById('simLabel').textContent = '유사도 분석 대기 중';
+  document.getElementById('voiceDiff').style.display = 'none';
+  document.getElementById('voiceDiff').innerHTML = '';
   document.getElementById('voiceNext').disabled = true;
   document.getElementById('voiceRestart').style.display = 'none';
   document.getElementById('manualBox').style.display = 'none';
@@ -850,7 +859,44 @@ function previewVoice(text){
   const pass = sim >= TH().voice;
   document.getElementById('simLabel').innerHTML =
     `유사도 <b style="color:${pass?'var(--accent)':'var(--danger)'}">${sim}%</b> · 통과 기준 ${TH().voice}%`;
+  renderVoiceDiff(text);
   return { sim, pass };
+}
+function renderVoiceDiff(input){
+  const diff=document.getElementById('voiceDiff');
+  const target=DB.verse.text;
+  const nInput=normalize(input);
+  const nTarget=normalize(target);
+  if(!nInput){
+    diff.style.display='none';
+    diff.innerHTML='';
+    return;
+  }
+  let html='';
+  let pos=0;
+  let hasDiff=false;
+  for(const tc of target){
+    const ntc=normalize(tc);
+    if(!ntc){
+      html += (tc===' ' ? '&nbsp;' : `<span class="n">${esc(tc)}</span>`);
+      continue;
+    }
+    if(pos < nInput.length){
+      const ok=nInput[pos]===ntc;
+      if(!ok) hasDiff=true;
+      html += `<span class="${ok?'g':'b'}">${esc(tc)}</span>`;
+      pos++;
+    }else{
+      hasDiff=true;
+      html += `<span class="m">${esc(tc)}</span>`;
+    }
+  }
+  if(nInput.length!==nTarget.length) hasDiff=true;
+  const extra = nInput.length>nTarget.length ? `<div class="hint">인식된 내용이 원문보다 ${nInput.length-nTarget.length}글자 더 깁니다.</div>` : '';
+  diff.style.display='block';
+  diff.innerHTML = hasDiff
+    ? `<span class="hint">다른 부분: 초록=일치, 빨강=다름, 점선=빠짐</span>${html}${extra}`
+    : `<span class="hint">완전히 일치합니다.</span>${html}`;
 }
 function evalVoice(text){
   const { sim, pass } = previewVoice(text);
