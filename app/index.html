@@ -1020,6 +1020,7 @@ function reviewStep(n){
       document.getElementById('simLabel').innerHTML=`이전 유사도 <b style="color:${score<100?'var(--danger)':'var(--accent)'}">${score}%</b> · 다시 검수할 수 있습니다`;
       document.getElementById('recognized').textContent='이 단계의 음성을 다시 녹음하세요';
       document.getElementById('voiceRestart').style.display = score<100 ? 'block' : 'none';
+      document.getElementById('voiceNext').disabled = score < TH().voice;
     }
     go('s-voice');
     toast(STEP_NAMES[n-1]+' 다시 검수');

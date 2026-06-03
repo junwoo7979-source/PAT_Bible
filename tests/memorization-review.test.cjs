@@ -85,6 +85,8 @@ assert.equal(JSON.parse(storage.get('pat_records')).length, 1);
 context.reviewStep(1);
 assert.equal(getElement('voiceStage').textContent, '1차');
 assert.match(getElement('simLabel').innerHTML, /이전 유사도/);
-assert.equal(getElement('voiceNext').disabled, true);
+assert.equal(getElement('voiceNext').disabled, false);
+context.voiceNext();
+assert.equal(getElement('voiceStage').textContent, '2차');
 
 console.log('memorization review controls: PASS');
