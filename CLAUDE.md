@@ -22,6 +22,8 @@ node tests\parish-dashboard.test.cjs
 node tests\memorization-review.test.cjs
 node tests\voice-threshold.test.cjs
 node tests\voice-diff.test.cjs
+node tests\kakao-oauth.test.cjs
+node tests\kakao-send-to-me.test.cjs
 node -e "const fs=require('fs'); const html=fs.readFileSync('app/index.html','utf8'); const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]); scripts.forEach(code=>new Function(code)); console.log('Inline scripts parsed:', scripts.length);"
 git diff --check
 ```

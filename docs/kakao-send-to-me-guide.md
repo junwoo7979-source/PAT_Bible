@@ -160,3 +160,39 @@ KAKAO_TOKEN_EXPIRES_AT=
 4. 토큰 발급 및 갱신 로직을 구현한다.
 5. 카드뉴스 생성 결과를 피드 템플릿 JSON으로 변환한다.
 6. `나에게 보내기` API 호출 결과 `result_code: 0`을 검증한다.
+
+## 현재 구현된 로컬 헬퍼
+
+### OAuth 인가 URL 생성
+
+```powershell
+$env:KAKAO_REST_API_KEY="카카오_REST_API_키"
+$env:KAKAO_REDIRECT_URI="http://localhost:8766/oauth/kakao"
+node scripts\kakao-oauth.cjs authorize-url
+```
+
+출력된 URL을 브라우저에서 열고 본인 카카오 계정으로 `talk_message` 권한에 동의한다.
+
+### 인가 코드로 토큰 교환
+
+```powershell
+$env:KAKAO_AUTHORIZE_CODE="카카오에서_받은_code"
+node scripts\kakao-oauth.cjs exchange-code
+```
+
+보안을 위해 이 명령은 실제 토큰 값을 화면에 그대로 출력하지 않고, 토큰 존재 여부와 만료 시간만 출력한다.
+
+### 카드뉴스 템플릿 dry-run
+
+```powershell
+node scripts\kakao-send-to-me.cjs --dry-run
+```
+
+### 나에게 보내기 실행
+
+```powershell
+$env:KAKAO_ACCESS_TOKEN="발급받은_access_token"
+node scripts\kakao-send-to-me.cjs
+```
+
+성공 시 카카오 API 응답의 `result_code`가 `0`이어야 한다.

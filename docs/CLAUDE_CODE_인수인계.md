@@ -145,6 +145,16 @@
 - 필요한 설정은 카카오 Developers 앱 생성, 카카오 로그인 활성화, Redirect URI 등록, `talk_message` 동의항목 설정이다.
 - 상세 문서: `docs/kakao-send-to-me-guide.md`
 - 실제 `REST API 키`, `access_token`, `refresh_token`은 문서와 Git에 저장하지 않는다.
+- 구현 파일:
+  - `scripts/kakao-oauth.cjs`: 인가 URL 생성 및 인가 코드 토큰 교환 헬퍼.
+  - `scripts/kakao-send-to-me.cjs`: 카드뉴스 피드 템플릿 생성 및 `나에게 보내기` API 호출 헬퍼.
+- 테스트 파일:
+  - `tests/kakao-oauth.test.cjs`
+  - `tests/kakao-send-to-me.test.cjs`
+- 토큰 없이 확인 가능한 명령:
+  - `node scripts\kakao-send-to-me.cjs --dry-run`
+  - `node tests\kakao-oauth.test.cjs`
+  - `node tests\kakao-send-to-me.test.cjs`
 ## 주의 사항
 
 - 앱은 단일 HTML 프로토타입이다. 큰 구조 변경 없이 기존 패턴을 유지한다.
