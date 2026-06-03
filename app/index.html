@@ -684,6 +684,8 @@ let typeScore1=0, typeScore2=0, typeCurrentScore=0;
 let memorizeCompleted=false;
 let voiceReadyAt=0, voiceStartTimer=null;
 const VOICE_RELEASE_DELAY=300;
+const VOICE_EMPTY_RETRY_LIMIT=1;
+let voiceEmptyRetryCount=0;
 // 진행 단계 바 (1:음성1 2:음성2 3:타이핑1 4:타이핑2)
 const STEP_NAMES = ['음성 1차','음성 2차','타이핑 1차','타이핑 2차'];
 function stepScore(n){
@@ -716,6 +718,7 @@ function renderVoice(){
   document.getElementById('voiceRestart').style.display = 'none';
   document.getElementById('manualBox').style.display = 'none';
   document.getElementById('voiceManual').value = '';
+  voiceEmptyRetryCount=0;
   // file:// 등 비보안 환경이면 마이크가 막히므로 안내
   const insecure = location.protocol === 'file:' || (!window.isSecureContext && location.hostname!=='localhost');
   document.getElementById('micHint').textContent = insecure
@@ -785,6 +788,7 @@ function toggleMic(){
     return;
   }
   if(recognizing){ recog && recog.stop(); return; }
+  voiceEmptyRetryCount=0;
   clearVoiceRecognition(true);
   const wait=Math.max(0, voiceReadyAt-Date.now());
   if(wait){
@@ -823,7 +827,22 @@ function startVoiceRecognition(SR){
       recognizing=false; setMicRec(false);
       clearVoiceRecognition();
       if(finalText.trim()) evalVoice(finalText);
-      else { toast('음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용'); showManual(); }
+      else {
+        if(voiceEmptyRetryCount < VOICE_EMPTY_RETRY_LIMIT){
+          voiceEmptyRetryCount++;
+          document.getElementById('manualBox').style.display='none';
+          document.getElementById('micHint').textContent='마이크 준비 중... 잠시만 기다려주세요';
+          const wait=Math.max(VOICE_RELEASE_DELAY, voiceReadyAt-Date.now());
+          clearVoiceStartTimer();
+          voiceStartTimer=setTimeout(()=>{
+            voiceStartTimer=null;
+            startVoiceRecognition(SR);
+          },wait);
+        }else{
+          toast('음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용');
+          showManual();
+        }
+      }
     };
     recog.start();
   }catch(err){

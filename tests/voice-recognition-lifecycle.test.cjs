@@ -70,6 +70,11 @@ class FakeSpeechRecognition {
     this.onend();
     unavailableUntil = now + 250;
   }
+
+  endWithoutResult() {
+    this.onend();
+    unavailableUntil = now + 250;
+  }
 }
 
 const context = {
@@ -127,15 +132,22 @@ runTimers(300);
 assert.equal(recognitions.length, 2);
 assert.equal(recognitions[1].started, true);
 
-recognitions[1].emit('두 번째 음성 입력');
+recognitions[1].endWithoutResult();
+assert.equal(getElement('manualBox').style.display, 'none');
+assert.equal(getElement('micHint').textContent, '마이크 준비 중... 잠시만 기다려주세요');
+runTimers(300);
+assert.equal(recognitions.length, 3);
+assert.equal(recognitions[2].started, true);
+
+recognitions[2].emit('두 번째 음성 입력');
 assert.equal(getElement('recognized').textContent, '두 번째 음성 입력');
 assert.equal(getElement('voiceRestart').style.display, 'block');
 
 context.toggleMic();
-assert.equal(recognitions.length, 2);
-runTimers(300);
 assert.equal(recognitions.length, 3);
-assert.equal(recognitions[2].started, true);
+runTimers(300);
+assert.equal(recognitions.length, 4);
+assert.equal(recognitions[3].started, true);
 assert.equal(getElement('voiceRestart').style.display, 'none');
 context.restartMemorize();
 assert.equal(getElement('micBtn').textContent, '🎙️');
