@@ -75,6 +75,12 @@ class FakeSpeechRecognition {
     this.onend();
     unavailableUntil = now + 250;
   }
+
+  errorThenEnd(error) {
+    this.onerror({ error });
+    this.onend && this.onend();
+    unavailableUntil = now + 250;
+  }
 }
 
 const context = {
@@ -149,6 +155,14 @@ runTimers(300);
 assert.equal(recognitions.length, 4);
 assert.equal(recognitions[3].started, true);
 assert.equal(getElement('voiceRestart').style.display, 'none');
+
+recognitions[3].errorThenEnd('no-speech');
+assert.equal(getElement('manualBox').style.display, 'none');
+assert.equal(getElement('micHint').textContent, '마이크 준비 중... 잠시만 기다려주세요');
+runTimers(300);
+assert.equal(recognitions.length, 5);
+assert.equal(recognitions[4].started, true);
+
 context.restartMemorize();
 assert.equal(getElement('micBtn').textContent, '🎙️');
 
