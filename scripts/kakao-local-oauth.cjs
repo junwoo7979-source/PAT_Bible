@@ -1,5 +1,6 @@
 const http = require('node:http');
 
+const { loadEnvFile } = require('./env-loader.cjs');
 const { buildAuthorizeUrl, exchangeKakaoCode } = require('./kakao-oauth.cjs');
 const { buildDefaultBrief, buildMarketBriefTemplate, sendKakaoMemo } = require('./kakao-send-to-me.cjs');
 
@@ -124,6 +125,7 @@ function createCallbackServer({
 }
 
 function main() {
+  loadEnvFile();
   const port = Number(process.env.KAKAO_LOCAL_PORT || DEFAULT_PORT);
   const callbackPath = process.env.KAKAO_CALLBACK_PATH || DEFAULT_PATH;
   const config = validateLocalOAuthConfig();

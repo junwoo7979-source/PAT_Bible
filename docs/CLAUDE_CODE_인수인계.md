@@ -146,21 +146,24 @@
 - 상세 문서: `docs/kakao-send-to-me-guide.md`
 - 실제 `REST API 키`, `access_token`, `refresh_token`은 문서와 Git에 저장하지 않는다.
 - 구현 파일:
+  - `scripts/env-loader.cjs`: `.env.local`을 의존성 없이 읽어 카카오 스크립트 실행 환경에 적용하는 헬퍼.
   - `scripts/kakao-oauth.cjs`: 인가 URL 생성 및 인가 코드 토큰 교환 헬퍼.
   - `scripts/kakao-send-to-me.cjs`: 카드뉴스 피드 템플릿 생성 및 `나에게 보내기` API 호출 헬퍼.
   - `scripts/kakao-local-oauth.cjs`: 로컬 콜백 서버를 띄워 동의, 토큰 교환, 나에게 보내기 테스트 전송을 한 번에 처리하는 헬퍼.
 - 테스트 파일:
+  - `tests/env-loader.test.cjs`
   - `tests/kakao-oauth.test.cjs`
   - `tests/kakao-send-to-me.test.cjs`
   - `tests/kakao-local-oauth.test.cjs`
 - 토큰 없이 확인 가능한 명령:
+  - `node tests\env-loader.test.cjs`
   - `node scripts\kakao-send-to-me.cjs --dry-run`
   - `node tests\kakao-oauth.test.cjs`
   - `node tests\kakao-send-to-me.test.cjs`
   - `node tests\kakao-local-oauth.test.cjs`
 - 실제 1차 전송 흐름:
+  - `.env.example`을 `.env.local`로 복사하고 실제 카카오 REST API 키를 입력
   - 카카오 Developers Redirect URI에 `http://localhost:8766/oauth/kakao` 등록
-  - `$env:KAKAO_REST_API_KEY="카카오_REST_API_키"`
   - `node scripts\kakao-local-oauth.cjs`
   - 출력된 authorize URL을 열고 본인 계정으로 동의
 ## 주의 사항

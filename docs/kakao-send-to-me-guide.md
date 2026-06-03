@@ -152,6 +152,17 @@ KAKAO_TOKEN_EXPIRES_AT=
 - Git, 문서, 실행내역서, Claude 인수인계 문서에는 실제 값을 기록하지 않는다.
 - 토큰이 채팅이나 로그에 노출되면 즉시 폐기하고 재발급한다.
 
+## 로컬 환경파일 사용
+
+저장소에는 `.env.example`만 커밋되어 있다. 실제 값은 `.env.local`에 넣는다.
+
+```powershell
+Copy-Item .env.example .env.local
+notepad .env.local
+```
+
+`.env.local`은 `.gitignore`에 포함되어 있어 Git에 올라가지 않는다. 카카오 스크립트는 실행 시 `.env.local`을 자동으로 읽는다.
+
 ## Claude Code 다음 작업
 
 1. 카카오 Developers 앱 생성 여부와 Redirect URI를 확인한다.

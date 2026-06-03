@@ -1,3 +1,5 @@
+const { loadEnvFile } = require('./env-loader.cjs');
+
 const KAKAO_AUTHORIZE_ENDPOINT = 'https://kauth.kakao.com/oauth/authorize';
 const KAKAO_TOKEN_ENDPOINT = 'https://kauth.kakao.com/oauth/token';
 
@@ -74,6 +76,7 @@ async function exchangeKakaoCode({
 }
 
 async function main() {
+  loadEnvFile();
   const command = process.argv[2] || 'authorize-url';
 
   if (command === 'authorize-url') {

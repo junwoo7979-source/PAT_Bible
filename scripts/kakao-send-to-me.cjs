@@ -1,3 +1,5 @@
+const { loadEnvFile } = require('./env-loader.cjs');
+
 const KAKAO_MEMO_ENDPOINT = 'https://kapi.kakao.com/v2/api/talk/memo/default/send';
 
 function buildMarketBriefTemplate(brief) {
@@ -95,6 +97,7 @@ function buildDefaultBrief() {
 }
 
 async function main() {
+  loadEnvFile();
   const config = validateKakaoConfig();
   const template = buildMarketBriefTemplate(buildDefaultBrief());
 
