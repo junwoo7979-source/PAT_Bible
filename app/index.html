@@ -381,7 +381,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <div class="toggle"><span>👵 관대 모드 (노년층)</span><div class="sw" id="swLenient" onclick="toggleLenient()"></div></div>
     </div>
     <div class="card">
-      <small class="muted">관대 모드: 음성 유사도 기준을 85%→70%, 타이핑을 100%→90%로 낮춰 노년층도 쉽게 통과할 수 있습니다.</small>
+      <small class="muted">관대 모드: 음성은 100% 기준을 유지하고, 타이핑만 100%→90%로 낮춰 노년층도 쉽게 연습할 수 있습니다.</small>
     </div>
     <div class="spacer"></div>
     <button class="btn" onclick="memberLogout()">로그아웃</button>
@@ -412,7 +412,7 @@ const DB = {
 };
 // 검증 임계값
 let LENIENT = false;
-const TH = () => LENIENT ? { voice:70, typing:90 } : { voice:85, typing:100 };
+const TH = () => LENIENT ? { voice:100, typing:90 } : { voice:100, typing:100 };
 
 // 기록 (localStorage)
 function loadRec(){ try{ return JSON.parse(localStorage.getItem('pat_records')||'[]'); }catch(e){ return []; } }

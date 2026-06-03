@@ -20,6 +20,7 @@ node tests\app-title.test.cjs
 node tests\family-profile.test.cjs
 node tests\parish-dashboard.test.cjs
 node tests\memorization-review.test.cjs
+node tests\voice-threshold.test.cjs
 node -e "const fs=require('fs'); const html=fs.readFileSync('app/index.html','utf8'); const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]); scripts.forEach(code=>new Function(code)); console.log('Inline scripts parsed:', scripts.length);"
 git diff --check
 ```
@@ -36,3 +37,4 @@ git diff --check
 - 유사도 또는 진행률이 `100%` 미만인 단계는 `다시 검수`로 강조한다.
 - 완료 화면에서도 4단계 결과를 눌러 해당 단계로 돌아가 다시 검수할 수 있다.
 - 완료 후 재검수는 새 완료 기록을 중복 저장하지 않는다.
+- 음성 암송은 일반/관대 모드 모두 유사도 `100%`일 때만 통과한다.

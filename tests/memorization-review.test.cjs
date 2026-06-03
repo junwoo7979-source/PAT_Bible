@@ -48,29 +48,32 @@ vm.runInNewContext(script, context);
 
 const verse = '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라';
 const almostPerfect = verse.slice(0, -1);
+const typingAlmostPerfect = verse.slice(0, -3) + '라';
 
 context.startMemorize();
-getElement('voiceManual').value = almostPerfect;
+getElement('voiceManual').value = verse;
 context.manualVoiceCheck();
 
 assert.match(getElement('stepsVoice').innerHTML, /reviewStep\(1\)/);
-assert.match(getElement('stepsVoice').innerHTML, /99%|98%|97%/);
-assert.match(getElement('stepsVoice').innerHTML, /다시 검수/);
+assert.match(getElement('stepsVoice').innerHTML, /100%/);
+assert.match(getElement('stepsVoice').innerHTML, /확인/);
 
 context.voiceNext();
 getElement('voiceManual').value = verse;
 context.manualVoiceCheck();
 context.voiceNext();
 
+context.toggleLenient();
 getElement('typeInput').value = verse;
 context.onType();
 context.typingNext();
-getElement('typeInput').value = verse;
+getElement('typeInput').value = typingAlmostPerfect;
 context.onType();
 context.typingNext();
 
 assert.match(getElement('stepsComplete').innerHTML, /음성 1차/);
 assert.match(getElement('stepsComplete').innerHTML, /다시 검수/);
+assert.match(getElement('stepsComplete').innerHTML, /타이핑 2차/);
 assert.equal(JSON.parse(storage.get('pat_records')).length, 1);
 
 context.reviewStep(4);
