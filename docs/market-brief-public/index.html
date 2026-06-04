@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <title>PAT Market Brief</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #f9fafb;
+      background: #111827;
+    }
+    main {
+      width: min(680px, 100%);
+      margin: 0 auto;
+    }
+    .card {
+      overflow: hidden;
+      border: 1px solid #374151;
+      border-radius: 24px;
+      background: #1f2937;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .28);
+    }
+    .cover {
+      display: grid;
+      min-height: 300px;
+      padding: 32px;
+      align-content: end;
+      background:
+        radial-gradient(circle at 80% 20%, rgba(16, 185, 129, .5), transparent 38%),
+        linear-gradient(145deg, #172554, #111827 65%);
+    }
+    .eyebrow { color: #6ee7b7; font-weight: 800; }
+    h1 { margin: 10px 0 0; font-size: clamp(32px, 9vw, 56px); line-height: 1.08; }
+    .content { padding: 28px 32px 34px; }
+    p { margin: 0; color: #d1d5db; font-size: 18px; line-height: 1.75; }
+    .status {
+      display: inline-flex;
+      margin-top: 24px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: #a7f3d0;
+      background: #064e3b;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <article class="card">
+      <header class="cover">
+        <div class="eyebrow">PAT MARKET BRIEF</div>
+        <h1>카드뉴스<br>모바일 열기 테스트</h1>
+      </header>
+      <section class="content">
+        <p>카카오톡에서 카드뉴스 링크가 모바일에서도 정상적으로 열리는지 확인하는 공개 테스트 페이지입니다.</p>
+        <div class="status">공개 링크 연결 정상</div>
+      </section>
+    </article>
+  </main>
+</body>
+</html>

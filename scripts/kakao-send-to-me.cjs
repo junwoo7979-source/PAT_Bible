@@ -1,12 +1,14 @@
 const { loadEnvFile } = require('./env-loader.cjs');
 
 const KAKAO_MEMO_ENDPOINT = 'https://kapi.kakao.com/v2/api/talk/memo/default/send';
+const DEFAULT_BRIEF_URL = 'https://junwoo7979-source.github.io/pat-market-brief/';
+const DEFAULT_BRIEF_IMAGE_URL = 'https://opengraph.githubassets.com/1/junwoo7979-source/pat-market-brief';
 
 function buildMarketBriefTemplate(brief) {
   const title = brief.title || '미국증시 장 마감 브리핑';
   const summary = brief.summary || '미국증시 특징주와 국내 증시 영향을 정리했습니다.';
-  const url = brief.url || 'https://example.com/pat-market-brief';
-  const imageUrl = brief.imageUrl || 'https://example.com/pat-card-news-cover.png';
+  const url = brief.url || DEFAULT_BRIEF_URL;
+  const imageUrl = brief.imageUrl || DEFAULT_BRIEF_IMAGE_URL;
   const relatedStocks = Array.isArray(brief.relatedStocks) ? brief.relatedStocks.join(', ') : '';
   const description = relatedStocks ? `${summary}\n\n한국 연관 종목: ${relatedStocks}` : summary;
 
@@ -79,8 +81,8 @@ function buildDefaultBrief() {
   return {
     title: process.env.PAT_MARKET_BRIEF_TITLE || '미국증시 장 마감 브리핑',
     summary: process.env.PAT_MARKET_BRIEF_SUMMARY || 'AI 반도체와 서버 인프라 흐름을 점검하고 국내 증시 영향을 정리했습니다.',
-    url: process.env.PAT_MARKET_BRIEF_URL || 'https://example.com/pat-market-brief',
-    imageUrl: process.env.PAT_MARKET_BRIEF_IMAGE_URL || 'https://example.com/pat-card-news-cover.png',
+    url: process.env.PAT_MARKET_BRIEF_URL || DEFAULT_BRIEF_URL,
+    imageUrl: process.env.PAT_MARKET_BRIEF_IMAGE_URL || DEFAULT_BRIEF_IMAGE_URL,
     relatedStocks: [
       '삼성전자',
       'SK하이닉스',
@@ -127,6 +129,8 @@ if (require.main === module) {
 }
 
 module.exports = {
+  DEFAULT_BRIEF_IMAGE_URL,
+  DEFAULT_BRIEF_URL,
   KAKAO_MEMO_ENDPOINT,
   buildDefaultBrief,
   buildMarketBriefTemplate,

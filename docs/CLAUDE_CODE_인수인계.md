@@ -193,3 +193,13 @@
 - 사용자가 `PAT 작업 시작해` 또는 `PAT 진행안 시작해`라고 말하면 이 문서와 `docs/실행내역서.md`를 읽고 이어서 작업한다.
 - 현재 카카오톡 개인 메시지 1차 연동은 실제 발송 검증까지 완료된 상태다.
 - 비밀키와 토큰은 `.env.local`에만 있으며 어떤 문서나 응답에도 값을 노출하지 않는다.
+
+## 2026-06-04 카카오 카드뉴스 모바일 링크 문제 해결
+
+- 원인: 비공개 `PAT_Bible` GitHub 저장소 주소와 `example.com` 예시 링크는 모바일 카카오톡에서 열 수 없었다.
+- 공개 카드뉴스 전용 저장소 `junwoo7979-source/pat-market-brief`를 생성했다.
+- 공개 페이지: `https://junwoo7979-source.github.io/pat-market-brief/`
+- 카카오 Developers `PAT Market Brief` 앱의 제품 링크 관리에 `https://junwoo7979-source.github.io`를 기본 웹 도메인으로 등록했다.
+- 공개 페이지는 로그인 없는 외부 요청에서 HTTP 200, 모바일 390x844 화면에서 정상 표시됨을 확인했다.
+- 공개 링크로 카카오톡 `나와의 채팅방`에 재발송했고 `result_code=0`을 확인했다.
+- `scripts/kakao-send-to-me.cjs`와 `.env.example`의 기본 링크에서 `example.com`을 제거했다.

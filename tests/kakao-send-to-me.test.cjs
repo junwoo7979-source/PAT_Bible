@@ -1,10 +1,15 @@
 const assert = require('node:assert/strict');
 
 const {
+  buildDefaultBrief,
   buildMarketBriefTemplate,
   sendKakaoMemo,
   validateKakaoConfig,
 } = require('../scripts/kakao-send-to-me.cjs');
+
+const defaultBrief = buildDefaultBrief();
+assert.doesNotMatch(defaultBrief.url, /example\.com/);
+assert.doesNotMatch(defaultBrief.imageUrl, /example\.com/);
 
 const brief = {
   title: '미국증시 장 마감 브리핑',
