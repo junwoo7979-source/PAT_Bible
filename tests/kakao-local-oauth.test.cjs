@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 
 const {
   buildCallbackHtml,
+  persistTokenResponse,
   validateLocalOAuthConfig,
 } = require('../scripts/kakao-local-oauth.cjs');
 
@@ -33,5 +34,21 @@ const failureHtml = buildCallbackHtml({
 assert.match(failureHtml, /카카오톡 전송 실패/);
 assert.doesNotMatch(failureHtml, /<script>alert/);
 assert.match(failureHtml, /&lt;script&gt;alert/);
+
+let persisted;
+const persistedTokens = persistTokenResponse({
+  access_token: 'access-token',
+  refresh_token: 'refresh-token',
+  expires_in: 3600,
+}, {
+  now: 1_800_000_000_000,
+  save: (tokens) => {
+    persisted = tokens;
+  },
+});
+
+assert.equal(persistedTokens.access_token, 'access-token');
+assert.equal(persisted.refresh_token, 'refresh-token');
+assert.equal(persisted.access_token_expires_at, 1_800_003_600_000);
 
 console.log('kakao local oauth helper: PASS');

@@ -3,6 +3,7 @@ const http = require('node:http');
 const { loadEnvFile } = require('./env-loader.cjs');
 const { buildAuthorizeUrl, exchangeKakaoCode } = require('./kakao-oauth.cjs');
 const { buildDefaultBrief, buildMarketBriefTemplate, sendKakaoMemo } = require('./kakao-send-to-me.cjs');
+const { mergeTokenResponse, saveTokens } = require('./kakao-token-store.cjs');
 
 const DEFAULT_PORT = 8766;
 const DEFAULT_PATH = '/oauth/kakao';
@@ -50,6 +51,15 @@ function validateLocalOAuthConfig(env = process.env) {
   };
 }
 
+function persistTokenResponse(token, {
+  now = Date.now(),
+  save = saveTokens,
+} = {}) {
+  const stored = mergeTokenResponse({}, token, now);
+  save(stored);
+  return stored;
+}
+
 function createCallbackServer({
   port = DEFAULT_PORT,
   callbackPath = DEFAULT_PATH,
@@ -93,6 +103,7 @@ function createCallbackServer({
 
     try {
       const token = await exchangeKakaoCode({ restApiKey, redirectUri, code });
+      persistTokenResponse(token);
       const template = buildMarketBriefTemplate(buildDefaultBrief());
       const result = await sendKakaoMemo({
         accessToken: token.access_token,
@@ -154,5 +165,6 @@ module.exports = {
   DEFAULT_PORT,
   buildCallbackHtml,
   createCallbackServer,
+  persistTokenResponse,
   validateLocalOAuthConfig,
 };

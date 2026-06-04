@@ -79,6 +79,45 @@ async function exchangeKakaoCode({
   return payload;
 }
 
+async function refreshKakaoToken({
+  restApiKey = process.env.KAKAO_REST_API_KEY,
+  clientSecret = process.env.KAKAO_CLIENT_SECRET,
+  refreshToken,
+  fetchImpl = globalThis.fetch,
+}) {
+  if (!restApiKey) {
+    throw new Error('KAKAO_REST_API_KEY is required.');
+  }
+  if (!refreshToken) {
+    throw new Error('KAKAO_REFRESH_TOKEN is required.');
+  }
+  if (!fetchImpl) {
+    throw new Error('fetch is not available. Use Node 18+ or pass fetchImpl.');
+  }
+
+  const body = new URLSearchParams();
+  body.set('grant_type', 'refresh_token');
+  body.set('client_id', restApiKey);
+  body.set('refresh_token', refreshToken);
+  if (clientSecret) {
+    body.set('client_secret', clientSecret);
+  }
+
+  const response = await fetchImpl(KAKAO_TOKEN_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+    },
+    body,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = payload.error_description || payload.msg || `Kakao token refresh failed with ${response.status}`;
+    throw new Error(message);
+  }
+  return payload;
+}
+
 async function main() {
   loadEnvFile();
   const command = process.argv[2] || 'authorize-url';
@@ -122,5 +161,6 @@ module.exports = {
   KAKAO_TOKEN_ENDPOINT,
   buildAuthorizeUrl,
   exchangeKakaoCode,
+  refreshKakaoToken,
   validateOAuthConfig,
 };

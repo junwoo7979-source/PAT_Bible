@@ -212,3 +212,23 @@
 - 공개 페이지 HTTP 200 및 모바일 390x844 화면에서 전체 본문 표시를 확인했다.
 - 카카오 발송 제목과 요약도 실제 브리핑 내용으로 `.env.local`에 반영했다.
 - 실제 브리핑 카카오 발송은 카카오 재로그인 승인 후 완료해야 한다.
+
+## 2026-06-04 카카오 지속 인증 자동 발송 구현
+
+- 최초 OAuth 승인 결과를 Git 제외 파일 `.kakao-tokens.json`에 저장하도록 구현했다.
+- 액세스 토큰이 유효하면 재로그인 없이 즉시 발송한다.
+- 액세스 토큰이 만료되면 저장된 갱신 토큰으로 자동 갱신하고 새 토큰을 다시 저장한다.
+- 갱신 토큰이 없거나 권한이 취소된 경우에만 재로그인을 요구한다.
+- 최초 인증 명령: `node scripts/kakao-local-oauth.cjs`
+- 이후 무승인 발송 명령: `node scripts/kakao-send-authenticated.cjs`
+- 관련 파일:
+  - `scripts/kakao-token-store.cjs`
+  - `scripts/kakao-send-authenticated.cjs`
+  - `scripts/kakao-oauth.cjs`
+  - `scripts/kakao-local-oauth.cjs`
+- 관련 테스트:
+  - `tests/kakao-token-store.test.cjs`
+  - `tests/kakao-send-authenticated.test.cjs`
+  - `tests/kakao-oauth.test.cjs`
+  - `tests/kakao-local-oauth.test.cjs`
+- 현재 최초 저장용 카카오 승인 화면을 열었으며 `.kakao-tokens.json` 생성은 승인 완료 대기 상태다.

@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const {
   buildAuthorizeUrl,
   exchangeKakaoCode,
+  refreshKakaoToken,
   validateOAuthConfig,
 } = require('../scripts/kakao-oauth.cjs');
 
@@ -49,6 +50,26 @@ exchangeKakaoCode({
   assert.equal(request.options.method, 'POST');
   assert.match(String(request.options.body), /grant_type=authorization_code/);
   assert.match(String(request.options.body), /code=auth-code/);
+  assert.match(String(request.options.body), /client_secret=client-secret/);
+  return refreshKakaoToken({
+    restApiKey: 'rest-key',
+    clientSecret: 'client-secret',
+    refreshToken: 'refresh-token',
+    fetchImpl: async (url, options) => {
+      request = { url, options };
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { access_token: 'new-access-token', expires_in: 21599 };
+        },
+      };
+    },
+  });
+}).then((result) => {
+  assert.equal(result.access_token, 'new-access-token');
+  assert.match(String(request.options.body), /grant_type=refresh_token/);
+  assert.match(String(request.options.body), /refresh_token=refresh-token/);
   assert.match(String(request.options.body), /client_secret=client-secret/);
   console.log('kakao oauth helper: PASS');
 }).catch((error) => {
