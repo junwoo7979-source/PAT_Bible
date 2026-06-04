@@ -304,7 +304,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <div class="card" id="manualBox" style="display:none">
       <small class="muted">🎤 마이크가 작동하지 않나요? 낭독한 내용을 입력해 검증하세요</small>
       <textarea class="field" id="voiceManual" rows="2" style="margin-top:8px" placeholder="낭독한 구절을 입력"></textarea>
-      <button class="btn ghost" onclick="manualVoiceCheck()">입력 내용으로 검증</button>
+      <button class="btn ghost" id="voiceManualCheck" onclick="manualVoiceCheck()">입력 내용으로 검증</button>
     </div>
     <button class="back" id="manualToggle" style="margin:8px auto 0;display:block" onclick="showManual()">🔇 마이크가 안 되면 여기를 누르세요</button>
 
@@ -745,10 +745,13 @@ function renderVoice(){
   document.getElementById('voiceDiff').style.display = 'none';
   document.getElementById('voiceDiff').innerHTML = '';
   document.getElementById('voiceNext').disabled = true;
+  document.getElementById('micBtn').disabled = false;
   document.getElementById('voiceRestart').style.display = 'none';
   document.getElementById('voiceRepeat').style.display = 'none';
   document.getElementById('manualBox').style.display = 'none';
   document.getElementById('voiceManual').value = '';
+  document.getElementById('voiceManual').readOnly = false;
+  document.getElementById('voiceManualCheck').disabled = false;
   voiceRecoveryCount=0; voiceStopRequested=false;
   // file:// 등 비보안 환경이면 마이크가 막히므로 안내
   const insecure = location.protocol === 'file:' || (!window.isSecureContext && location.hostname!=='localhost');
@@ -983,6 +986,10 @@ function evalVoice(text){
     else { voiceScore2=sim; voiceInput2=text; }
     renderSteps(voiceStage);
     document.getElementById('voiceNext').disabled=false;
+    document.getElementById('micBtn').disabled=true;
+    document.getElementById('voiceManual').readOnly=true;
+    document.getElementById('voiceManualCheck').disabled=true;
+    document.getElementById('micHint').textContent='입력 완료 · 다시 하려면 아래 버튼을 누르세요';
     document.getElementById('voiceRepeat').style.display='block';
     toast('✓ '+voiceStage+'차 통과!');
   }else{
@@ -1000,6 +1007,7 @@ function renderTyping(){
   renderSteps(2 + typeStage);
   document.getElementById('typeRef').textContent = DB.verse.ref;
   document.getElementById('typeInput').value='';
+  document.getElementById('typeInput').readOnly=false;
   document.getElementById('typeDone').disabled=true;
   document.getElementById('typingRestart').style.display='none';
   document.getElementById('typingRepeat').style.display='none';
@@ -1061,6 +1069,7 @@ function updateTyped(rawInput){
   document.getElementById('typeBar').style.width = pct+'%';
   document.getElementById('typingRestart').style.display = nInput.length && pct < 100 ? 'block' : 'none';
   document.getElementById('typingRepeat').style.display = pass ? 'block' : 'none';
+  document.getElementById('typeInput').readOnly = pass;
   document.getElementById('typeStatus').textContent =
     `진행률 ${pct}%` + (typedEnough ? (pass ? ' · 통과! 완료 확인을 누르세요' : '') : ' · 끝까지 입력하세요');
   document.getElementById('typeDone').disabled = !pass;
@@ -1101,8 +1110,13 @@ function reviewStep(n){
       document.getElementById('simBar').style.width=score+'%';
       document.getElementById('simLabel').innerHTML=`이전 유사도 <b style="color:${score<100?'var(--danger)':'var(--accent)'}">${score}%</b> · 다시 검수할 수 있습니다`;
       document.getElementById('recognized').textContent=n===1 ? voiceInput1 : voiceInput2;
+      document.getElementById('voiceManual').value=n===1 ? voiceInput1 : voiceInput2;
+      document.getElementById('voiceManual').readOnly=true;
+      document.getElementById('voiceManualCheck').disabled=true;
       document.getElementById('voiceRestart').style.display = score<100 ? 'block' : 'none';
       document.getElementById('voiceRepeat').style.display = 'block';
+      document.getElementById('micBtn').disabled = true;
+      document.getElementById('micHint').textContent='입력 완료 · 다시 하려면 아래 버튼을 누르세요';
       document.getElementById('voiceNext').disabled = score < TH().voice;
     }
     go('s-voice');
@@ -1115,6 +1129,7 @@ function reviewStep(n){
     const savedInput=n===3 ? typeInput1 : typeInput2;
     document.getElementById('typeInput').value=savedInput;
     updateTyped(savedInput);
+    document.getElementById('typeInput').readOnly=true;
     document.getElementById('typeBar').style.width=score+'%';
     document.getElementById('typeStatus').textContent=`이전 진행률 ${score}% · 다시 입력해 검수할 수 있습니다`;
     document.getElementById('typingRestart').style.display = score<100 ? 'block' : 'none';

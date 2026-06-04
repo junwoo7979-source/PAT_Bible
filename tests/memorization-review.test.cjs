@@ -15,6 +15,7 @@ function getElement(id) {
       textContent: '',
       innerHTML: '',
       disabled: false,
+      readOnly: false,
       dataset: {},
       style: {},
       classList: { add() {}, remove() {}, toggle() {} },
@@ -58,6 +59,9 @@ assert.doesNotMatch(getElement('stepsVoice').innerHTML, /reviewStep\(1\)/);
 assert.doesNotMatch(getElement('stepsVoice').innerHTML, /100%/);
 assert.doesNotMatch(getElement('stepsVoice').innerHTML, /확인/);
 assert.equal(getElement('voiceRepeat').style.display, 'block');
+assert.equal(getElement('micBtn').disabled, true);
+assert.equal(getElement('voiceManual').readOnly, true);
+assert.equal(getElement('voiceManualCheck').disabled, true);
 
 context.voiceNext();
 getElement('voiceManual').value = verse;
@@ -68,6 +72,7 @@ context.toggleLenient();
 getElement('typeInput').value = verse;
 context.onType();
 assert.equal(getElement('typingRepeat').style.display, 'block');
+assert.equal(getElement('typeInput').readOnly, true);
 context.typingNext();
 getElement('typeInput').value = typingAlmostPerfect;
 context.onType();
@@ -95,9 +100,11 @@ assert.equal(completedRecord.typeInput1, verse);
 
 context.reviewStep(4);
 assert.equal(getElement('typeInput').value, typingAlmostPerfect);
+assert.equal(getElement('typeInput').readOnly, true);
 assert.equal(getElement('typingRepeat').style.display, 'block');
 context.repeatCurrentStep('typing');
 assert.equal(getElement('typeInput').value, '');
+assert.equal(getElement('typeInput').readOnly, false);
 assert.equal(getElement('typeDone').disabled, true);
 getElement('typeInput').value = verse;
 context.onType();
@@ -109,10 +116,16 @@ context.reviewStep(1);
 assert.equal(getElement('voiceStage').textContent, '1차');
 assert.match(getElement('simLabel').innerHTML, /이전 유사도/);
 assert.equal(getElement('recognized').textContent, verse);
+assert.equal(getElement('micBtn').disabled, true);
+assert.equal(getElement('voiceManual').value, verse);
 assert.equal(getElement('voiceRepeat').style.display, 'block');
 assert.equal(getElement('voiceNext').disabled, false);
 context.repeatCurrentStep('voice');
 assert.equal(getElement('recognized').textContent, '—');
+assert.equal(getElement('micBtn').disabled, false);
+assert.equal(getElement('voiceManual').value, '');
+assert.equal(getElement('voiceManual').readOnly, false);
+assert.equal(getElement('voiceManualCheck').disabled, false);
 assert.equal(getElement('voiceNext').disabled, true);
 getElement('voiceManual').value = verse;
 context.manualVoiceCheck();
