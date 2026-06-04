@@ -11,6 +11,7 @@ let scrollCount = 0;
 
 function getElement(id) {
   if (!elements.has(id)) {
+    const classes = new Set();
     elements.set(id, {
       id,
       value: '',
@@ -20,7 +21,17 @@ function getElement(id) {
       readOnly: false,
       dataset: {},
       style: {},
-      classList: { add() {}, remove() {}, toggle() {} },
+      classList: {
+        add(...names) { names.forEach(name => classes.add(name)); },
+        remove(...names) { names.forEach(name => classes.delete(name)); },
+        toggle(name, force) {
+          if (force === true) classes.add(name);
+          else if (force === false) classes.delete(name);
+          else if (classes.has(name)) classes.delete(name);
+          else classes.add(name);
+        },
+        contains(name) { return classes.has(name); },
+      },
       addEventListener() {},
       focus() { focusCount++; },
     });
@@ -105,6 +116,7 @@ const scrollBeforeTypingReview = scrollCount;
 context.reviewStep(4);
 assert.equal(focusCount, focusBeforeTypingReview);
 assert.equal(scrollCount, scrollBeforeTypingReview);
+assert.equal(getElement('s-typing').classList.contains('no-motion'), true);
 assert.equal(getElement('typeInput').value, typingAlmostPerfect);
 assert.equal(getElement('typeInput').readOnly, true);
 assert.equal(getElement('typingRepeat').style.display, 'block');
@@ -121,6 +133,7 @@ assert.equal(JSON.parse(storage.get('pat_records'))[0].typeInput2, verse);
 const scrollBeforeVoiceReview = scrollCount;
 context.reviewStep(1);
 assert.equal(scrollCount, scrollBeforeVoiceReview);
+assert.equal(getElement('s-voice').classList.contains('no-motion'), true);
 assert.equal(getElement('voiceStage').textContent, '1차');
 assert.match(getElement('simLabel').innerHTML, /이전 유사도/);
 assert.equal(getElement('recognized').textContent, verse);
