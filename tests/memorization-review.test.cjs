@@ -6,6 +6,8 @@ const html = fs.readFileSync('app/index.html', 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const elements = new Map();
 const storage = new Map();
+let focusCount = 0;
+let scrollCount = 0;
 
 function getElement(id) {
   if (!elements.has(id)) {
@@ -20,7 +22,7 @@ function getElement(id) {
       style: {},
       classList: { add() {}, remove() {}, toggle() {} },
       addEventListener() {},
-      focus() {},
+      focus() { focusCount++; },
     });
   }
   return elements.get(id);
@@ -40,7 +42,7 @@ const context = {
     getElementById: getElement,
     querySelectorAll() { return []; },
   },
-  window: { scrollTo() {}, isSecureContext: true },
+  window: { scrollTo() { scrollCount++; }, isSecureContext: true },
   setTimeout() { return 1; },
   clearTimeout() {},
 };
@@ -98,7 +100,11 @@ assert.equal(typeof completedRecord.typeScore2, 'number');
 assert.equal(completedRecord.voiceInput1, verse);
 assert.equal(completedRecord.typeInput1, verse);
 
+const focusBeforeTypingReview = focusCount;
+const scrollBeforeTypingReview = scrollCount;
 context.reviewStep(4);
+assert.equal(focusCount, focusBeforeTypingReview);
+assert.equal(scrollCount, scrollBeforeTypingReview);
 assert.equal(getElement('typeInput').value, typingAlmostPerfect);
 assert.equal(getElement('typeInput').readOnly, true);
 assert.equal(getElement('typingRepeat').style.display, 'block');
@@ -112,7 +118,9 @@ context.typingNext();
 assert.equal(JSON.parse(storage.get('pat_records')).length, 1);
 assert.equal(JSON.parse(storage.get('pat_records'))[0].typeInput2, verse);
 
+const scrollBeforeVoiceReview = scrollCount;
 context.reviewStep(1);
+assert.equal(scrollCount, scrollBeforeVoiceReview);
 assert.equal(getElement('voiceStage').textContent, '1차');
 assert.match(getElement('simLabel').innerHTML, /이전 유사도/);
 assert.equal(getElement('recognized').textContent, verse);

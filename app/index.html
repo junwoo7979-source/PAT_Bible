@@ -576,7 +576,7 @@ function useVerse(i){
 }
 
 // ====== 화면 전환 ======
-function go(id){
+function go(id, resetScroll=true){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   const tabbar = document.getElementById('tabbar');
@@ -589,7 +589,7 @@ function go(id){
   if(id==='s-verse'){ renderVerse(); }
   else if(id==='s-family'){ renderFamily(); }
   else if(id==='s-dashboard'){ renderDashboard(); }
-  window.scrollTo(0,0);
+  if(resetScroll) window.scrollTo(0,0);
 }
 function tabGo(id){ go(id); }
 
@@ -1002,7 +1002,7 @@ function voiceNext(){
 }
 
 // ====== S6 타이핑 (2회) ======
-function renderTyping(){
+function renderTyping(focusInput=true){
   document.getElementById('typeStage').textContent = typeStage+'차';
   renderSteps(2 + typeStage);
   document.getElementById('typeRef').textContent = DB.verse.ref;
@@ -1014,7 +1014,7 @@ function renderTyping(){
   document.getElementById('typeDone').textContent = (typeStage===1) ? '1차 완료 → 2차 진행' : '완료 확인';
   typeCurrentScore=0;
   updateTyped('');
-  document.getElementById('typeInput').focus();
+  if(focusInput) document.getElementById('typeInput').focus();
 }
 function typingNext(){
   const input=document.getElementById('typeInput').value;
@@ -1105,6 +1105,7 @@ function reviewStep(n){
   const score=stepScore(n);
   if(n<=2){
     voiceStage=n;
+    go('s-voice', false);
     renderVoice();
     if(score){
       document.getElementById('simBar').style.width=score+'%';
@@ -1119,12 +1120,12 @@ function reviewStep(n){
       document.getElementById('micHint').textContent='입력 완료 · 다시 하려면 아래 버튼을 누르세요';
       document.getElementById('voiceNext').disabled = score < TH().voice;
     }
-    go('s-voice');
     toast(STEP_NAMES[n-1]+' 다시 검수');
     return;
   }
   typeStage=n-2;
-  renderTyping();
+  go('s-typing', false);
+  renderTyping(false);
   if(score){
     const savedInput=n===3 ? typeInput1 : typeInput2;
     document.getElementById('typeInput').value=savedInput;
@@ -1135,7 +1136,6 @@ function reviewStep(n){
     document.getElementById('typingRestart').style.display = score<100 ? 'block' : 'none';
     document.getElementById('typingRepeat').style.display = 'block';
   }
-  go('s-typing');
   toast(STEP_NAMES[n-1]+' 다시 검수');
 }
 
