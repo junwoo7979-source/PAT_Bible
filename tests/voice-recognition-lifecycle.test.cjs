@@ -76,6 +76,16 @@ class FakeSpeechRecognition {
     unavailableUntil = now + 250;
   }
 
+  endWithPartial(text) {
+    this.preview(text);
+    this.onend();
+    unavailableUntil = now + 250;
+  }
+
+  startedSuccessfully() {
+    this.onstart && this.onstart();
+  }
+
   errorThenEnd(error) {
     this.onerror({ error });
     this.onend && this.onend();
@@ -123,6 +133,7 @@ const verse = '하나님이 세상을 이처럼 사랑하사 독생자를 주셨
 context.startMemorize();
 context.toggleMic();
 assert.equal(recognitions.length, 1);
+assert.equal(recognitions[0].continuous, true);
 recognitions[0].preview('하나님이 세상을');
 assert.equal(getElement('recognized').textContent, '하나님이 세상을');
 assert.equal(getElement('voiceRestart').style.display, 'none');
@@ -145,23 +156,31 @@ runTimers(300);
 assert.equal(recognitions.length, 3);
 assert.equal(recognitions[2].started, true);
 
-recognitions[2].emit('두 번째 음성 입력');
+recognitions[2].endWithPartial('두 번째 음성 입력');
 assert.equal(getElement('recognized').textContent, '두 번째 음성 입력');
-assert.equal(getElement('voiceRestart').style.display, 'block');
-
-context.toggleMic();
-assert.equal(recognitions.length, 3);
-runTimers(300);
-assert.equal(recognitions.length, 4);
-assert.equal(recognitions[3].started, true);
-assert.equal(getElement('voiceRestart').style.display, 'none');
-
-recognitions[3].errorThenEnd('no-speech');
 assert.equal(getElement('manualBox').style.display, 'none');
 assert.equal(getElement('micHint').textContent, '마이크 준비 중... 잠시만 기다려주세요');
 runTimers(300);
+assert.equal(recognitions.length, 4);
+assert.equal(recognitions[3].started, true);
+
+recognitions[3].emit(verse);
+assert.equal(getElement('voiceNext').disabled, false);
+
+context.toggleMic();
+assert.equal(recognitions.length, 4);
+runTimers(300);
 assert.equal(recognitions.length, 5);
 assert.equal(recognitions[4].started, true);
+assert.equal(getElement('voiceRestart').style.display, 'none');
+
+recognitions[4].startedSuccessfully();
+recognitions[4].errorThenEnd('no-speech');
+assert.equal(getElement('manualBox').style.display, 'none');
+assert.equal(getElement('micHint').textContent, '마이크 준비 중... 잠시만 기다려주세요');
+runTimers(300);
+assert.equal(recognitions.length, 6);
+assert.equal(recognitions[5].started, true);
 
 context.restartMemorize();
 assert.equal(getElement('micBtn').textContent, '🎙️');

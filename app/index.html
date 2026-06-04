@@ -834,9 +834,9 @@ function startVoiceRecognition(SR){
     toast(msg); showManual();
   };
   try{
-    recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true; recog.continuous=false;
+    recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true; recog.continuous=true;
     recognizing=true; setMicPreparing();
-    recog.onstart=()=>{ setMicRec(true); };
+    recog.onstart=()=>{ voiceRecoveryCount=0; setMicRec(true); };
     recog.onresult=(e)=>{
       let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript;
       finalText=t; document.getElementById('recognized').textContent=t;
@@ -860,12 +860,14 @@ function startVoiceRecognition(SR){
         if(finalText.trim()) evalVoice(finalText);
         else { toast('녹음을 종료했습니다'); }
       }
-      else if(finalText.trim()){
+      else if(finalText.trim() && similarity(finalText, DB.verse.text) >= TH().voice){
         recognizing=false; setMicRec(false);
         evalVoice(finalText);
       }
       else {
-        recover('음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용');
+        recover(finalText.trim()
+          ? '음성 인식이 중간에 끊겼습니다 — 자동으로 계속 듣습니다'
+          : '음성이 인식되지 않았습니다 — 자동으로 다시 시작합니다');
       }
     };
     recog.start();
