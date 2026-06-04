@@ -310,6 +310,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
     <div class="spacer"></div>
     <button class="btn ghost" id="voiceRestart" style="display:none" onclick="restartMemorize()">처음부터 다시 시작하기</button>
+    <button class="btn ghost" id="voiceRepeat" style="display:none" onclick="repeatCurrentStep('voice')">다시 한번 하기</button>
     <button class="btn" id="voiceNext" disabled onclick="voiceNext()">다음 단계</button>
   </section>
 
@@ -329,6 +330,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <small class="muted" id="typeStatus">진행률 0%</small>
     <div class="spacer"></div>
     <button class="btn ghost" id="typingRestart" style="display:none" onclick="restartMemorize()">처음부터 다시 시작하기</button>
+    <button class="btn ghost" id="typingRepeat" style="display:none" onclick="repeatCurrentStep('typing')">다시 한번 하기</button>
     <button class="btn" id="typeDone" disabled onclick="typingNext()">완료 확인</button>
   </section>
 
@@ -688,7 +690,12 @@ function renderVerse(){
     voiceScore2 = completed.voiceScore2 || 100;
     typeScore1 = completed.typeScore1 || (completed.typingPassed ? 100 : 0);
     typeScore2 = completed.typeScore2 || (completed.typingPassed ? 100 : 0);
+    voiceInput1 = completed.voiceInput1 || '';
+    voiceInput2 = completed.voiceInput2 || '';
+    typeInput1 = completed.typeInput1 || '';
+    typeInput2 = completed.typeInput2 || '';
     memorizeCompleted = true;
+    reviewMode = true;
     progress.style.display = 'block';
     document.getElementById('verseCompletedLabel').textContent = '완료!';
     startBtn.textContent = '처음부터 다시 암송하기';
@@ -703,7 +710,8 @@ function startMemorize(){ resetMemorizeState(); renderVoice(); go('s-voice'); }
 // ====== S5 음성 암송 ======
 let voiceStage=1, voiceScore1=0, voiceScore2=0, recognizing=false, recog=null, typeStage=1;
 let typeScore1=0, typeScore2=0, typeCurrentScore=0;
-let memorizeCompleted=false;
+let voiceInput1='', voiceInput2='', typeInput1='', typeInput2='';
+let memorizeCompleted=false, reviewMode=false;
 let voiceReadyAt=0, voiceStartTimer=null;
 const VOICE_RELEASE_DELAY=300;
 const VOICE_RECOVERY_LIMIT=5;
@@ -713,15 +721,15 @@ const STEP_NAMES = ['음성 1차','음성 2차','타이핑 1차','타이핑 2차
 function stepScore(n){
   return [voiceScore1, voiceScore2, typeScore1, typeScore2][n-1] || 0;
 }
-function renderSteps(active){
+function renderSteps(active, showReview=reviewMode){
   const html = STEP_NAMES.map((nm,i)=>{
     const n=i+1; const cls = n<active?'done':(n===active?'cur':'');
     const score = stepScore(n);
     const review = score>0 && score<100;
-    const mark = n<active?'✓':n;
-    const detail = score ? `<small>${score}% · ${review?'다시 검수':'확인'}</small>` : '';
+    const mark = showReview && n<active?'✓':n;
+    const detail = showReview && score ? `<small>${score}% · ${review?'다시 검수':'확인'}</small>` : '';
     const body = `<span class="no">${mark}</span>${nm}${detail}`;
-    if(score) return `<button type="button" class="st ${cls} ${review?'review':''}" onclick="reviewStep(${n})">${body}</button>`;
+    if(showReview && score) return `<button type="button" class="st ${cls} ${review?'review':''}" onclick="reviewStep(${n})">${body}</button>`;
     return `<div class="st ${cls}">${body}</div>`;
   }).join('');
   ['stepsVoice','stepsTyping','stepsComplete','stepsVerse'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
@@ -738,6 +746,7 @@ function renderVoice(){
   document.getElementById('voiceDiff').innerHTML = '';
   document.getElementById('voiceNext').disabled = true;
   document.getElementById('voiceRestart').style.display = 'none';
+  document.getElementById('voiceRepeat').style.display = 'none';
   document.getElementById('manualBox').style.display = 'none';
   document.getElementById('voiceManual').value = '';
   voiceRecoveryCount=0; voiceStopRequested=false;
@@ -759,7 +768,8 @@ function resetMemorizeState(){
   clearVoiceRecognition(true);
   recognizing=false;
   setMicRec(false);
-  voiceStage=1; voiceScore1=0; voiceScore2=0; typeStage=1; typeScore1=0; typeScore2=0; typeCurrentScore=0; memorizeCompleted=false;
+  voiceStage=1; voiceScore1=0; voiceScore2=0; typeStage=1; typeScore1=0; typeScore2=0; typeCurrentScore=0;
+  voiceInput1=''; voiceInput2=''; typeInput1=''; typeInput2=''; memorizeCompleted=false; reviewMode=false;
 }
 function restartMemorize(){
   resetMemorizeState();
@@ -969,9 +979,11 @@ function evalVoice(text){
   const { sim, pass } = previewVoice(text);
   document.getElementById('voiceRestart').style.display = sim < 100 ? 'block' : 'none';
   if(pass){
-    if(voiceStage===1) voiceScore1=sim; else voiceScore2=sim;
+    if(voiceStage===1){ voiceScore1=sim; voiceInput1=text; }
+    else { voiceScore2=sim; voiceInput2=text; }
     renderSteps(voiceStage);
     document.getElementById('voiceNext').disabled=false;
+    document.getElementById('voiceRepeat').style.display='block';
     toast('✓ '+voiceStage+'차 통과!');
   }else{
     toast('기준 미달 — 다시 낭독해주세요');
@@ -990,21 +1002,36 @@ function renderTyping(){
   document.getElementById('typeInput').value='';
   document.getElementById('typeDone').disabled=true;
   document.getElementById('typingRestart').style.display='none';
+  document.getElementById('typingRepeat').style.display='none';
   document.getElementById('typeDone').textContent = (typeStage===1) ? '1차 완료 → 2차 진행' : '완료 확인';
   typeCurrentScore=0;
   updateTyped('');
   document.getElementById('typeInput').focus();
 }
 function typingNext(){
+  const input=document.getElementById('typeInput').value;
   if(typeStage===1){
     typeScore1=typeCurrentScore;
+    typeInput1=input;
     typeStage=2;
     renderTyping();
     toast('✓ 타이핑 1차 통과! 2차 입력하세요');
   } else {
     typeScore2=typeCurrentScore;
+    typeInput2=input;
     completeMemorize();
   }
+}
+function repeatCurrentStep(kind){
+  if(kind==='voice'){
+    if(voiceStage===1){ voiceScore1=0; voiceInput1=''; } else { voiceScore2=0; voiceInput2=''; }
+    renderVoice();
+    toast(STEP_NAMES[voiceStage-1]+' 다시 시작');
+    return;
+  }
+  if(typeStage===1){ typeScore1=0; typeInput1=''; } else { typeScore2=0; typeInput2=''; }
+  renderTyping();
+  toast(STEP_NAMES[typeStage+1]+' 다시 시작');
 }
 function blockPaste(e){ e.preventDefault(); toast('붙여넣기는 사용할 수 없습니다'); return false; }
 function onType(){ updateTyped(document.getElementById('typeInput').value); }
@@ -1033,6 +1060,7 @@ function updateTyped(rawInput){
 
   document.getElementById('typeBar').style.width = pct+'%';
   document.getElementById('typingRestart').style.display = nInput.length && pct < 100 ? 'block' : 'none';
+  document.getElementById('typingRepeat').style.display = pass ? 'block' : 'none';
   document.getElementById('typeStatus').textContent =
     `진행률 ${pct}%` + (typedEnough ? (pass ? ' · 통과! 완료 확인을 누르세요' : '') : ' · 끝까지 입력하세요');
   document.getElementById('typeDone').disabled = !pass;
@@ -1041,17 +1069,23 @@ function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g
 
 // ====== 완료 ======
 function completeMemorize(){
+  const record={ ref:DB.verse.ref, voiceScore1, voiceScore2, typeScore1, typeScore2,
+    voiceInput1, voiceInput2, typeInput1, typeInput2, typingPassed:true,
+    completedAt:new Date().toISOString(), badge:'weekly_complete' };
   if(!memorizeCompleted){
     const recs = loadRec();
-    recs.push({ ref:DB.verse.ref, voiceScore1, voiceScore2, typeScore1, typeScore2, typingPassed:true,
-      completedAt:new Date().toISOString(), badge:'weekly_complete' });
+    recs.push(record);
     saveRec(recs);
     memorizeCompleted=true;
+  }else{
+    const recs=loadRec();
+    const index=recs.map(r=>r.ref).lastIndexOf(DB.verse.ref);
+    if(index>=0){ recs[index]={...recs[index],...record}; saveRec(recs); }
   }
   document.getElementById('completeRef').textContent = DB.verse.ref+' 암송 성공';
   document.getElementById('cVoice1').textContent = (voiceScore1||90)+'%';
   document.getElementById('cVoice2').textContent = (voiceScore2||92)+'%';
-  renderSteps(5);
+  renderSteps(5, false);
   go('s-complete');
 }
 function reviewStep(n){
@@ -1066,8 +1100,9 @@ function reviewStep(n){
     if(score){
       document.getElementById('simBar').style.width=score+'%';
       document.getElementById('simLabel').innerHTML=`이전 유사도 <b style="color:${score<100?'var(--danger)':'var(--accent)'}">${score}%</b> · 다시 검수할 수 있습니다`;
-      document.getElementById('recognized').textContent='이 단계의 음성을 다시 녹음하세요';
+      document.getElementById('recognized').textContent=n===1 ? voiceInput1 : voiceInput2;
       document.getElementById('voiceRestart').style.display = score<100 ? 'block' : 'none';
+      document.getElementById('voiceRepeat').style.display = 'block';
       document.getElementById('voiceNext').disabled = score < TH().voice;
     }
     go('s-voice');
@@ -1077,9 +1112,13 @@ function reviewStep(n){
   typeStage=n-2;
   renderTyping();
   if(score){
+    const savedInput=n===3 ? typeInput1 : typeInput2;
+    document.getElementById('typeInput').value=savedInput;
+    updateTyped(savedInput);
     document.getElementById('typeBar').style.width=score+'%';
     document.getElementById('typeStatus').textContent=`이전 진행률 ${score}% · 다시 입력해 검수할 수 있습니다`;
     document.getElementById('typingRestart').style.display = score<100 ? 'block' : 'none';
+    document.getElementById('typingRepeat').style.display = 'block';
   }
   go('s-typing');
   toast(STEP_NAMES[n-1]+' 다시 검수');

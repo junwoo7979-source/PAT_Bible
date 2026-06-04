@@ -54,9 +54,10 @@ context.startMemorize();
 getElement('voiceManual').value = verse;
 context.manualVoiceCheck();
 
-assert.match(getElement('stepsVoice').innerHTML, /reviewStep\(1\)/);
-assert.match(getElement('stepsVoice').innerHTML, /100%/);
-assert.match(getElement('stepsVoice').innerHTML, /확인/);
+assert.doesNotMatch(getElement('stepsVoice').innerHTML, /reviewStep\(1\)/);
+assert.doesNotMatch(getElement('stepsVoice').innerHTML, /100%/);
+assert.doesNotMatch(getElement('stepsVoice').innerHTML, /확인/);
+assert.equal(getElement('voiceRepeat').style.display, 'block');
 
 context.voiceNext();
 getElement('voiceManual').value = verse;
@@ -66,13 +67,15 @@ context.voiceNext();
 context.toggleLenient();
 getElement('typeInput').value = verse;
 context.onType();
+assert.equal(getElement('typingRepeat').style.display, 'block');
 context.typingNext();
 getElement('typeInput').value = typingAlmostPerfect;
 context.onType();
 context.typingNext();
 
 assert.match(getElement('stepsComplete').innerHTML, /음성 1차/);
-assert.match(getElement('stepsComplete').innerHTML, /다시 검수/);
+assert.doesNotMatch(getElement('stepsComplete').innerHTML, /다시 검수/);
+assert.doesNotMatch(getElement('stepsComplete').innerHTML, /✓/);
 assert.match(getElement('stepsComplete').innerHTML, /타이핑 2차/);
 assert.equal(JSON.parse(storage.get('pat_records')).length, 1);
 
@@ -87,17 +90,32 @@ assert.equal(getElement('verseStartBtn').textContent, '처음부터 다시 암�
 const completedRecord = JSON.parse(storage.get('pat_records'))[0];
 assert.equal(completedRecord.typeScore1, 100);
 assert.equal(typeof completedRecord.typeScore2, 'number');
+assert.equal(completedRecord.voiceInput1, verse);
+assert.equal(completedRecord.typeInput1, verse);
 
 context.reviewStep(4);
+assert.equal(getElement('typeInput').value, typingAlmostPerfect);
+assert.equal(getElement('typingRepeat').style.display, 'block');
+context.repeatCurrentStep('typing');
+assert.equal(getElement('typeInput').value, '');
+assert.equal(getElement('typeDone').disabled, true);
 getElement('typeInput').value = verse;
 context.onType();
 context.typingNext();
 assert.equal(JSON.parse(storage.get('pat_records')).length, 1);
+assert.equal(JSON.parse(storage.get('pat_records'))[0].typeInput2, verse);
 
 context.reviewStep(1);
 assert.equal(getElement('voiceStage').textContent, '1차');
 assert.match(getElement('simLabel').innerHTML, /이전 유사도/);
+assert.equal(getElement('recognized').textContent, verse);
+assert.equal(getElement('voiceRepeat').style.display, 'block');
 assert.equal(getElement('voiceNext').disabled, false);
+context.repeatCurrentStep('voice');
+assert.equal(getElement('recognized').textContent, '—');
+assert.equal(getElement('voiceNext').disabled, true);
+getElement('voiceManual').value = verse;
+context.manualVoiceCheck();
 context.voiceNext();
 assert.equal(getElement('voiceStage').textContent, '2차');
 
