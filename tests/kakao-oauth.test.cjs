@@ -28,6 +28,7 @@ exchangeKakaoCode({
   restApiKey: 'rest-key',
   redirectUri: 'http://localhost:8766/oauth/kakao',
   code: 'auth-code',
+  clientSecret: 'client-secret',
   fetchImpl: async (url, options) => {
     request = { url, options };
     return {
@@ -48,6 +49,7 @@ exchangeKakaoCode({
   assert.equal(request.options.method, 'POST');
   assert.match(String(request.options.body), /grant_type=authorization_code/);
   assert.match(String(request.options.body), /code=auth-code/);
+  assert.match(String(request.options.body), /client_secret=client-secret/);
   console.log('kakao oauth helper: PASS');
 }).catch((error) => {
   console.error(error);

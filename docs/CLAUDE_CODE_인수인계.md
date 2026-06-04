@@ -173,3 +173,15 @@
 - 성도 화면 기간은 저장된 관리자 기간이 아니라 접속한 오늘 날짜 기준으로 표시한다.
 - 날짜 요일은 `일요일/월요일/...` 형식으로 표시한다.
 - 캘린더 연동 관련 문서에는 앱 비밀번호나 토큰을 남기지 않는다.
+
+## 2026-06-04 카카오톡 나에게 보내기 실제 연동 완료
+
+- 카카오 Developers 앱 `PAT Market Brief`를 생성하고 카카오 로그인을 활성화했다.
+- Redirect URI는 `http://localhost:8766/oauth/kakao`로 등록했다.
+- `talk_message` 권한은 선택 동의로 설정했다.
+- 카카오 로그인 클라이언트 시크릿 활성화 환경을 지원하도록 `scripts/kakao-oauth.cjs`를 수정했다.
+- `.env.example`에 `KAKAO_CLIENT_SECRET=` 항목을 추가했다.
+- 실제 REST API 키와 클라이언트 시크릿은 Git에서 제외되는 `.env.local`에만 저장했다.
+- 로컬 OAuth 서버로 로그인과 동의를 진행한 뒤 카드뉴스 테스트 메시지를 로그인 계정의 `나와의 채팅방`으로 발송했다.
+- 실제 발송 결과는 `result_code=0`이다.
+- 관련 회귀 테스트: `tests/kakao-oauth.test.cjs`

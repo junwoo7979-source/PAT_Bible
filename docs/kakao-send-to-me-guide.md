@@ -140,6 +140,7 @@ AI 반도체, 서버 인프라, 대형 기술주 흐름을 기준으로 국내 �
 
 ```text
 KAKAO_REST_API_KEY=
+KAKAO_CLIENT_SECRET=
 KAKAO_REDIRECT_URI=http://localhost:8766/oauth/kakao
 KAKAO_ACCESS_TOKEN=
 KAKAO_REFRESH_TOKEN=
@@ -226,3 +227,16 @@ http://localhost:8766/oauth/kakao
 ```
 
 보안상 이 서버는 실제 토큰을 문서나 Git에 저장하지 않는다.
+
+## 실제 1차 테스트 발송 결과
+
+- 테스트 일시: 2026-06-04
+- 카카오 Developers 앱: `PAT Market Brief`
+- 카카오 로그인: ON
+- 카카오 로그인 Redirect URI: `http://localhost:8766/oauth/kakao`
+- `talk_message`: 선택 동의
+- 클라이언트 시크릿: 활성화 상태로 사용
+- 최종 결과: `result_code=0`
+- 수신 위치: 로그인한 카카오 계정의 `나와의 채팅방`
+
+실제 REST API 키, 클라이언트 시크릿, 토큰은 `.env.local`에만 저장하며 문서와 Git에는 기록하지 않는다.

@@ -35,6 +35,7 @@ function validateOAuthConfig(env = process.env) {
 async function exchangeKakaoCode({
   restApiKey = process.env.KAKAO_REST_API_KEY,
   redirectUri = process.env.KAKAO_REDIRECT_URI,
+  clientSecret = process.env.KAKAO_CLIENT_SECRET,
   code,
   fetchImpl = globalThis.fetch,
 }) {
@@ -56,6 +57,9 @@ async function exchangeKakaoCode({
   body.set('client_id', restApiKey);
   body.set('redirect_uri', redirectUri);
   body.set('code', code);
+  if (clientSecret) {
+    body.set('client_secret', clientSecret);
+  }
 
   const response = await fetchImpl(KAKAO_TOKEN_ENDPOINT, {
     method: 'POST',
