@@ -76,6 +76,18 @@ assert.match(getElement('stepsComplete').innerHTML, /다시 검수/);
 assert.match(getElement('stepsComplete').innerHTML, /타이핑 2차/);
 assert.equal(JSON.parse(storage.get('pat_records')).length, 1);
 
+vm.runInNewContext('voiceScore1=0; voiceScore2=0; typeScore1=0; typeScore2=0; memorizeCompleted=false;', context);
+context.go('s-verse');
+assert.equal(getElement('verseCompletedProgress').style.display, 'block');
+assert.match(getElement('stepsVerse').innerHTML, /reviewStep\(1\)/);
+assert.match(getElement('stepsVerse').innerHTML, /reviewStep\(4\)/);
+assert.match(getElement('stepsVerse').innerHTML, /100%/);
+assert.match(getElement('verseCompletedLabel').textContent, /!/);
+assert.equal(getElement('verseStartBtn').textContent, '처음부터 다시 암송하기');
+const completedRecord = JSON.parse(storage.get('pat_records'))[0];
+assert.equal(completedRecord.typeScore1, 100);
+assert.equal(typeof completedRecord.typeScore2, 'number');
+
 context.reviewStep(4);
 getElement('typeInput').value = verse;
 context.onType();

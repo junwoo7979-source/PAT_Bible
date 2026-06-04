@@ -264,6 +264,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <!-- S4: 구절 보기 -->
   <section class="screen" id="s-verse">
     <button class="back" onclick="go('s-family')">‹ 가족방</button>
+    <div id="verseCompletedProgress" style="display:none">
+      <div class="steps" id="stepsVerse"></div>
+      <p class="center" id="verseCompletedLabel" style="color:var(--accent);font-weight:700">완료!</p>
+    </div>
     <h1>이번 주 구절</h1>
     <p class="muted" id="verseWeek"></p>
     <p class="muted" id="verseToday"></p>
@@ -276,7 +280,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <p class="muted" style="margin-top:6px">① 음성 1차 → ② 음성 2차 → ③ 타이핑 1차 → ④ 타이핑 2차 → 완료!<br>음성 2회 + 타이핑 2회의 4중 검증으로 진짜 암송을 확인합니다.</p>
     </div>
     <div class="spacer"></div>
-    <button class="btn" onclick="startMemorize()">암송 시작</button>
+    <button class="btn" id="verseStartBtn" onclick="startMemorize()">암송 시작</button>
   </section>
 
   <!-- S5: 음성 암송 -->
@@ -675,6 +679,24 @@ function renderVerse(){
   renderMemberDateLabels();
   document.getElementById('verseRef').textContent = DB.verse.ref;
   document.getElementById('verseText').textContent = DB.verse.text;
+  const completed = loadRec().filter(r=>r.ref===DB.verse.ref)
+    .sort((a,b)=>String(b.completedAt||'').localeCompare(String(a.completedAt||'')))[0];
+  const progress = document.getElementById('verseCompletedProgress');
+  const startBtn = document.getElementById('verseStartBtn');
+  if(completed){
+    voiceScore1 = completed.voiceScore1 || 100;
+    voiceScore2 = completed.voiceScore2 || 100;
+    typeScore1 = completed.typeScore1 || (completed.typingPassed ? 100 : 0);
+    typeScore2 = completed.typeScore2 || (completed.typingPassed ? 100 : 0);
+    memorizeCompleted = true;
+    progress.style.display = 'block';
+    document.getElementById('verseCompletedLabel').textContent = '완료!';
+    startBtn.textContent = '처음부터 다시 암송하기';
+    renderSteps(5);
+  }else{
+    progress.style.display = 'none';
+    startBtn.textContent = '암송 시작';
+  }
 }
 function startMemorize(){ resetMemorizeState(); renderVoice(); go('s-voice'); }
 
@@ -702,7 +724,7 @@ function renderSteps(active){
     if(score) return `<button type="button" class="st ${cls} ${review?'review':''}" onclick="reviewStep(${n})">${body}</button>`;
     return `<div class="st ${cls}">${body}</div>`;
   }).join('');
-  ['stepsVoice','stepsTyping','stepsComplete'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
+  ['stepsVoice','stepsTyping','stepsComplete','stepsVerse'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
 }
 function renderVoice(){
   document.getElementById('vRef').textContent = DB.verse.ref;
@@ -1021,7 +1043,7 @@ function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g
 function completeMemorize(){
   if(!memorizeCompleted){
     const recs = loadRec();
-    recs.push({ ref:DB.verse.ref, voiceScore1, voiceScore2, typingPassed:true,
+    recs.push({ ref:DB.verse.ref, voiceScore1, voiceScore2, typeScore1, typeScore2, typingPassed:true,
       completedAt:new Date().toISOString(), badge:'weekly_complete' });
     saveRec(recs);
     memorizeCompleted=true;
