@@ -26,6 +26,7 @@ function getElement(id) {
 
 const storage = new Map();
 const recognitions = [];
+let micPermissionRequests = 0;
 let previousRecognition = null;
 let now = 0;
 let unavailableUntil = 0;
@@ -131,8 +132,23 @@ const context = {
   },
 };
 
+context.navigator = {
+  mediaDevices: {
+    async getUserMedia(options) {
+      assert.equal(options.audio, true);
+      micPermissionRequests++;
+      return {
+        getTracks() {
+          return [{ stop() {} }];
+        },
+      };
+    },
+  },
+};
+
 context.window = {
   SpeechRecognition: FakeSpeechRecognition,
+  navigator: context.navigator,
   scrollTo() {},
 };
 
@@ -140,8 +156,10 @@ vm.runInNewContext(script, context);
 
 const verse = '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라';
 
+(async () => {
 context.startMemorize();
-context.toggleMic();
+await context.toggleMic();
+assert.equal(micPermissionRequests, 1);
 assert.equal(recognitions.length, 1);
 assert.equal(recognitions[0].continuous, true);
 recognitions[0].preview('하나님이 세상을');
@@ -164,10 +182,11 @@ assert.equal(recognitions[0].onerror, null);
 assert.equal(recognitions[0].onend, null);
 
 context.voiceNext();
-context.toggleMic();
+await context.toggleMic();
 assert.equal(recognitions.length, 1);
 runTimers(300);
 assert.equal(recognitions.length, 2);
+assert.equal(micPermissionRequests, 2);
 assert.equal(recognitions[1].started, true);
 
 recognitions[1].endWithoutResult();
@@ -188,10 +207,11 @@ assert.equal(recognitions[3].started, true);
 recognitions[3].emit(verse);
 assert.equal(getElement('voiceNext').disabled, false);
 
-context.toggleMic();
+await context.toggleMic();
 assert.equal(recognitions.length, 4);
 runTimers(300);
 assert.equal(recognitions.length, 5);
+assert.equal(micPermissionRequests, 3);
 assert.equal(recognitions[4].started, true);
 assert.equal(getElement('voiceRestart').style.display, 'none');
 
@@ -210,8 +230,13 @@ for (let i = 0; i < 5; i++) {
 }
 assert.equal(getElement('manualBox').style.display, 'block');
 assert.equal(getElement('voiceRestart').style.display, 'block');
+assert.equal(micPermissionRequests, 3);
 
 context.restartMemorize();
 assert.equal(getElement('micBtn').textContent, '🎙️');
 
 console.log('voice recognition lifecycle: PASS');
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

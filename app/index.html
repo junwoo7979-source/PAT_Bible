@@ -719,6 +719,7 @@ let voiceReadyAt=0, voiceStartTimer=null;
 const VOICE_RELEASE_DELAY=300;
 const VOICE_RECOVERY_LIMIT=5;
 let voiceRecoveryCount=0, voiceStopRequested=false;
+let voiceMicPermissionReady=false;
 // 진행 단계 바 (1:음성1 2:음성2 3:타이핑1 4:타이핑2)
 const STEP_NAMES = ['음성 1차','음성 2차','타이핑 1차','타이핑 2차'];
 function stepScore(n){
@@ -816,7 +817,37 @@ function clearVoiceStartTimer(){
   voiceStartTimer=null;
 }
 
-function toggleMic(){
+async function ensureMicrophonePermission(){
+  const nav=window.navigator || navigator;
+  if(!nav.mediaDevices || !nav.mediaDevices.getUserMedia){
+    return true;
+  }
+  try{
+    if(nav.permissions && nav.permissions.query){
+      try{
+        const status=await nav.permissions.query({ name:'microphone' });
+        if(status.state==='denied'){
+          toast('브라우저 설정에서 마이크 권한을 허용한 뒤 다시 시작해주세요');
+          document.getElementById('voiceRestart').style.display='block';
+          showManual();
+          return false;
+        }
+      }catch(err){}
+    }
+    const stream=await nav.mediaDevices.getUserMedia({ audio:true });
+    stream.getTracks().forEach(track=>track.stop());
+    voiceMicPermissionReady=true;
+    return true;
+  }catch(err){
+    voiceMicPermissionReady=false;
+    toast('마이크 권한을 허용해야 음성 암송을 시작할 수 있습니다');
+    document.getElementById('voiceRestart').style.display='block';
+    showManual();
+    return false;
+  }
+}
+
+async function toggleMic(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const insecure = location.protocol === 'file:' || (!window.isSecureContext && location.hostname!=='localhost');
   if(!SR || insecure){
@@ -830,6 +861,8 @@ function toggleMic(){
     recog && recog.stop();
     return;
   }
+  const hasMicPermission=await ensureMicrophonePermission();
+  if(!hasMicPermission) return;
   voiceRecoveryCount=0; voiceStopRequested=false;
   clearVoiceRecognition(true);
   const wait=Math.max(0, voiceReadyAt-Date.now());
@@ -840,6 +873,15 @@ function toggleMic(){
       voiceStartTimer=null;
       startVoiceRecognition(SR);
     },wait);
+    return;
+  }
+  startVoiceRecognition(SR);
+}
+async function restartVoiceRecognitionSafely(SR){
+  if(!voiceMicPermissionReady){
+    toast('마이크 권한을 먼저 허용한 뒤 다시 시작해주세요');
+    document.getElementById('voiceRestart').style.display='block';
+    showManual();
     return;
   }
   startVoiceRecognition(SR);
@@ -878,7 +920,7 @@ function startVoiceRecognition(SR){
     clearVoiceStartTimer();
     voiceStartTimer=setTimeout(()=>{
       voiceStartTimer=null;
-      startVoiceRecognition(SR);
+      restartVoiceRecognitionSafely(SR);
     },wait);
   };
   const fail=(msg)=>{
