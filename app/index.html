@@ -866,6 +866,7 @@ function startVoiceRecognition(SR){
   const recover=(msg)=>{
     if(voiceStopRequested || voiceRecoveryCount >= VOICE_RECOVERY_LIMIT){
       toast(msg || '음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용');
+      document.getElementById('voiceRestart').style.display = 'block';
       showManual();
       return;
     }
@@ -889,16 +890,17 @@ function startVoiceRecognition(SR){
   try{
     recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true; recog.continuous=true;
     recognizing=true; setMicPreparing();
-    recog.onstart=()=>{ voiceRecoveryCount=0; setMicRec(true); };
+    recog.onstart=()=>{ setMicRec(true); };
     recog.onresult=(e)=>{
+      let eventFinalText='';
       let interimText='';
-      const start=typeof e.resultIndex==='number' ? e.resultIndex : 0;
-      for(let i=start;i<e.results.length;i++){
+      for(let i=0;i<e.results.length;i++){
         const result=e.results[i];
         const transcript=result[0].transcript;
-        if(result.isFinal) finalText=mergeSpeechText(finalText,transcript);
+        if(result.isFinal) eventFinalText=mergeSpeechText(eventFinalText,transcript);
         else interimText=mergeSpeechText(interimText,transcript);
       }
+      if(eventFinalText) finalText=eventFinalText;
       latestText=mergeSpeechText(finalText,interimText);
       document.getElementById('recognized').textContent=latestText;
       previewVoice(latestText);

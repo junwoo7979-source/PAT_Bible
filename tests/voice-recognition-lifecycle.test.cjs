@@ -153,6 +153,11 @@ recognitions[0].cumulativePreview(1, [
   { transcript: mobilePreviewText, isFinal: false },
 ]);
 assert.equal(getElement('recognized').textContent, mobilePreviewText);
+recognitions[0].cumulativePreview(1, [
+  { transcript: '하나님이', isFinal: true },
+  { transcript: '세상을', isFinal: false },
+]);
+assert.equal(getElement('recognized').textContent, '하나님이 세상을');
 recognitions[0].emit(verse);
 assert.equal(recognitions[0].onresult, null);
 assert.equal(recognitions[0].onerror, null);
@@ -197,6 +202,14 @@ assert.equal(getElement('micHint').textContent, '마이크 준비 중... 잠시�
 runTimers(300);
 assert.equal(recognitions.length, 6);
 assert.equal(recognitions[5].started, true);
+
+for (let i = 0; i < 5; i++) {
+  recognitions.at(-1).startedSuccessfully();
+  recognitions.at(-1).errorThenEnd('no-speech');
+  runTimers(300);
+}
+assert.equal(getElement('manualBox').style.display, 'block');
+assert.equal(getElement('voiceRestart').style.display, 'block');
 
 context.restartMemorize();
 assert.equal(getElement('micBtn').textContent, '🎙️');
