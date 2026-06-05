@@ -847,7 +847,22 @@ function toggleMic(){
 function startVoiceRecognition(SR){
   document.getElementById('voiceRestart').style.display = 'none';
 
-  let finalText='', handled=false;
+  let finalText='', latestText='', handled=false;
+  const mergeSpeechText=(base, fragment)=>{
+    const current=(base||'').trim();
+    const next=(fragment||'').trim();
+    if(!current) return next;
+    if(!next) return current;
+    if(next.startsWith(current)) return next;
+    if(current.endsWith(next)) return current;
+    const max=Math.min(current.length,next.length);
+    for(let len=max;len>0;len--){
+      if(current.slice(-len)===next.slice(0,len)){
+        return current+next.slice(len);
+      }
+    }
+    return current+' '+next;
+  };
   const recover=(msg)=>{
     if(voiceStopRequested || voiceRecoveryCount >= VOICE_RECOVERY_LIMIT){
       toast(msg || '음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용');
@@ -876,9 +891,17 @@ function startVoiceRecognition(SR){
     recognizing=true; setMicPreparing();
     recog.onstart=()=>{ voiceRecoveryCount=0; setMicRec(true); };
     recog.onresult=(e)=>{
-      let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript;
-      finalText=t; document.getElementById('recognized').textContent=t;
-      previewVoice(t);
+      let interimText='';
+      const start=typeof e.resultIndex==='number' ? e.resultIndex : 0;
+      for(let i=start;i<e.results.length;i++){
+        const result=e.results[i];
+        const transcript=result[0].transcript;
+        if(result.isFinal) finalText=mergeSpeechText(finalText,transcript);
+        else interimText=mergeSpeechText(interimText,transcript);
+      }
+      latestText=mergeSpeechText(finalText,interimText);
+      document.getElementById('recognized').textContent=latestText;
+      previewVoice(latestText);
     };
     recog.onerror=(e)=>{
       const err=(e&&e.error)||'unknown';
@@ -895,15 +918,15 @@ function startVoiceRecognition(SR){
       clearVoiceRecognition();
       if(voiceStopRequested){
         recognizing=false; setMicRec(false);
-        if(finalText.trim()) evalVoice(finalText);
+        if(latestText.trim()) evalVoice(latestText);
         else { toast('녹음을 종료했습니다'); }
       }
-      else if(finalText.trim() && similarity(finalText, DB.verse.text) >= TH().voice){
+      else if(latestText.trim() && similarity(latestText, DB.verse.text) >= TH().voice){
         recognizing=false; setMicRec(false);
-        evalVoice(finalText);
+        evalVoice(latestText);
       }
       else {
-        recover(finalText.trim()
+        recover(latestText.trim()
           ? '음성 인식이 중간에 끊겼습니다 — 자동으로 계속 듣습니다'
           : '음성이 인식되지 않았습니다 — 자동으로 다시 시작합니다');
       }

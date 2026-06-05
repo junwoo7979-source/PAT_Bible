@@ -65,6 +65,16 @@ class FakeSpeechRecognition {
     this.onresult({ results: [[{ transcript: text }]] });
   }
 
+  cumulativePreview(resultIndex, results) {
+    this.onresult({
+      resultIndex,
+      results: results.map(({ transcript, isFinal = false }) => ({
+        0: { transcript },
+        isFinal,
+      })),
+    });
+  }
+
   emit(text) {
     this.preview(text);
     this.onend();
@@ -137,6 +147,12 @@ assert.equal(recognitions[0].continuous, true);
 recognitions[0].preview('하나님이 세상을');
 assert.equal(getElement('recognized').textContent, '하나님이 세상을');
 assert.equal(getElement('voiceRestart').style.display, 'none');
+const mobilePreviewText = getElement('recognized').textContent;
+recognitions[0].cumulativePreview(1, [
+  { transcript: mobilePreviewText.slice(0, 4), isFinal: true },
+  { transcript: mobilePreviewText, isFinal: false },
+]);
+assert.equal(getElement('recognized').textContent, mobilePreviewText);
 recognitions[0].emit(verse);
 assert.equal(recognitions[0].onresult, null);
 assert.equal(recognitions[0].onerror, null);
