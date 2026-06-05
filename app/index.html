@@ -826,6 +826,10 @@ async function ensureMicrophonePermission(){
     if(nav.permissions && nav.permissions.query){
       try{
         const status=await nav.permissions.query({ name:'microphone' });
+        if(status.state==='granted' || status.state==='prompt'){
+          voiceMicPermissionReady=true;
+          return true;
+        }
         if(status.state==='denied'){
           toast('브라우저 설정에서 마이크 권한을 허용한 뒤 다시 시작해주세요');
           document.getElementById('voiceRestart').style.display='block';

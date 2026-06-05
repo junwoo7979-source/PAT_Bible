@@ -27,6 +27,7 @@ function getElement(id) {
 const storage = new Map();
 const recognitions = [];
 let micPermissionRequests = 0;
+let micPermissionQueries = 0;
 let previousRecognition = null;
 let now = 0;
 let unavailableUntil = 0;
@@ -133,6 +134,13 @@ const context = {
 };
 
 context.navigator = {
+  permissions: {
+    async query(options) {
+      assert.equal(options.name, 'microphone');
+      micPermissionQueries++;
+      return { state: 'prompt' };
+    },
+  },
   mediaDevices: {
     async getUserMedia(options) {
       assert.equal(options.audio, true);
@@ -159,7 +167,8 @@ const verse = '하나님이 세상을 이처럼 사랑하사 독생자를 주셨
 (async () => {
 context.startMemorize();
 await context.toggleMic();
-assert.equal(micPermissionRequests, 1);
+assert.equal(micPermissionQueries, 1);
+assert.equal(micPermissionRequests, 0);
 assert.equal(recognitions.length, 1);
 assert.equal(recognitions[0].continuous, true);
 recognitions[0].preview('하나님이 세상을');
@@ -205,7 +214,8 @@ await context.toggleMic();
 assert.equal(recognitions.length, 1);
 runTimers(300);
 assert.equal(recognitions.length, 2);
-assert.equal(micPermissionRequests, 2);
+assert.equal(micPermissionQueries, 2);
+assert.equal(micPermissionRequests, 0);
 assert.equal(recognitions[1].started, true);
 
 recognitions[1].endWithoutResult();
@@ -230,7 +240,8 @@ await context.toggleMic();
 assert.equal(recognitions.length, 4);
 runTimers(300);
 assert.equal(recognitions.length, 5);
-assert.equal(micPermissionRequests, 3);
+assert.equal(micPermissionQueries, 3);
+assert.equal(micPermissionRequests, 0);
 assert.equal(recognitions[4].started, true);
 assert.equal(getElement('voiceRestart').style.display, 'none');
 
@@ -249,7 +260,7 @@ for (let i = 0; i < 5; i++) {
 }
 assert.equal(getElement('manualBox').style.display, 'block');
 assert.equal(getElement('voiceRestart').style.display, 'block');
-assert.equal(micPermissionRequests, 3);
+assert.equal(micPermissionRequests, 0);
 
 context.restartMemorize();
 assert.equal(getElement('micBtn').textContent, '🎙️');
