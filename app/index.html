@@ -1215,6 +1215,13 @@ document.getElementById('adminPw').addEventListener('keyup',e=>{ if(e.key==='Ent
 
 // ====== 초기화: 저장된 교회명/구절 반영 ======
 applyStoredData();
+
+// 초기 화면(로그인)에서는 하단 탭바 숨김 (go() 미호출 시 기본 노출 방지)
+(function initTabbar(){
+  if(typeof document === 'undefined' || typeof document.getElementById !== 'function') return;
+  const tabbar = document.getElementById('tabbar');
+  if(tabbar && tabbar.style) tabbar.style.display = 'none'; // 시작 화면은 항상 로그인
+})();
 </script>
 </body>
 </html>
