@@ -905,6 +905,19 @@ function startVoiceRecognition(SR){
     }
     return current+' '+next;
   };
+  const collapseRepeatedVersePrefix=(text)=>{
+    let cleaned=(text||'').trim();
+    const words=DB.verse.text.split(/\s+/).filter(Boolean);
+    for(let size=Math.min(words.length,12);size>=2;size--){
+      const prefix=words.slice(0,size).join(' ');
+      let index=cleaned.indexOf(prefix, prefix.length);
+      while(index>0){
+        cleaned=(cleaned.slice(0,index).trimEnd()+' '+cleaned.slice(index+prefix.length).trimStart()).trim();
+        index=cleaned.indexOf(prefix, prefix.length);
+      }
+    }
+    return cleaned;
+  };
   const recover=(msg)=>{
     if(voiceStopRequested || voiceRecoveryCount >= VOICE_RECOVERY_LIMIT){
       toast(msg || '음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용');
@@ -942,8 +955,8 @@ function startVoiceRecognition(SR){
         if(result.isFinal) eventFinalText=mergeSpeechText(eventFinalText,transcript);
         else interimText=mergeSpeechText(interimText,transcript);
       }
-      if(eventFinalText) finalText=eventFinalText;
-      latestText=mergeSpeechText(finalText,interimText);
+      if(eventFinalText) finalText=collapseRepeatedVersePrefix(eventFinalText);
+      latestText=collapseRepeatedVersePrefix(mergeSpeechText(finalText,interimText));
       document.getElementById('recognized').textContent=latestText;
       previewVoice(latestText);
     };

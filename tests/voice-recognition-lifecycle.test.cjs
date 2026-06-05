@@ -176,6 +176,25 @@ recognitions[0].cumulativePreview(1, [
   { transcript: '세상을', isFinal: false },
 ]);
 assert.equal(getElement('recognized').textContent, '하나님이 세상을');
+recognitions[0].cumulativePreview(0, [
+  { transcript: '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니', isFinal: true },
+  { transcript: '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다', isFinal: true },
+]);
+assert.equal(
+  getElement('recognized').textContent,
+  '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다',
+);
+recognitions[0].cumulativePreview(0, [
+  {
+    transcript:
+      '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다',
+    isFinal: true,
+  },
+]);
+assert.equal(
+  getElement('recognized').textContent,
+  '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다',
+);
 recognitions[0].emit(verse);
 assert.equal(recognitions[0].onresult, null);
 assert.equal(recognitions[0].onerror, null);
