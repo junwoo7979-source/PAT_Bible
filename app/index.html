@@ -236,7 +236,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <div class="bar"><span id="familyBar"></span></div>
       <div id="memberList"></div>
     </div>
-    <button class="btn" onclick="openFamilyRegister()">가족방 등록</button>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" style="flex:1;margin:0" onclick="openFamilyRegister('leader')">👑 대표 등록</button>
+      <button class="btn ghost" style="flex:1;margin:0" onclick="openFamilyRegister('member')">🙋 가족 참여</button>
+    </div>
     <div class="verse">
       <div class="ref" id="famVerseRef">요한복음 3:16</div>
       <div class="verse-text" id="famVerseText" style="font-size:var(--fs)"></div>
@@ -267,22 +270,45 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <section class="screen" id="s-family-register">
     <button class="back" onclick="go('s-family')">‹ 가족방</button>
     <h1>가족방 등록</h1>
-    <p class="muted">가족방 이름, 가족 대표 이름, 교구와 구역을 입력하세요</p>
-    <div class="card" style="margin-top:16px">
-      <label class="lbl">가족방 이름</label>
-      <input class="field" id="familyRoomName" placeholder="예: 믿음 가족방">
-      <label class="lbl">가족 대표 이름</label>
-      <input class="field" id="familyLeaderName" placeholder="예: 김민수">
-      <label class="lbl">교구</label>
-      <input class="field" id="familyParish" placeholder="예: 동부교구">
-      <label class="lbl">구역</label>
-      <input class="field" id="familyDistrict" placeholder="예: 3구역">
-      <label class="lbl">가족 비밀번호</label>
-      <input class="field" id="familyPassword" placeholder="가족방 전용 비밀번호">
-      <p class="muted" style="font-size:calc(var(--fs) - 5px);margin:-4px 2px 10px">
-        처음엔 교회 입장 코드를 받지만, 여기서 가족만의 비밀번호로 변경할 수 있습니다.
-        이후 교회 코드 또는 가족 비밀번호 둘 다로 입장 가능합니다.</p>
-      <button class="btn" onclick="saveFamilyProfile()">가족방 등록 저장</button>
+    <!-- 탭 -->
+    <div class="reg-tabs" style="display:flex;gap:8px;margin:12px 0 0">
+      <button class="reg-tab active" id="tabLeader" onclick="switchRegTab('leader')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--accent);color:#fff">👑 대표 등록</button>
+      <button class="reg-tab" id="tabMember" onclick="switchRegTab('member')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--surface);color:var(--text)">🙋 가족 참여</button>
+    </div>
+
+    <!-- 대표 등록 폼 -->
+    <div id="panelLeader">
+      <p class="muted" style="margin:10px 0 4px">가족방 이름, 대표 이름, 교구·구역을 입력하세요</p>
+      <div class="card" style="margin-top:8px">
+        <label class="lbl">가족방 이름</label>
+        <input class="field" id="familyRoomName" placeholder="예: 믿음 가족방">
+        <label class="lbl">가족 대표 이름</label>
+        <input class="field" id="familyLeaderName" placeholder="예: 김민수">
+        <label class="lbl">교구</label>
+        <input class="field" id="familyParish" placeholder="예: 동부교구">
+        <label class="lbl">구역</label>
+        <input class="field" id="familyDistrict" placeholder="예: 3구역">
+        <label class="lbl">가족 비밀번호</label>
+        <input class="field" id="familyPassword" type="password" placeholder="가족방 전용 비밀번호">
+        <p class="muted" style="font-size:calc(var(--fs) - 5px);margin:-4px 2px 10px">
+          가족 구성원이 참여할 때 사용하는 비밀번호입니다.</p>
+        <button class="btn" onclick="saveFamilyProfile()">가족방 등록 저장</button>
+      </div>
+    </div>
+
+    <!-- 가족 참여 폼 -->
+    <div id="panelMember" style="display:none">
+      <p class="muted" style="margin:10px 0 4px">가족방 이름과 대표에게 받은 비밀번호를 입력하세요</p>
+      <div class="card" style="margin-top:8px">
+        <label class="lbl">내 이름</label>
+        <input class="field" id="joinMemberName" placeholder="예: 이영희">
+        <label class="lbl">가족방 이름</label>
+        <input class="field" id="joinRoomName" placeholder="예: 믿음 가족방">
+        <label class="lbl">가족 비밀번호</label>
+        <input class="field" id="joinPassword" type="password" placeholder="대표에게 받은 비밀번호">
+        <button class="btn" onclick="joinFamilyManual()" style="margin-top:8px">가족방 참여하기</button>
+      </div>
+      <p class="muted center" style="margin-top:14px;font-size:calc(var(--fs)-4px)">또는 대표에게 초대 링크를 받아 접속하세요</p>
     </div>
   </section>
 
@@ -684,7 +710,44 @@ function renderFamilyProfile(){
     document.getElementById('familyProfile').textContent = '가족방을 등록해주세요';
   }
 }
-function openFamilyRegister(){
+function switchRegTab(tab){
+  const isLeader = tab==='leader';
+  document.getElementById('panelLeader').style.display = isLeader?'':'none';
+  document.getElementById('panelMember').style.display = isLeader?'none':'';
+  document.getElementById('tabLeader').style.background = isLeader?'var(--accent)':'var(--surface)';
+  document.getElementById('tabLeader').style.color = isLeader?'#fff':'var(--text)';
+  document.getElementById('tabMember').style.background = isLeader?'var(--surface)':'var(--accent)';
+  document.getElementById('tabMember').style.color = isLeader?'var(--text)':'#fff';
+}
+function joinFamilyManual(){
+  const name = document.getElementById('joinMemberName').value.trim();
+  const roomName = document.getElementById('joinRoomName').value.trim();
+  const pw = document.getElementById('joinPassword').value.trim();
+  if(!name){ toast('내 이름을 입력하세요'); return; }
+  if(!roomName){ toast('가족방 이름을 입력하세요'); return; }
+  if(!pw){ toast('비밀번호를 입력하세요'); return; }
+  // 현재 기기의 가족방 정보와 비밀번호 대조
+  const existing = loadFamilyProfile();
+  if(existing && existing.roomName===roomName){
+    if(pw !== existing.familyPassword){ toast('비밀번호가 올바르지 않습니다'); return; }
+  } else {
+    // 새 가족방 참여 — localStorage에 구성원으로 저장
+    const joined = { roomName, leaderName:'', parish:'', district:'', familyPassword:pw, memberName:name, isLeader:false };
+    localStorage.setItem('pat_family_profile', JSON.stringify(joined));
+    if(window.PAT_DB && PAT_DB.ready()){
+      const familyId = localStorage.getItem('pat_family_id')||'';
+      PAT_DB.joinFamily(DB.church.code, familyId, name);
+    }
+    renderFamilyProfile();
+    go('s-family');
+    toast('✓ '+roomName+' 가족방에 참여했습니다! 🎉');
+    return;
+  }
+  renderFamilyProfile();
+  go('s-family');
+  toast('✓ '+roomName+' 가족방에 참여했습니다! 🎉');
+}
+function openFamilyRegister(tab){
   const profile=loadFamilyProfile();
   document.getElementById('familyRoomName').value=profile?.roomName||'';
   document.getElementById('familyLeaderName').value=profile?.leaderName||'';
@@ -692,6 +755,7 @@ function openFamilyRegister(){
   document.getElementById('familyDistrict').value=profile?.district||'';
   // 가족 비밀번호: 기존 값, 없으면 교회 입장 코드를 기본으로 부여
   document.getElementById('familyPassword').value=profile?.familyPassword||DB.church.code;
+  switchRegTab(tab||'leader');
   go('s-family-register');
 }
 function saveFamilyProfile(){

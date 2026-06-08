@@ -43,10 +43,9 @@ const context = {
 
 vm.runInNewContext(script, context);
 
-assert.match(
-  html,
-  /<button class="btn" onclick="openFamilyRegister\(\)">가족방 등록<\/button>/,
-);
+// 대표 등록 / 가족 참여 두 버튼이 모두 존재하는지 확인
+assert.match(html, /onclick="openFamilyRegister\('leader'\)"/);
+assert.match(html, /onclick="openFamilyRegister\('member'\)"/);
 
 getElement('familyRoomName').value = '믿음 가족방';
 getElement('familyLeaderName').value = '김민수';
