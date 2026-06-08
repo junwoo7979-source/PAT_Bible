@@ -312,6 +312,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
         <p class="muted" style="margin:0 0 6px">등록된 가족방</p>
         <h2 id="registeredFamilyRoomName" style="margin:0"></h2>
         <p class="muted" id="registeredFamilyRoomMeta" style="margin:6px 0 0"></p>
+        <div id="registeredFamilyMembers" style="margin-top:10px"></div>
       </div>
       <div class="card" style="margin-top:8px">
         <label class="lbl">내 이름</label>
@@ -744,6 +745,7 @@ function renderFamilyProfile(){
 function renderRegisteredFamilyRoom(){
   const nameEl = document.getElementById('registeredFamilyRoomName');
   const metaEl = document.getElementById('registeredFamilyRoomMeta');
+  const membersEl = document.getElementById('registeredFamilyMembers');
   if(!nameEl || !metaEl) return;
   const profile = loadFamilyProfile();
   const roomName = familyRoomName(profile);
@@ -753,9 +755,16 @@ function renderRegisteredFamilyRoom(){
     const leaderLabel = profile.leaderName ? '대표 '+profile.leaderName : (profile.memberName ? profile.memberName+' 등록됨' : '');
     nameEl.textContent = roomName;
     metaEl.textContent = [leaderLabel, parishLabel, districtLabel].filter(Boolean).join(' ');
+    if(membersEl){
+      const names = familyMemberNames(profile);
+      membersEl.innerHTML = names.length
+        ? names.map(name=>`<div class="member"><span>${name}</span><span class="tag-ok">등록</span></div>`).join('')
+        : '<p class="muted" style="margin:0">등록된 구성원이 없습니다</p>';
+    }
   } else {
     nameEl.textContent = '등록된 가족방이 없습니다';
     metaEl.textContent = '대표 등록을 먼저 하거나 초대 링크로 참여하세요';
+    if(membersEl) membersEl.innerHTML = '';
   }
 }
 function switchRegTab(tab){
