@@ -7,6 +7,11 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>PAT Bible — 성경 암송</title>
+<!-- Firebase SDK (v8 compat) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="firebase-config.js"></script>
+<script src="firebase-db.js"></script>
 <style>
 :root{
   --bg:#1a1a2e; --surface:#16213e; --accent:#16c784; --accent-d:#0fa066;
@@ -467,11 +472,29 @@ function applyStoredData(){
   // 저장된 교회 이름
   const cn = localStorage.getItem('pat_church_name');
   if(cn) DB.church.name = cn;
-  // 가장 최근 등록 구절을 현재 구절로 적용
+  // 가장 최근 등록 구절을 현재 구절로 적용 (로컬)
   const vs = loadVerses();
   if(vs.length){ DB.verse = { ref:vs[0].ref, weekOf:vs[0].weekOf, text:vs[0].text }; }
   // URL 초대 파라미터 확인 (가족방 초대 링크로 접속 시 초대장 화면으로 이동)
   checkInviteParam();
+  // Firebase 초기화 및 실시간 구절 동기화
+  initFirebase();
+}
+
+function initFirebase(){
+  if(!window.PAT_DB) return;
+  const ok = PAT_DB.init();
+  if(!ok){ console.log('[PAT] 로컬 모드'); return; }
+  console.log('[PAT] Firebase 모드 활성화');
+  // 구절 실시간 구독: 관리자가 새 구절 올리면 즉시 반영
+  PAT_DB.subscribeVerse(DB.church.code, verse => {
+    DB.verse = { ref:verse.ref, text:verse.text, weekOf:verse.weekOf };
+    // 현재 성도 화면이 열려있으면 즉시 갱신
+    const activeId = document.querySelector('.screen.active')?.id;
+    if(activeId==='s-family') renderFamily();
+    else if(activeId==='s-verse') renderVerse();
+    toast('📖 이번 주 구절이 업데이트됐습니다');
+  });
 }
 
 // ====== 관리자 ======
@@ -571,8 +594,13 @@ function registerVerse(){
   const vs=loadVerses();
   vs.unshift({ ref, weekOf:week||'(주차 미지정)', text, createdAt:new Date().toISOString() });
   saveVerses(vs);
-  // 현재 구절로 즉시 적용 (전 성도 동기화 시뮬레이션)
+  // 현재 구절로 즉시 적용
   DB.verse = { ref, weekOf:week||'(주차 미지정)', text };
+  // Firebase 저장 (클라우드 모드)
+  if(window.PAT_DB && PAT_DB.ready()){
+    PAT_DB.saveVerse(DB.church.code, { ref, weekOf:week||'(주차 미지정)', text })
+      .then(ok=>{ if(ok) toast('☁️ 구절이 전 성도에게 실시간 전송됩니다'); });
+  }
   document.getElementById('inRef').value='';
   document.getElementById('inText').value='';
   renderVerseList();
@@ -677,6 +705,13 @@ function saveFamilyProfile(){
   if(!roomName||!leaderName||!parish||!district){ toast('가족방 이름, 대표 이름, 교구와 구역을 입력하세요'); return; }
   if(!familyPassword) familyPassword=DB.church.code; // 비우면 교회 코드로 유지
   localStorage.setItem('pat_family_profile', JSON.stringify({ roomName, leaderName, parish, district, familyPassword }));
+  // Firebase 저장 (클라우드 모드)
+  if(window.PAT_DB && PAT_DB.ready()){
+    PAT_DB.saveFamily(DB.church.code, { roomName, leaderName, parish, district })
+      .then(familyId=>{
+        if(familyId) PAT_DB.joinFamily(DB.church.code, familyId, leaderName);
+      });
+  }
   renderFamilyProfile();
   go('s-family');
   toast('✓ 가족방 정보가 저장되었습니다 (가족 비밀번호 적용)');
@@ -1246,6 +1281,10 @@ function completeMemorize(){
     recs.push(record);
     saveRec(recs);
     memorizeCompleted=true;
+    // Firebase 저장 (클라우드 모드)
+    if(window.PAT_DB && PAT_DB.ready()){
+      PAT_DB.saveRecord(DB.church.code, record);
+    }
   }else{
     const recs=loadRec();
     const index=recs.map(r=>r.ref).lastIndexOf(DB.verse.ref);
@@ -1325,7 +1364,7 @@ function renderParishStats(myCount){
     </div>`;
   }).join('');
 }
-function renderDashboard(){
+async function renderDashboard(){
   const recs = loadRec();
   const myCount = recs.length;
   document.getElementById('dMyCount').textContent = myCount;
@@ -1334,11 +1373,53 @@ function renderDashboard(){
   const me = DB.members.find(m=>m.me); if(myCount>0) me.done=true;
   const doneCount = DB.members.filter(m=>m.done).length;
   document.getElementById('dFamily').textContent = Math.round(doneCount/DB.members.length*100)+'%';
+
+  // Firebase 모드: 실제 집계 데이터 사용
+  if(window.PAT_DB && PAT_DB.ready()){
+    const stats = await PAT_DB.getDashboardStats(DB.church.code, DB.verse.ref);
+    if(stats){
+      const total = stats.total;
+      document.getElementById('dChurch').textContent =
+        `참여율 ${Math.round(total/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${total}명`;
+      document.getElementById('dChurchBar').style.width = Math.round(total/DB.church.memberCount*100)+'%';
+      // 교구별 실제 데이터 반영
+      renderParishStatsFirebase(stats.byParish, myCount);
+      return;
+    }
+  }
+  // 로컬 모드: 더미 데이터
   renderParishStats(myCount);
   const base = 188 + (myCount>0?1:0);
   document.getElementById('dChurch').textContent = `참여율 ${Math.round(base/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${base}명`;
   document.getElementById('dChurchBar').style.width = Math.round(base/DB.church.memberCount*100)+'%';
   document.getElementById('dMyScore').textContent = myCount+'회';
+}
+
+function renderParishStatsFirebase(byParish, myCount){
+  const profile=loadFamilyProfile();
+  const parishKeys=['1교구','2교구','3교구'];
+  const rows = parishKeys.map(key=>{
+    const done = byParish[key]||0;
+    const total = key==='1교구'?80:key==='2교구'?72:68;
+    const pct = Math.round(done/total*100);
+    const isMine = profile?.parish && (profile.parish===key||profile.parish.includes(key));
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)">
+      <span style="min-width:48px;font-weight:700;${isMine?'color:var(--accent)':''}">${key} 진도표${isMine?' ★':''}</span>
+      <small class="muted" style="min-width:74px">${done}/${total}명</small>
+      <div class="bar" style="flex:1;margin:0"><span style="width:${pct}%"></span></div>
+      <small style="min-width:36px;text-align:right;font-weight:700">${pct}%</small>
+    </div>`;
+  });
+  // 블레싱 총합
+  const totalDone = Object.values(byParish).reduce((a,b)=>a+b,0) + (myCount>0?1:0);
+  const totalPct = Math.round(totalDone/DB.church.memberCount*100);
+  rows.push(`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);margin-top:4px">
+    <span style="min-width:48px;font-weight:700">블레싱 진도표</span>
+    <small class="muted" style="min-width:74px">${totalDone}/${DB.church.memberCount}명</small>
+    <div class="bar" style="flex:1;margin:0"><span style="width:${totalPct}%"></span></div>
+    <small style="min-width:36px;text-align:right;font-weight:700">${totalPct}%</small>
+  </div>`);
+  document.getElementById('dParishList').innerHTML = rows.join('');
 }
 
 // ====== 설정 ======
