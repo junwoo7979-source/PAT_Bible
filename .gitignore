@@ -17,8 +17,13 @@ out/
 
 # Firebase
 .firebase/
+.playwright-mcp/
 firebase-debug.log
 serviceAccountKey.json
+firebase-login*.png
+docs/screenshots/firebase-*.png
+scripts/firebase-oauth.cjs
+scripts/firebase-setup.cjs
 
 # Logs
 *.log
