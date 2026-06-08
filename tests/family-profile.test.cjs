@@ -73,6 +73,8 @@ storage.set('pat_family_profile', JSON.stringify({ ...saved, members: ['김민�
 context.openFamilyRegister('member');
 assert.match(getElement('registeredFamilyMembers').innerHTML, /김민수/);
 assert.match(getElement('registeredFamilyMembers').innerHTML, /예운/);
+assert.match(getElement('registeredFamilyMembers').innerHTML, /family-member-chip/);
+assert.equal((getElement('registeredFamilyMembers').innerHTML.match(/class="family-member-chip"/g) || []).length, 2);
 
 storage.set('pat_family_profile', JSON.stringify({
   roomName: '\uC608\uC6B4\uC774\uB124 \uAC00\uC871',

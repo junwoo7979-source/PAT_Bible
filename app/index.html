@@ -57,6 +57,9 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 .stat small{color:var(--muted);font-size:calc(var(--fs) - 3px);}
 .member{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);}
 .member:last-child{border:none;}
+.family-member-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.family-member-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-weight:700;}
+.family-member-chip small{color:var(--accent);font-size:calc(var(--fs) - 5px);}
 .tag-ok{color:var(--accent);font-weight:700;}
 .tag-wait{color:var(--muted);}
 .mic{width:96px;height:96px;border-radius:50%;background:var(--accent);margin:24px auto;
@@ -758,7 +761,7 @@ function renderRegisteredFamilyRoom(){
     if(membersEl){
       const names = familyMemberNames(profile);
       membersEl.innerHTML = names.length
-        ? names.map(name=>`<div class="member"><span>${name}</span><span class="tag-ok">등록</span></div>`).join('')
+        ? `<div class="family-member-chips">${names.map(name=>`<span class="family-member-chip">${name}<small>등록</small></span>`).join('')}</div>`
         : '<p class="muted" style="margin:0">등록된 구성원이 없습니다</p>';
     }
   } else {
