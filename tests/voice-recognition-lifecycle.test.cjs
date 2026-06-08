@@ -167,8 +167,10 @@ const verse = '하나님이 세상을 이처럼 사랑하사 독생자를 주셨
 (async () => {
 context.startMemorize();
 await context.toggleMic();
-assert.equal(micPermissionQueries, 1);
-assert.equal(micPermissionRequests, 0);
+// prewarmMicPermission(1회) + ensureMicrophonePermission(1회) = 2회 query
+// 'prompt' 상태이므로 getUserMedia 1회 호출 → 이후 voiceMicPermissionReady=true로 캐싱
+assert.equal(micPermissionQueries, 2);
+assert.equal(micPermissionRequests, 1);
 assert.equal(recognitions.length, 1);
 assert.equal(recognitions[0].continuous, true);
 recognitions[0].preview('하나님이 세상을');
@@ -214,8 +216,9 @@ await context.toggleMic();
 assert.equal(recognitions.length, 1);
 runTimers(300);
 assert.equal(recognitions.length, 2);
+// voiceMicPermissionReady=true 캐싱으로 2차부터 추가 query/request 없음
 assert.equal(micPermissionQueries, 2);
-assert.equal(micPermissionRequests, 0);
+assert.equal(micPermissionRequests, 1);
 assert.equal(recognitions[1].started, true);
 
 recognitions[1].endWithoutResult();
@@ -240,8 +243,9 @@ await context.toggleMic();
 assert.equal(recognitions.length, 4);
 runTimers(300);
 assert.equal(recognitions.length, 5);
-assert.equal(micPermissionQueries, 3);
-assert.equal(micPermissionRequests, 0);
+// 이후 모든 toggleMic도 캐싱으로 추가 query/request 없음
+assert.equal(micPermissionQueries, 2);
+assert.equal(micPermissionRequests, 1);
 assert.equal(recognitions[4].started, true);
 assert.equal(getElement('voiceRestart').style.display, 'none');
 
@@ -260,7 +264,7 @@ for (let i = 0; i < 5; i++) {
 }
 assert.equal(getElement('manualBox').style.display, 'block');
 assert.equal(getElement('voiceRestart').style.display, 'block');
-assert.equal(micPermissionRequests, 0);
+assert.equal(micPermissionRequests, 1); // getUserMedia는 최초 1회만 호출됨
 
 context.restartMemorize();
 assert.equal(getElement('micBtn').textContent, '🎙️');

@@ -1065,6 +1065,8 @@ function renderVoice(){
   document.getElementById('micHint').textContent = insecure
     ? '⚠ 이 환경에선 마이크가 제한될 수 있어요 — 아래 대체 입력 사용'
     : '탭하여 녹음 시작';
+  // 화면 진입 시 이미 허용된 권한이면 조용히 사전 확보 (버튼 누를 때 창 안 뜨도록)
+  if(!insecure) prewarmMicPermission();
 }
 function showManual(){ document.getElementById('manualBox').style.display='block'; document.getElementById('voiceManual').focus(); }
 function manualVoiceCheck(){
@@ -1121,36 +1123,63 @@ function clearVoiceStartTimer(){
 }
 
 async function ensureMicrophonePermission(){
-  const nav=window.navigator || navigator;
-  if(!nav.mediaDevices || !nav.mediaDevices.getUserMedia){
+  const nav=window.navigator;
+  if(!nav || !nav.mediaDevices || !nav.mediaDevices.getUserMedia){
     return true;
   }
+  // 이미 권한 획득된 경우 바로 반환
+  if(voiceMicPermissionReady) return true;
   try{
+    // Permissions API로 상태 확인
     if(nav.permissions && nav.permissions.query){
       try{
         const status=await nav.permissions.query({ name:'microphone' });
-        if(status.state==='granted' || status.state==='prompt'){
-          voiceMicPermissionReady=true;
-          return true;
-        }
         if(status.state==='denied'){
           toast('브라우저 설정에서 마이크 권한을 허용한 뒤 다시 시작해주세요');
           document.getElementById('voiceRestart').style.display='block';
           showManual();
           return false;
         }
+        // 'granted'여도 getUserMedia로 실제 스트림을 확보해 SpeechRecognition이 다시 묻지 않도록 함
+        // 'prompt'이면 여기서 사용자에게 한 번만 물어보고 이후엔 묻지 않음
       }catch(err){}
     }
+    // getUserMedia로 실제 권한 획득 (이 한 번의 호출로 이후 SpeechRecognition 권한 창 방지)
     const stream=await nav.mediaDevices.getUserMedia({ audio:true });
     stream.getTracks().forEach(track=>track.stop());
     voiceMicPermissionReady=true;
     return true;
   }catch(err){
     voiceMicPermissionReady=false;
-    toast('마이크 권한을 허용해야 음성 암송을 시작할 수 있습니다');
+    if(err.name==='NotAllowedError' || err.name==='PermissionDeniedError'){
+      toast('마이크 권한을 허용해야 음성 암송을 시작할 수 있습니다');
+    } else {
+      toast('마이크를 사용할 수 없습니다 — 장치를 확인해주세요');
+    }
     document.getElementById('voiceRestart').style.display='block';
     showManual();
     return false;
+  }
+}
+
+// 음성 화면 진입 시 미리 마이크 권한 요청 (이미 허용된 경우만 조용히 사전 확보)
+async function prewarmMicPermission(){
+  if(voiceMicPermissionReady) return;
+  const nav=window.navigator;
+  if(!nav || !nav.mediaDevices || !nav.mediaDevices.getUserMedia) return;
+  try{
+    if(nav.permissions && nav.permissions.query){
+      const status=await nav.permissions.query({ name:'microphone' });
+      if(status.state==='granted'){
+        // 이미 허용됨 → getUserMedia로 확보
+        const stream=await nav.mediaDevices.getUserMedia({ audio:true });
+        stream.getTracks().forEach(t=>t.stop());
+        voiceMicPermissionReady=true;
+      }
+      // 'prompt' 또는 'denied'는 버튼 클릭 시점에 처리
+    }
+  }catch(err){
+    // 사전 워밍 실패는 무시 (버튼 클릭 시 다시 시도)
   }
 }
 
@@ -1168,7 +1197,12 @@ async function toggleMic(){
     recog && recog.stop();
     return;
   }
+  // 권한 요청 중 버튼 비활성화 + 안내 (모바일에서 창이 뜨는 동안 중복 탭 방지)
+  const micBtn=document.getElementById('micBtn');
+  micBtn.disabled=true;
+  document.getElementById('micHint').textContent='마이크 권한 확인 중...';
   const hasMicPermission=await ensureMicrophonePermission();
+  micBtn.disabled=false;
   if(!hasMicPermission) return;
   voiceRecoveryCount=0; voiceStopRequested=false;
   clearVoiceRecognition(true);
