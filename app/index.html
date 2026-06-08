@@ -7,6 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>PAT Bible — 성경 암송</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2316213e'/%3E%3Cpath d='M18 14h28a4 4 0 0 1 4 4v34H20a6 6 0 0 1-6-6V18a4 4 0 0 1 4-4z' fill='%2316c784'/%3E%3Cpath d='M22 22h20M22 30h20M22 38h14' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- Cloud Firestore REST API 연동 -->
 <script src="firebase-config.js"></script>
 <script src="firebase-db.js"></script>
@@ -780,7 +781,7 @@ function switchRegTab(tab){
   document.getElementById('tabMember').style.color = isLeader?'var(--text)':'#fff';
   renderRegisteredFamilyRoom();
 }
-function joinFamilyManual(){
+async function joinFamilyManual(){
   const name = document.getElementById('joinMemberName').value.trim();
   const pw = document.getElementById('joinPassword').value.trim();
   if(!name){ toast('내 이름을 입력하세요'); return; }
@@ -794,13 +795,40 @@ function joinFamilyManual(){
     const members = existing.members || [];
     if(!members.includes(name)) members.push(name);
     localStorage.setItem('pat_family_profile', JSON.stringify({ ...existing, memberName:name, members }));
+    if(window.PAT_DB && PAT_DB.ready()){
+      const familyId = localStorage.getItem('pat_family_id')||'';
+      if(familyId) await PAT_DB.joinFamily(DB.church.code, familyId, name);
+    }
   } else {
+    if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
+      const found = await PAT_DB.findFamilyByPassword(DB.church.code, pw);
+      if(found){
+        const members = Array.isArray(found.members) ? found.members.slice() : [];
+        if(!members.includes(name)) members.push(name);
+        localStorage.setItem('pat_family_id', found.id);
+        localStorage.setItem('pat_family_profile', JSON.stringify({
+          roomName:found.roomName||familyNameFromMember(name),
+          leaderName:found.leaderName||'',
+          parish:found.parish||'',
+          district:found.district||'',
+          familyPassword:found.familyPassword||pw,
+          memberName:name,
+          isLeader:false,
+          members
+        }));
+        await PAT_DB.joinFamily(DB.church.code, found.id, name);
+        renderFamilyProfile();
+        go('s-family');
+        toast('✓ '+(found.roomName||'가족방')+'에 등록되었습니다! 🎉');
+        return;
+      }
+    }
     // 가족방 미등록 — 이름·비번만으로 구성원 등록
     const joined = { roomName:familyNameFromMember(name), leaderName:'', parish:'', district:'', familyPassword:pw, memberName:name, isLeader:false, members:[name] };
     localStorage.setItem('pat_family_profile', JSON.stringify(joined));
     if(window.PAT_DB && PAT_DB.ready()){
       const familyId = localStorage.getItem('pat_family_id')||'';
-      PAT_DB.joinFamily(DB.church.code, familyId, name);
+      if(familyId) await PAT_DB.joinFamily(DB.church.code, familyId, name);
     }
     renderFamilyProfile();
     go('s-family');
@@ -863,7 +891,7 @@ function saveFamilyProfile(){
   localStorage.setItem('pat_family_profile', JSON.stringify({ roomName, leaderName, parish, district, familyPassword, members }));
   // Firebase 저장 (클라우드 모드)
   if(window.PAT_DB && PAT_DB.ready()){
-    PAT_DB.saveFamily(DB.church.code, { roomName, leaderName, parish, district })
+    PAT_DB.saveFamily(DB.church.code, { roomName, leaderName, parish, district, familyPassword, members })
       .then(familyId=>{
         if(familyId) PAT_DB.joinFamily(DB.church.code, familyId, leaderName);
       });

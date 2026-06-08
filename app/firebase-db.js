@@ -269,7 +269,9 @@ window.PAT_DB = (() => {
       let familyId = localStorage.getItem('pat_family_id');
       const data = {
         roomName: profile.roomName, leaderName: profile.leaderName,
-        parish: profile.parish, district: profile.district, churchCode
+        parish: profile.parish, district: profile.district, churchCode,
+        familyPassword: profile.familyPassword || '',
+        members: Array.isArray(profile.members) ? profile.members : []
       };
       if (familyId) {
         await fsPatch(`churches/${churchCode}/families/${familyId}`, data);
@@ -279,6 +281,19 @@ window.PAT_DB = (() => {
       }
       return familyId;
     } catch(e) { console.warn('[PAT_DB] saveFamily:', e.message); return null; }
+  }
+
+  async function findFamilyByPassword(churchCode, familyPassword) {
+    if (!ready() || !familyPassword) return null;
+    try {
+      const families = await fsQueryWhere(
+        `churches/${churchCode}`,
+        'families',
+        [{ field: 'familyPassword', value: familyPassword }],
+        1
+      );
+      return families[0] || null;
+    } catch(e) { console.warn('[PAT_DB] findFamilyByPassword:', e.message); return null; }
   }
 
   async function joinFamily(churchCode, familyId, displayName) {
@@ -396,7 +411,7 @@ window.PAT_DB = (() => {
   return {
     init, ready, getDeviceId,
     saveVerse, getLatestVerse, subscribeVerse,
-    saveFamily, joinFamily, getFamilyMembers, subscribeFamily,
+    saveFamily, findFamilyByPassword, joinFamily, getFamilyMembers, subscribeFamily,
     saveRecord, hasRecord,
     getDashboardStats, getFamilyStats,
     unsubscribeAll,
