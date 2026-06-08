@@ -1,0 +1,19 @@
+{
+  "name": "PAT Bible",
+  "short_name": "PAT Bible",
+  "description": "교회, 가족, 개인 성경 암송 웹앱",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#16213e",
+  "icons": [
+    {
+      "src": "icons/pat-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

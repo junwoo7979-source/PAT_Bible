@@ -6,7 +6,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<meta name="theme-color" content="#16213e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PAT Bible">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PAT Bible — 성경 암송</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/pat-icon.svg">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2316213e'/%3E%3Cpath d='M18 14h28a4 4 0 0 1 4 4v34H20a6 6 0 0 1-6-6V18a4 4 0 0 1 4-4z' fill='%2316c784'/%3E%3Cpath d='M22 22h20M22 30h20M22 38h14' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- Cloud Firestore REST API 연동 -->
 <script src="firebase-config.js"></script>
@@ -143,6 +150,8 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <input class="field code-input" id="churchCode" maxlength="20" placeholder="· · · · ·" style="letter-spacing:4px">
     <button class="btn" onclick="enterChurch()">시작하기</button>
     <p class="center muted" style="margin-top:14px">체험용 교회 코드: <b style="color:var(--accent)">11111</b></p>
+    <button class="btn ghost" id="installAppBtn" onclick="installPatApp()" style="margin-top:12px">📱 PAT 아이콘 설치</button>
+    <p class="center muted" style="margin-top:8px;font-size:calc(var(--fs) - 4px)">모바일에서는 홈 화면 아이콘으로 실행하면 카톡 브라우저 문제를 피할 수 있습니다</p>
     <button class="back" style="margin:18px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
     <div class="spacer"></div>
   </section>
@@ -1762,6 +1771,33 @@ function toggleLenient(){
 }
 function resetData(){ localStorage.removeItem('pat_records'); DB.members.find(m=>m.me).done=false; toast('기록이 초기화되었습니다'); renderFamily(); }
 
+// ====== 홈 화면 설치(PWA) ======
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  const btn=document.getElementById('installAppBtn');
+  if(btn) btn.textContent='📱 PAT 아이콘 설치';
+});
+async function installPatApp(){
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice.catch(()=>{});
+    deferredInstallPrompt=null;
+    return;
+  }
+  const ua=navigator.userAgent||'';
+  if(/KAKAOTALK/i.test(ua)){
+    alert('카카오톡 안에서는 설치가 어렵습니다.\n오른쪽 위 메뉴(⋮ 또는 …)에서 “다른 브라우저로 열기”를 누른 뒤, Chrome/Safari에서 PAT 아이콘을 홈 화면에 추가해주세요.');
+    return;
+  }
+  if(/iPhone|iPad|iPod/i.test(ua)){
+    alert('iPhone/iPad 설치 방법\n1. Safari에서 이 페이지 열기\n2. 아래 공유 버튼 누르기\n3. “홈 화면에 추가” 선택\n4. PAT Bible 아이콘으로 실행');
+    return;
+  }
+  alert('Android 설치 방법\n1. Chrome에서 이 페이지 열기\n2. 오른쪽 위 메뉴(⋮) 누르기\n3. “앱 설치” 또는 “홈 화면에 추가” 선택\n4. PAT Bible 아이콘으로 실행');
+}
+
 // ====== 토스트 ======
 let toastT;
 function toast(msg){
@@ -1788,6 +1824,12 @@ applyStoredData();
   const tabbar = document.getElementById('tabbar');
   if(tabbar && tabbar.style) tabbar.style.display = 'none'; // 시작 화면은 항상 로그인
 })();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
