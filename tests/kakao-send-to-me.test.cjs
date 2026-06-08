@@ -11,19 +11,27 @@ const defaultBrief = buildDefaultBrief();
 assert.doesNotMatch(defaultBrief.url, /example\.com/);
 assert.doesNotMatch(defaultBrief.imageUrl, /example\.com/);
 
+process.env.PAT_MARKET_BRIEF_RELATED_STOCKS = '';
+const stocklessBrief = buildDefaultBrief();
+assert.deepEqual(stocklessBrief.relatedStocks, []);
+delete process.env.PAT_MARKET_BRIEF_RELATED_STOCKS;
+
 const brief = {
-  title: '미국증시 장 마감 브리핑',
-  summary: 'AI 반도체와 서버 인프라 흐름을 점검하고 국내 증시 영향을 정리했습니다.',
+  title: '미국증시 장마감 브리핑',
+  summary: 'AI 반도체와 서버 수급 흐름을 중심으로 국내 증시 영향을 정리했습니다.',
   url: 'https://example.com/pat-market-brief',
   imageUrl: 'https://example.com/pat-card-news-cover.png',
   relatedStocks: ['삼성전자', 'SK하이닉스', '한미반도체'],
 };
 
 const template = buildMarketBriefTemplate(brief);
+const stocklessTemplate = buildMarketBriefTemplate({ ...brief, relatedStocks: [] });
 
 assert.equal(template.object_type, 'feed');
 assert.equal(template.content.title, brief.title);
 assert.match(template.content.description, /국내 증시 영향/);
+assert.match(template.content.description, /한국 연관 종목/);
+assert.equal(stocklessTemplate.content.description, brief.summary);
 assert.equal(template.content.link.web_url, brief.url);
 assert.equal(template.content.image_url, brief.imageUrl);
 assert.equal(template.buttons[0].title, '브리핑 보기');

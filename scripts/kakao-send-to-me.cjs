@@ -3,14 +3,28 @@ const { loadEnvFile } = require('./env-loader.cjs');
 const KAKAO_MEMO_ENDPOINT = 'https://kapi.kakao.com/v2/api/talk/memo/default/send';
 const DEFAULT_BRIEF_URL = 'https://junwoo7979-source.github.io/pat-market-brief/';
 const DEFAULT_BRIEF_IMAGE_URL = 'https://opengraph.githubassets.com/1/junwoo7979-source/pat-market-brief';
+const DEFAULT_RELATED_STOCKS = [
+  '삼성전자',
+  'SK하이닉스',
+  '한미반도체',
+  '이수페타시스',
+  '대덕전자',
+  '리노공업',
+  'ISC',
+  'HPSP',
+  '원익IPS',
+  '테크윙',
+];
 
 function buildMarketBriefTemplate(brief) {
-  const title = brief.title || '미국증시 장 마감 브리핑';
-  const summary = brief.summary || '미국증시 특징주와 국내 증시 영향을 정리했습니다.';
+  const title = brief.title || '미국증시 장마감 브리핑';
+  const summary = brief.summary || '미국증시 핵심주와 국내 증시 영향을 정리했습니다.';
   const url = brief.url || DEFAULT_BRIEF_URL;
   const imageUrl = brief.imageUrl || DEFAULT_BRIEF_IMAGE_URL;
   const relatedStocks = Array.isArray(brief.relatedStocks) ? brief.relatedStocks.join(', ') : '';
-  const description = relatedStocks ? `${summary}\n\n한국 연관 종목: ${relatedStocks}` : summary;
+  const description = relatedStocks
+    ? `${summary}\n\n한국 연관 종목: ${relatedStocks}`
+    : summary;
 
   return {
     object_type: 'feed',
@@ -78,23 +92,19 @@ async function sendKakaoMemo({ accessToken, template, fetchImpl = globalThis.fet
 }
 
 function buildDefaultBrief() {
+  const relatedStocks = process.env.PAT_MARKET_BRIEF_RELATED_STOCKS === undefined
+    ? DEFAULT_RELATED_STOCKS
+    : process.env.PAT_MARKET_BRIEF_RELATED_STOCKS
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
   return {
-    title: process.env.PAT_MARKET_BRIEF_TITLE || '미국증시 장 마감 브리핑',
-    summary: process.env.PAT_MARKET_BRIEF_SUMMARY || 'AI 반도체와 서버 인프라 흐름을 점검하고 국내 증시 영향을 정리했습니다.',
+    title: process.env.PAT_MARKET_BRIEF_TITLE || '미국증시 장마감 브리핑',
+    summary: process.env.PAT_MARKET_BRIEF_SUMMARY || 'AI 반도체와 서버 수급 흐름을 중심으로 국내 증시 영향을 정리했습니다.',
     url: process.env.PAT_MARKET_BRIEF_URL || DEFAULT_BRIEF_URL,
     imageUrl: process.env.PAT_MARKET_BRIEF_IMAGE_URL || DEFAULT_BRIEF_IMAGE_URL,
-    relatedStocks: [
-      '삼성전자',
-      'SK하이닉스',
-      '한미반도체',
-      '이수페타시스',
-      '대덕전자',
-      '리노공업',
-      'ISC',
-      'HPSP',
-      '원익IPS',
-      '테크윙',
-    ],
+    relatedStocks,
   };
 }
 

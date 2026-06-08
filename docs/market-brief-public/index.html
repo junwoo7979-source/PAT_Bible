@@ -3,22 +3,203 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0f172a">
-  <title>오늘의 안부</title>
+  <meta name="theme-color" content="#0b1220">
+  <title>2026년 6월 7일 서울 날씨 카드뉴스</title>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; padding: 20px; display: grid; place-items: center; font-family: system-ui, sans-serif; color: #f8fafc; background: #0f172a; }
-    article { width: min(560px, 100%); padding: 36px 28px; border: 1px solid #334155; border-radius: 26px; background: radial-gradient(circle at 85% 10%, #0f766e, transparent 38%), #1e293b; box-shadow: 0 24px 60px rgba(0,0,0,.3); }
-    .tag { color: #6ee7b7; font-weight: 800; }
-    h1 { margin: 14px 0 20px; font-size: clamp(36px, 12vw, 58px); line-height: 1.08; }
-    p { margin: 0; color: #dbeafe; font-size: 21px; line-height: 1.8; }
+    :root {
+      color-scheme: dark;
+      --bg-top: #09101d;
+      --bg-bottom: #16253d;
+      --panel: rgba(10, 18, 32, 0.78);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --accent: #7dd3fc;
+      --warn: #fbbf24;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      display: grid;
+      place-items: center;
+      font-family: "Segoe UI", "Noto Sans KR", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 32%),
+        radial-gradient(circle at top right, rgba(251, 191, 36, 0.14), transparent 24%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+    }
+
+    article {
+      width: min(620px, 100%);
+      padding: 32px 24px 26px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.38);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(125, 211, 252, 0.12);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    h1 {
+      margin: 16px 0 10px;
+      font-size: clamp(30px, 9vw, 54px);
+      line-height: 1.05;
+    }
+
+    .lead {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.65;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .panel,
+    .tip {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .label {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .temp {
+      margin: 10px 0 6px;
+      font-size: clamp(42px, 10vw, 72px);
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .status {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 16px 0;
+    }
+
+    .metric-value {
+      margin: 10px 0 0;
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .metric-copy {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .tip {
+      border-color: rgba(251, 191, 36, 0.2);
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(56, 189, 248, 0.08));
+    }
+
+    .tip strong {
+      color: #fde68a;
+    }
+
+    .tip p,
+    .source {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .source {
+      margin-top: 18px;
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    @media (max-width: 560px) {
+      body { padding: 14px; }
+      article { padding: 24px 18px 20px; }
+      .hero,
+      .grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <article>
-    <div class="tag">TODAY'S MESSAGE</div>
-    <h1>오늘의 안부</h1>
-    <p>오늘도 건강하고 평안한 하루 보내세요.<br>좋은 일과 따뜻한 웃음이 함께하기를 바랍니다.</p>
+    <div class="eyebrow">SEOUL WEATHER · 2026.06.07</div>
+    <h1>서울 오늘 날씨</h1>
+    <p class="lead">현재는 선선하지만, 밤으로 갈수록 비 가능성이 있습니다. 늦은 외출이라면 작은 우산을 챙기는 편이 안전합니다.</p>
+
+    <section class="hero">
+      <div class="panel">
+        <div class="label">현재 날씨</div>
+        <div class="temp">23°C</div>
+        <p class="status">구름 많은 하늘에 비 소식이 가까워진 저녁입니다.<br>체감도도 비슷해 답답함은 덜하지만 노면은 미끄러울 수 있습니다.</p>
+      </div>
+      <div class="panel">
+        <div class="label">한줄 요약</div>
+        <p class="status"><strong>최저 17°C / 최고 27°C</strong><br>강수확률 49%<br>늦은 밤 한때 비 가능</p>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="오늘 예보">
+      <div class="panel">
+        <div class="label">최저 기온</div>
+        <p class="metric-value">17°C</p>
+        <p class="metric-copy">아침은 가볍게 선선한 수준입니다.</p>
+      </div>
+      <div class="panel">
+        <div class="label">최고 기온</div>
+        <p class="metric-value">27°C</p>
+        <p class="metric-copy">낮에는 얇은 옷차림이 편합니다.</p>
+      </div>
+      <div class="panel">
+        <div class="label">강수 확률</div>
+        <p class="metric-value">49%</p>
+        <p class="metric-copy">밤 늦게 빗방울이나 소나기 가능성이 있습니다.</p>
+      </div>
+    </section>
+
+    <section class="tip">
+      <div class="label" style="color: var(--warn);">외출 팁</div>
+      <p><strong>퇴근 후 일정이 있다면 접이식 우산</strong>을 챙기고, 실내외 온도 차를 대비해 <strong>얇은 겉옷</strong> 하나 정도 준비해 두면 무난합니다.</p>
+    </section>
+
+    <p class="source">기준 시각: 2026년 6월 7일. 기상청 단기예보(11:00 발표)와 Timeanddate/WeatherBug 공개 관측 정보를 바탕으로 정리.</p>
   </article>
 </body>
 </html>
