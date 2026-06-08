@@ -65,6 +65,26 @@ assert.ok(Array.isArray(saved.members));
 assert.equal(getElement('familyRoomTitle').textContent, '👨‍👩‍👧 믿음 가족방');
 assert.equal(getElement('familyProfile').textContent, '대표 김민수 동부교구 3구역');
 
+storage.set('pat_family_profile', JSON.stringify({
+  roomName: '\uC608\uC6B4\uC774\uB124 \uAC00\uC871',
+  leaderName: '\uC608\uC6B4',
+  parish: '1',
+  district: '2',
+  familyPassword: '33333',
+  members: [],
+}));
+context.renderFamily();
+assert.match(getElement('familyRoomTitle').textContent, /\uC608\uC6B4\uC774\uB124 \uAC00\uC871/);
+assert.match(getElement('memberList').innerHTML, /\uC608\uC6B4/);
+
+storage.delete('pat_family_profile');
+getElement('joinMemberName').value = '\uC608\uC6B4';
+getElement('joinPassword').value = '33333';
+context.joinFamilyManual();
+assert.match(getElement('familyRoomTitle').textContent, /\uC608\uC6B4\uC774\uB124 \uAC00\uC871/);
+assert.match(getElement('memberList').innerHTML, /\uC608\uC6B4/);
+
+storage.set('pat_family_profile', JSON.stringify(saved));
 getElement('familyRoomName').value = '';
 getElement('familyLeaderName').value = '';
 getElement('familyParish').value = '';

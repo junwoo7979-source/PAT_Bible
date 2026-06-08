@@ -703,15 +703,33 @@ function enterChurch(){
 function loadFamilyProfile(){
   try{ return JSON.parse(localStorage.getItem('pat_family_profile')||'null'); }catch(e){ return null; }
 }
+function familyRoomName(profile){
+  if(!profile) return '';
+  return profile.roomName || (profile.memberName ? familyNameFromMember(profile.memberName) : '');
+}
+function familyNameFromMember(name){
+  const last = name.charCodeAt(name.length-1);
+  const hasBatchim = last >= 0xAC00 && last <= 0xD7A3 && ((last - 0xAC00) % 28) > 0;
+  return name+(hasBatchim?'이네':'네')+' 가족';
+}
+function familyMemberNames(profile){
+  if(!profile) return [];
+  const names = Array.isArray(profile.members) ? profile.members.filter(Boolean) : [];
+  const fallback = profile.leaderName || profile.memberName || '';
+  if(fallback && !names.includes(fallback)) names.unshift(fallback);
+  return names;
+}
 function renderFamilyProfile(){
   const profile=loadFamilyProfile();
+  const roomName = familyRoomName(profile);
   document.getElementById('familyRoomTitle').textContent = profile
-    ? `👨‍👩‍👧 ${profile.roomName}`
+    ? `👨‍👩‍👧 ${roomName || '우리 가족방'}`
     : '👨‍👩‍👧 우리 가족방';
   if(profile){
     const parishLabel = profile.parish ? (/교구$/.test(profile.parish) ? profile.parish : profile.parish+'교구') : '';
     const districtLabel = profile.district ? (/구역$/.test(profile.district) ? profile.district : profile.district+'구역') : '';
-    const parts = ['대표 '+profile.leaderName, parishLabel, districtLabel].filter(Boolean);
+    const leaderLabel = profile.leaderName ? '대표 '+profile.leaderName : (profile.memberName || '');
+    const parts = [leaderLabel, parishLabel, districtLabel].filter(Boolean);
     document.getElementById('familyProfile').textContent = parts.join(' ');
   } else {
     document.getElementById('familyProfile').textContent = '가족방을 등록해주세요';
@@ -742,7 +760,7 @@ function joinFamilyManual(){
     localStorage.setItem('pat_family_profile', JSON.stringify({ ...existing, memberName:name, members }));
   } else {
     // 가족방 미등록 — 이름·비번만으로 구성원 등록
-    const joined = { roomName:'', leaderName:'', parish:'', district:'', familyPassword:pw, memberName:name, isLeader:false, members:[name] };
+    const joined = { roomName:familyNameFromMember(name), leaderName:'', parish:'', district:'', familyPassword:pw, memberName:name, isLeader:false, members:[name] };
     localStorage.setItem('pat_family_profile', JSON.stringify(joined));
     if(window.PAT_DB && PAT_DB.ready()){
       const familyId = localStorage.getItem('pat_family_id')||'';
@@ -801,9 +819,10 @@ function saveFamilyProfile(){
   const parish=document.getElementById('familyParish').value.trim();
   const district=document.getElementById('familyDistrict').value.trim();
   let familyPassword=document.getElementById('familyPassword').value.trim();
-  const members=getMemberNames();
+  let members=getMemberNames();
   if(!roomName||!leaderName||!parish||!district){ toast('가족방 이름, 대표 이름, 교구와 구역을 입력하세요'); return; }
   if(!familyPassword) familyPassword=DB.church.code;
+  if(!members.includes(leaderName)) members.unshift(leaderName);
   localStorage.setItem('pat_family_profile', JSON.stringify({ roomName, leaderName, parish, district, familyPassword, members }));
   // Firebase 저장 (클라우드 모드)
   if(window.PAT_DB && PAT_DB.ready()){
@@ -868,9 +887,10 @@ function renderFamily(){
   const recs = loadRec();
   const profile = loadFamilyProfile();
   // 등록된 구성원 이름이 있으면 DB.members를 덮어씀
-  if(profile && profile.members && profile.members.length){
+  const profileMembers = familyMemberNames(profile);
+  if(profileMembers.length){
     const existing = DB.members.find(m=>m.me);
-    DB.members = profile.members.map((name,i)=>({
+    DB.members = profileMembers.map((name,i)=>({
       name, me: i===0, // 첫 번째가 현재 기기(대표)
       done: i===0 ? (recs.length>0) : false
     }));
