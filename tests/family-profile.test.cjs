@@ -54,10 +54,14 @@ getElement('familyDistrict').value = '3구역';
 getElement('familyPassword').value = '22222';
 context.saveFamilyProfile();
 
-assert.deepEqual(
-  JSON.parse(storage.get('pat_family_profile')),
-  { roomName: '믿음 가족방', leaderName: '김민수', parish: '동부교구', district: '3구역', familyPassword: '22222' },
-);
+const saved = JSON.parse(storage.get('pat_family_profile'));
+assert.equal(saved.roomName, '믿음 가족방');
+assert.equal(saved.leaderName, '김민수');
+assert.equal(saved.parish, '동부교구');
+assert.equal(saved.district, '3구역');
+assert.equal(saved.familyPassword, '22222');
+// members 필드가 배열로 저장되는지 확인 (비어있어도 OK)
+assert.ok(Array.isArray(saved.members));
 assert.equal(getElement('familyRoomTitle').textContent, '👨‍👩‍👧 믿음 가족방');
 assert.equal(getElement('familyProfile').textContent, '대표 김민수 동부교구 3구역');
 

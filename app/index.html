@@ -278,22 +278,31 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
     <!-- 대표 등록 폼 -->
     <div id="panelLeader">
-      <p class="muted" style="margin:10px 0 4px">가족방 이름, 대표 이름, 교구·구역을 입력하세요</p>
+      <p class="muted" style="margin:10px 0 4px">가족방 정보와 구성원 이름을 입력하세요</p>
       <div class="card" style="margin-top:8px">
         <label class="lbl">가족방 이름</label>
         <input class="field" id="familyRoomName" placeholder="예: 믿음 가족방">
         <label class="lbl">가족 대표 이름</label>
         <input class="field" id="familyLeaderName" placeholder="예: 김민수">
         <label class="lbl">교구</label>
-        <input class="field" id="familyParish" placeholder="예: 동부교구">
+        <input class="field" id="familyParish" placeholder="예: 1교구">
         <label class="lbl">구역</label>
         <input class="field" id="familyDistrict" placeholder="예: 3구역">
         <label class="lbl">가족 비밀번호</label>
         <input class="field" id="familyPassword" type="password" placeholder="가족방 전용 비밀번호">
         <p class="muted" style="font-size:calc(var(--fs) - 5px);margin:-4px 2px 10px">
           가족 구성원이 참여할 때 사용하는 비밀번호입니다.</p>
-        <button class="btn" onclick="saveFamilyProfile()">가족방 등록 저장</button>
       </div>
+      <!-- 가족 구성원 등록 -->
+      <div class="card" style="margin-top:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700">👨‍👩‍👧 가족 구성원</span>
+          <button onclick="addMemberRow()" style="background:var(--accent);color:#04231a;border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:calc(var(--fs)-2px);cursor:pointer">+ 추가</button>
+        </div>
+        <div id="memberRows"></div>
+        <p class="muted" style="font-size:calc(var(--fs)-5px);margin-top:4px">대표 포함 가족 구성원 이름을 입력하세요</p>
+      </div>
+      <button class="btn" onclick="saveFamilyProfile()">가족방 등록 저장</button>
     </div>
 
     <!-- 가족 참여 폼 -->
@@ -747,14 +756,41 @@ function joinFamilyManual(){
   go('s-family');
   toast('✓ '+roomName+' 가족방에 참여했습니다! 🎉');
 }
+// ── 구성원 행 추가/삭제 ──────────────────────────────
+let _memberRowId = 0;
+function addMemberRow(name){
+  if(typeof document==='undefined'||!document.createElement) return;
+  const id = 'mr'+(++_memberRowId);
+  const row = document.createElement('div');
+  row.id = id;
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px';
+  row.innerHTML = `<input class="field" style="margin:0;flex:1" placeholder="이름 입력" value="${name||''}">
+    <button onclick="removeMemberRow('${id}')" style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:calc(var(--fs)-2px);cursor:pointer;flex-shrink:0">✕</button>`;
+  document.getElementById('memberRows').appendChild(row);
+}
+function removeMemberRow(id){
+  const el = document.getElementById(id);
+  if(el) el.remove();
+}
+function getMemberNames(){
+  return [...document.querySelectorAll('#memberRows input')]
+    .map(el=>el.value.trim()).filter(Boolean);
+}
+function renderMemberRows(names){
+  const container = document.getElementById('memberRows');
+  if(!container) return;
+  container.innerHTML = '';
+  _memberRowId = 0;
+  (names && names.length ? names : ['']).forEach(n => addMemberRow(n));
+}
 function openFamilyRegister(tab){
   const profile=loadFamilyProfile();
   document.getElementById('familyRoomName').value=profile?.roomName||'';
   document.getElementById('familyLeaderName').value=profile?.leaderName||'';
   document.getElementById('familyParish').value=profile?.parish||'';
   document.getElementById('familyDistrict').value=profile?.district||'';
-  // 가족 비밀번호: 기존 값, 없으면 교회 입장 코드를 기본으로 부여
   document.getElementById('familyPassword').value=profile?.familyPassword||DB.church.code;
+  renderMemberRows(profile?.members||[]);
   switchRegTab(tab||'leader');
   go('s-family-register');
 }
@@ -764,9 +800,10 @@ function saveFamilyProfile(){
   const parish=document.getElementById('familyParish').value.trim();
   const district=document.getElementById('familyDistrict').value.trim();
   let familyPassword=document.getElementById('familyPassword').value.trim();
+  const members=getMemberNames();
   if(!roomName||!leaderName||!parish||!district){ toast('가족방 이름, 대표 이름, 교구와 구역을 입력하세요'); return; }
-  if(!familyPassword) familyPassword=DB.church.code; // 비우면 교회 코드로 유지
-  localStorage.setItem('pat_family_profile', JSON.stringify({ roomName, leaderName, parish, district, familyPassword }));
+  if(!familyPassword) familyPassword=DB.church.code;
+  localStorage.setItem('pat_family_profile', JSON.stringify({ roomName, leaderName, parish, district, familyPassword, members }));
   // Firebase 저장 (클라우드 모드)
   if(window.PAT_DB && PAT_DB.ready()){
     PAT_DB.saveFamily(DB.church.code, { roomName, leaderName, parish, district })
@@ -776,7 +813,7 @@ function saveFamilyProfile(){
   }
   renderFamilyProfile();
   go('s-family');
-  toast('✓ 가족방 정보가 저장되었습니다 (가족 비밀번호 적용)');
+  toast('✓ 가족방 정보가 저장되었습니다');
 }
 // ====== 가족방 초대 링크 ======
 function copyInviteLink(){
@@ -828,6 +865,16 @@ function checkInviteParam(){
 function memberHomeTitle(){ return DB.church.name+' PAT'; }
 function renderFamily(){
   const recs = loadRec();
+  const profile = loadFamilyProfile();
+  // 등록된 구성원 이름이 있으면 DB.members를 덮어씀
+  if(profile && profile.members && profile.members.length){
+    const existing = DB.members.find(m=>m.me);
+    DB.members = profile.members.map((name,i)=>({
+      name, me: i===0, // 첫 번째가 현재 기기(대표)
+      done: i===0 ? (recs.length>0) : false
+    }));
+    if(!DB.members.find(m=>m.me)) DB.members[0].me=true;
+  }
   const me = DB.members.find(m=>m.me);
   if(recs.length>0) me.done = true;
   const doneCount = DB.members.filter(m=>m.done).length;
