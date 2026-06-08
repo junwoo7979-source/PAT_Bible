@@ -64,7 +64,7 @@ class FakeSpeechRecognition {
   abort() {}
 
   preview(text) {
-    this.onresult({ results: [[{ transcript: text }]] });
+    this.onresult({ resultIndex: 0, results: [{ 0: { transcript: text }, isFinal: false }] });
   }
 
   cumulativePreview(resultIndex, results) {
@@ -167,9 +167,8 @@ const verse = '하나님이 세상을 이처럼 사랑하사 독생자를 주셨
 (async () => {
 context.startMemorize();
 await context.toggleMic();
-// prewarmMicPermission(1회) + ensureMicrophonePermission(1회) = 2회 query
-// 'prompt' 상태이므로 getUserMedia 1회 호출 → 이후 voiceMicPermissionReady=true로 캐싱
-assert.equal(micPermissionQueries, 2);
+// acquireGlobalMicStream: permissions.query 없이 getUserMedia 직접 호출 → queries=0, requests=1
+assert.equal(micPermissionQueries, 0);
 assert.equal(micPermissionRequests, 1);
 assert.equal(recognitions.length, 1);
 assert.equal(recognitions[0].continuous, true);
@@ -217,7 +216,7 @@ assert.equal(recognitions.length, 1);
 runTimers(300);
 assert.equal(recognitions.length, 2);
 // voiceMicPermissionReady=true 캐싱으로 2차부터 추가 query/request 없음
-assert.equal(micPermissionQueries, 2);
+assert.equal(micPermissionQueries, 0);
 assert.equal(micPermissionRequests, 1);
 assert.equal(recognitions[1].started, true);
 
@@ -244,7 +243,7 @@ assert.equal(recognitions.length, 4);
 runTimers(300);
 assert.equal(recognitions.length, 5);
 // 이후 모든 toggleMic도 캐싱으로 추가 query/request 없음
-assert.equal(micPermissionQueries, 2);
+assert.equal(micPermissionQueries, 0);
 assert.equal(micPermissionRequests, 1);
 assert.equal(recognitions[4].started, true);
 assert.equal(getElement('voiceRestart').style.display, 'none');

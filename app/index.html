@@ -1011,7 +1011,14 @@ function renderVerse(){
     startBtn.textContent = '암송 시작';
   }
 }
-function startMemorize(){ resetMemorizeState(); renderVoice(); go('s-voice'); }
+function startMemorize(){
+  resetMemorizeState();
+  renderVoice();
+  go('s-voice');
+  // UI 전환 후 사용자 제스처 컨텍스트에서 마이크 권한 사전 획득 (백그라운드)
+  // → toggleMic 클릭 시 이미 stream 확보되어 권한 창 없이 즉시 녹음 시작
+  acquireGlobalMicStream().catch(()=>{});
+}
 
 // ====== S5 음성 암송 ======
 let voiceStage=1, voiceScore1=0, voiceScore2=0, recognizing=false, recog=null, typeStage=1;
@@ -1023,7 +1030,7 @@ const VOICE_RELEASE_DELAY=300;
 const VOICE_RECOVERY_LIMIT=5;
 let voiceRecoveryCount=0, voiceStopRequested=false;
 let voiceMicPermissionReady=false;
-let micKeepAliveStream=null; // STT 시작 전까지 스트림 유지 (모바일 권한 창 방지)
+let globalMicStream=null; // 암송 세션 전체 유지 스트림 (매 toggleMic 권한 창 방지)
 // 진행 단계 바 (1:음성1 2:음성2 3:타이핑1 4:타이핑2)
 const STEP_NAMES = ['음성 1차','음성 2차','타이핑 1차','타이핑 2차'];
 function stepScore(n){
@@ -1066,8 +1073,7 @@ function renderVoice(){
   document.getElementById('micHint').textContent = insecure
     ? '⚠ 이 환경에선 마이크가 제한될 수 있어요 — 아래 대체 입력 사용'
     : '탭하여 녹음 시작';
-  // 화면 진입 시 이미 허용된 권한이면 조용히 사전 확보 (버튼 누를 때 창 안 뜨도록)
-  if(!insecure) prewarmMicPermission();
+  // startMemorize에서 acquireGlobalMicStream을 이미 호출하므로 여기서 중복 호출 불필요
 }
 function showManual(){ document.getElementById('manualBox').style.display='block'; document.getElementById('voiceManual').focus(); }
 function manualVoiceCheck(){
@@ -1077,6 +1083,7 @@ function manualVoiceCheck(){
   evalVoice(t);
 }
 function resetMemorizeState(){
+  releaseGlobalMicStream(); // 이전 세션 스트림 정리
   clearVoiceStartTimer();
   clearVoiceRecognition(true);
   recognizing=false;
@@ -1123,75 +1130,59 @@ function clearVoiceStartTimer(){
   voiceStartTimer=null;
 }
 
-async function ensureMicrophonePermission(){
+// ── 마이크 전역 스트림 관리 ──────────────────────────────────────
+// acquireGlobalMicStream : startMemorize(사용자 제스처)에서 딱 한 번 호출
+//   → 이후 모든 SpeechRecognition 호출은 스트림이 살아있으므로 권한 창 없음
+// releaseGlobalMicStream : 암송 완료 또는 이탈 시 해제
+let globalMicStreamPromise=null; // 진행 중인 getUserMedia Promise (중복 호출 방지)
+function acquireGlobalMicStream(){
   const nav=window.navigator;
-  if(!nav || !nav.mediaDevices || !nav.mediaDevices.getUserMedia){
-    return true;
-  }
-  // 이미 권한 획득된 경우 바로 반환
-  if(voiceMicPermissionReady) return true;
-  try{
-    // Permissions API로 상태 확인
-    if(nav.permissions && nav.permissions.query){
-      try{
-        const status=await nav.permissions.query({ name:'microphone' });
-        if(status.state==='denied'){
-          toast('브라우저 설정에서 마이크 권한을 허용한 뒤 다시 시작해주세요');
-          document.getElementById('voiceRestart').style.display='block';
-          showManual();
-          return false;
-        }
-        // 'granted'여도 getUserMedia로 실제 스트림을 확보해 SpeechRecognition이 다시 묻지 않도록 함
-        // 'prompt'이면 여기서 사용자에게 한 번만 물어보고 이후엔 묻지 않음
-      }catch(err){}
+  if(!nav || !nav.mediaDevices || !nav.mediaDevices.getUserMedia) return Promise.resolve(true);
+  if(globalMicStream) return Promise.resolve(true); // 이미 획득됨
+  if(globalMicStreamPromise) return globalMicStreamPromise; // 진행 중이면 같은 Promise 재사용
+  globalMicStreamPromise=(async()=>{
+    try{
+      globalMicStream=await nav.mediaDevices.getUserMedia({ audio:true });
+      voiceMicPermissionReady=true;
+      return true;
+    }catch(err){
+      voiceMicPermissionReady=false;
+      if(err.name==='NotAllowedError'||err.name==='PermissionDeniedError'){
+        toast('마이크 권한을 허용해야 음성 암송을 시작할 수 있습니다');
+      } else {
+        toast('마이크를 사용할 수 없습니다 — 장치를 확인해주세요');
+      }
+      document.getElementById('voiceRestart').style.display='block';
+      showManual();
+      return false;
+    } finally {
+      globalMicStreamPromise=null;
     }
-    // getUserMedia로 실제 권한 획득
-    // 스트림을 즉시 종료하지 않고 micKeepAliveStream에 유지
-    // → SpeechRecognition의 onstart 이벤트 이후에 종료해야 모바일에서 재요청 방지
-    if(micKeepAliveStream){
-      micKeepAliveStream.getTracks().forEach(t=>t.stop());
-      micKeepAliveStream=null;
-    }
-    const stream=await nav.mediaDevices.getUserMedia({ audio:true });
-    micKeepAliveStream=stream; // onstart 전까지 살려둠
-    voiceMicPermissionReady=true;
-    return true;
-  }catch(err){
-    voiceMicPermissionReady=false;
-    if(err.name==='NotAllowedError' || err.name==='PermissionDeniedError'){
-      toast('마이크 권한을 허용해야 음성 암송을 시작할 수 있습니다');
-    } else {
-      toast('마이크를 사용할 수 없습니다 — 장치를 확인해주세요');
-    }
-    document.getElementById('voiceRestart').style.display='block';
-    showManual();
-    return false;
-  }
+  })();
+  return globalMicStreamPromise;
+}
+function releaseGlobalMicStream(){
+  globalMicStreamPromise=null;
+  if(!globalMicStream) return;
+  globalMicStream.getTracks().forEach(t=>t.stop());
+  globalMicStream=null;
+  voiceMicPermissionReady=false;
 }
 
-// 음성 화면 진입 시 미리 마이크 권한 요청 (이미 허용된 경우만 조용히 사전 확보)
+// toggleMic 에서 사용 — 전역 스트림 확인만, getUserMedia 재호출 없음
+async function ensureMicrophonePermission(){
+  if(voiceMicPermissionReady) return true;
+  // startMemorize를 거치지 않고 직접 진입한 경우 폴백 획득 시도
+  const ok=await acquireGlobalMicStream();
+  return ok;
+}
+
+// renderVoice 진입 시 조용히 호출 — startMemorize에서 이미 호출되므로 여기선 중복 차단
 async function prewarmMicPermission(){
+  // acquireGlobalMicStream은 startMemorize(사용자 제스처) 시 이미 호출됨
+  // permissions.query 호출 없이 바로 확인만
   if(voiceMicPermissionReady) return;
-  const nav=window.navigator;
-  if(!nav || !nav.mediaDevices || !nav.mediaDevices.getUserMedia) return;
-  try{
-    if(nav.permissions && nav.permissions.query){
-      const status=await nav.permissions.query({ name:'microphone' });
-      if(status.state==='granted'){
-        // 이미 허용됨 → getUserMedia로 스트림 확보 후 살려둠
-        if(micKeepAliveStream){
-          micKeepAliveStream.getTracks().forEach(t=>t.stop());
-          micKeepAliveStream=null;
-        }
-        const stream=await nav.mediaDevices.getUserMedia({ audio:true });
-        micKeepAliveStream=stream;
-        voiceMicPermissionReady=true;
-      }
-      // 'prompt' 또는 'denied'는 버튼 클릭 시점에 처리
-    }
-  }catch(err){
-    // 사전 워밍 실패는 무시 (버튼 클릭 시 다시 시도)
-  }
+  await acquireGlobalMicStream().catch(()=>{});
 }
 
 async function toggleMic(){
@@ -1215,9 +1206,6 @@ async function toggleMic(){
   const hasMicPermission=await ensureMicrophonePermission();
   micBtn.disabled=false;
   if(!hasMicPermission) return;
-  // 2회차 이후: voiceMicPermissionReady=true로 ensureMic을 건너뛰므로
-  // 매번 STT 직전에 스트림을 새로 확보해 모바일에서 권한 창 재표시를 방지
-  await warmMicForSTT();
   voiceRecoveryCount=0; voiceStopRequested=false;
   clearVoiceRecognition(true);
   const wait=Math.max(0, voiceReadyAt-Date.now());
@@ -1231,23 +1219,6 @@ async function toggleMic(){
     return;
   }
   startVoiceRecognition(SR);
-}
-// STT 시작 직전 스트림을 확보해 모바일에서 SpeechRecognition 권한 창 방지
-async function warmMicForSTT(){
-  const nav=window.navigator;
-  if(!nav || !nav.mediaDevices || !nav.mediaDevices.getUserMedia) return;
-  try{
-    if(micKeepAliveStream) return; // 이미 스트림 있음
-    micKeepAliveStream=await nav.mediaDevices.getUserMedia({ audio:true });
-  }catch(e){
-    micKeepAliveStream=null;
-  }
-}
-// STT onstart 이후 keep-alive 스트림 해제
-function releaseMicKeepAlive(){
-  if(!micKeepAliveStream) return;
-  micKeepAliveStream.getTracks().forEach(t=>t.stop());
-  micKeepAliveStream=null;
 }
 async function restartVoiceRecognitionSafely(SR){
   if(!voiceMicPermissionReady){
@@ -1314,21 +1285,23 @@ function startVoiceRecognition(SR){
     clearVoiceRecognition();
     toast(msg); showManual();
   };
+  // iOS Safari는 continuous=true 미지원 → false + 자동 재연결로 처리
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent||'')&&!window.MSStream;
   try{
-    recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true; recog.continuous=true;
+    recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true;
+    recog.continuous = !isIOS; // iOS: false(자동재연결), Android/PC: true
     recognizing=true; setMicPreparing();
-    recog.onstart=()=>{ releaseMicKeepAlive(); setMicRec(true); };
+    recog.onstart=()=>{ setMicRec(true); };
     recog.onresult=(e)=>{
-      let eventFinalText='';
-      let interimText='';
+      // 전체 results 재계산 (확정 텍스트 누적 + 마지막 미확정)
+      finalText='';
       for(let i=0;i<e.results.length;i++){
-        const result=e.results[i];
-        const transcript=result[0].transcript;
-        if(result.isFinal) eventFinalText=mergeSpeechText(eventFinalText,transcript);
-        else interimText=mergeSpeechText(interimText,transcript);
+        const r=e.results[i];
+        if(r.isFinal) finalText=collapseRepeatedVersePrefix(mergeSpeechText(finalText,r[0].transcript));
       }
-      if(eventFinalText) finalText=collapseRepeatedVersePrefix(eventFinalText);
-      latestText=collapseRepeatedVersePrefix(mergeSpeechText(finalText,interimText));
+      const last=e.results[e.results.length-1];
+      const interimText=last.isFinal?'':last[0].transcript;
+      latestText=(interimText?mergeSpeechText(finalText,interimText):finalText).trim();
       document.getElementById('recognized').textContent=latestText;
       previewVoice(latestText);
     };
@@ -1541,6 +1514,7 @@ function completeMemorize(){
     recs.push(record);
     saveRec(recs);
     memorizeCompleted=true;
+    releaseGlobalMicStream(); // 암송 완료 → 마이크 스트림 해제
     // Firebase 저장 (클라우드 모드)
     if(window.PAT_DB && PAT_DB.ready()){
       PAT_DB.saveRecord(DB.church.code, record);
