@@ -239,7 +239,25 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <div class="verse-text" id="famVerseText" style="font-size:var(--fs)"></div>
     </div>
     <button class="btn" onclick="go('s-verse')">📖 이번 주 구절 보기</button>
-    <button class="btn ghost" onclick="toast('체험판: 초대 기능은 정식 버전에서 제공됩니다')">가족 구성원 초대</button>
+    <button class="btn ghost" id="inviteLinkBtn" onclick="copyInviteLink()" style="display:none">📎 초대 링크 복사</button>
+  </section>
+
+  <!-- S3c: 초대장 -->
+  <section class="screen" id="s-invite">
+    <div class="logo">📩</div>
+    <h1 class="center">가족방 초대장</h1>
+    <p class="center muted">아래 가족방에 초대받으셨습니다</p>
+    <div class="card" style="margin-top:16px">
+      <h2 id="inviteRoomName" style="color:var(--accent);margin-bottom:8px"></h2>
+      <p class="muted">대표: <b id="inviteLeaderName"></b></p>
+      <p class="muted">교구/구역: <span id="inviteParish"></span></p>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <label class="lbl">가족 비밀번호 입력</label>
+      <input class="field" id="invitePasswordInput" type="password" placeholder="가족장에게 비밀번호를 물어보세요">
+    </div>
+    <button class="btn" onclick="joinFamilyFromInvite()">참여하기</button>
+    <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-login')">취소</button>
   </section>
 
   <!-- S3b: 가족방 등록 -->
@@ -452,6 +470,8 @@ function applyStoredData(){
   // 가장 최근 등록 구절을 현재 구절로 적용
   const vs = loadVerses();
   if(vs.length){ DB.verse = { ref:vs[0].ref, weekOf:vs[0].weekOf, text:vs[0].text }; }
+  // URL 초대 파라미터 확인 (가족방 초대 링크로 접속 시 초대장 화면으로 이동)
+  checkInviteParam();
 }
 
 // ====== 관리자 ======
@@ -586,7 +606,7 @@ function go(id, resetScroll=true, animate=true){
   if(!animate) target.classList.add('no-motion');
   target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
-  const noTab = ['s-login','s-adminlogin','s-admin','s-family-register'];
+  const noTab = ['s-login','s-adminlogin','s-admin','s-family-register','s-invite'];
   tabbar.style.display = noTab.includes(id) ? 'none' : 'flex';
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);
@@ -661,6 +681,53 @@ function saveFamilyProfile(){
   go('s-family');
   toast('✓ 가족방 정보가 저장되었습니다 (가족 비밀번호 적용)');
 }
+// ====== 가족방 초대 링크 ======
+function copyInviteLink(){
+  const profile=loadFamilyProfile();
+  if(!profile){ toast('먼저 가족방을 등록하세요'); return; }
+  const data={ roomName:profile.roomName, leaderName:profile.leaderName,
+    parish:profile.parish, district:profile.district, familyPassword:profile.familyPassword };
+  const encoded=btoa(encodeURIComponent(JSON.stringify(data)));
+  const url=location.href.split('?')[0]+'?invite='+encoded;
+  navigator.clipboard.writeText(url).then(()=>{
+    toast('✓ 초대 링크 복사 완료! 가족에게 공유하세요 📎');
+  }).catch(()=>{
+    prompt('아래 링크를 복사해서 가족에게 보내세요:', url);
+  });
+}
+function showInvitePage(data){
+  document.getElementById('inviteRoomName').textContent=data.roomName||'';
+  document.getElementById('inviteLeaderName').textContent=data.leaderName||'';
+  const parishLabel=[data.parish, data.district].filter(Boolean).join(' ');
+  document.getElementById('inviteParish').textContent=parishLabel;
+  document.getElementById('invitePasswordInput').value='';
+  window._inviteData=data;
+  go('s-invite');
+}
+function joinFamilyFromInvite(){
+  const data=window._inviteData;
+  if(!data){ toast('초대 정보를 찾을 수 없습니다'); return; }
+  const pw=document.getElementById('invitePasswordInput').value.trim();
+  if(pw!==data.familyPassword){ toast('비밀번호가 올바르지 않습니다'); return; }
+  localStorage.setItem('pat_family_profile', JSON.stringify({
+    roomName:data.roomName, leaderName:data.leaderName,
+    parish:data.parish, district:data.district, familyPassword:data.familyPassword
+  }));
+  window._inviteData=null;
+  // 교회 입장 처리 (비밀번호로 입장)
+  document.getElementById('churchName').textContent=memberHomeTitle();
+  renderMemberDateLabels();
+  renderFamily();
+  go('s-family');
+  toast('✓ '+data.roomName+'에 참여했습니다! 🎉');
+}
+function checkInviteParam(){
+  if(typeof URLSearchParams==='undefined'||typeof location==='undefined') return;
+  const params=new URLSearchParams(location.search);
+  const invite=params.get('invite');
+  if(!invite) return;
+  try{ showInvitePage(JSON.parse(decodeURIComponent(atob(invite)))); }catch(e){}
+}
 function memberHomeTitle(){ return DB.church.name+' PAT'; }
 function renderFamily(){
   const recs = loadRec();
@@ -675,6 +742,9 @@ function renderFamily(){
      <span class="${m.done?'tag-ok':'tag-wait'}">${m.done?'✔ 완료':'대기'}</span></div>`).join('');
   document.getElementById('memberList').innerHTML = list;
   renderFamilyProfile();
+  // 초대 링크 버튼: 가족방이 등록된 경우에만 표시
+  const invBtn=document.getElementById('inviteLinkBtn');
+  if(invBtn) invBtn.style.display=loadFamilyProfile()?'block':'none';
   // 가족방에서도 이번 주 구절 표시
   document.getElementById('churchName').textContent = memberHomeTitle();
   renderMemberDateLabels();
