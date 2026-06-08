@@ -1018,7 +1018,8 @@ async function startMemorize(){
   // 사용자 제스처(암송 시작)에서 딱 한 번만 마이크 권한을 요청한다.
   // 이후 음성 1차/2차/재검수는 이 스트림을 재사용해서 권한 창이 다시 뜨지 않게 한다.
   const ok=await requestMicPermissionAtSessionStart();
-  if(ok) document.getElementById('micHint').textContent='마이크 허용 완료 · 탭하여 녹음 시작';
+  if(ok) document.getElementById('micHint').textContent =
+    isMobileBrowser() ? '녹음 버튼을 누르면 마이크 권한을 한 번만 허용해주세요' : '마이크 허용 완료 · 탭하여 녹음 시작';
 }
 
 // ====== S5 음성 암송 ======
@@ -1033,6 +1034,12 @@ let voiceRecoveryCount=0, voiceStopRequested=false;
 let voiceMicPermissionReady=false;
 let globalMicStream=null; // 암송 세션 전체 유지 스트림 (매 toggleMic 권한 창 방지)
 let micPermissionRequestedThisSession=false;
+function isMobileBrowser(){
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
+}
+function isKakaoInAppBrowser(){
+  return /KAKAOTALK/i.test(navigator.userAgent||'');
+}
 // 진행 단계 바 (1:음성1 2:음성2 3:타이핑1 4:타이핑2)
 const STEP_NAMES = ['음성 1차','음성 2차','타이핑 1차','타이핑 2차'];
 function stepScore(n){
@@ -1099,7 +1106,8 @@ async function restartMemorize(){
   go('s-voice');
   toast('음성 1차부터 다시 시작합니다');
   const ok=await requestMicPermissionAtSessionStart();
-  if(ok) document.getElementById('micHint').textContent='마이크 허용 완료 · 탭하여 녹음 시작';
+  if(ok) document.getElementById('micHint').textContent =
+    isMobileBrowser() ? '녹음 버튼을 누르면 마이크 권한을 한 번만 허용해주세요' : '마이크 허용 완료 · 탭하여 녹음 시작';
 }
 
 // 텍스트 정규화 + 유사도(레벤슈타인 기반)
@@ -1177,6 +1185,16 @@ async function requestMicPermissionAtSessionStart(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const insecure = location.protocol === 'file:' || (!window.isSecureContext && location.hostname!=='localhost');
   if(!SR || insecure) return true;
+  if(isKakaoInAppBrowser()){
+    showInAppBrowserMicNotice();
+    return false;
+  }
+  if(isMobileBrowser()){
+    micPermissionRequestedThisSession=true;
+    voiceMicPermissionReady=true;
+    document.getElementById('micHint').textContent='녹음 버튼을 누르면 마이크 권한을 한 번만 허용해주세요';
+    return true;
+  }
   if(hasLiveGlobalMicStream()){
     voiceMicPermissionReady=true;
     return true;
@@ -1205,7 +1223,7 @@ function destroyGlobalMicStream(){
 
 // toggleMic 에서 사용 — 전역 스트림 확인만, getUserMedia 재호출 없음
 async function ensureMicrophonePermission(){
-  if(voiceMicPermissionReady && hasLiveGlobalMicStream()) return true;
+  if(voiceMicPermissionReady && (isMobileBrowser() || hasLiveGlobalMicStream())) return true;
   voiceMicPermissionReady=false;
   document.getElementById('voiceRestart').style.display='block';
   if(micPermissionRequestedThisSession){
@@ -1221,6 +1239,31 @@ async function ensureMicrophonePermission(){
 async function prewarmMicPermission(){
   // 자동/백그라운드 권한 요청 금지: 권한 창은 암송 시작 버튼에서만 띄운다.
   return;
+}
+function showInAppBrowserMicNotice(){
+  const existing=document.getElementById('inAppMicNotice');
+  if(existing){ existing.style.display='block'; return; }
+  const notice=document.createElement('div');
+  notice.id='inAppMicNotice';
+  notice.className='card';
+  notice.style.borderColor='var(--danger)';
+  notice.style.marginTop='14px';
+  notice.innerHTML =
+    '<h2>카카오톡 안에서는 마이크가 불안정합니다</h2>' +
+    '<p class="muted" style="margin:6px 0 12px">카카오톡 인앱 브라우저는 마이크 권한을 저장하지 않아 허용창이 반복될 수 있습니다. 오른쪽 위 메뉴에서 “다른 브라우저로 열기”를 선택한 뒤 Chrome 또는 Safari에서 테스트해주세요.</p>' +
+    '<button class="btn ghost" onclick="copyAppLinkForBrowser()">앱 주소 복사</button>';
+  const voiceScreen=document.getElementById('s-voice');
+  const verse=document.getElementById('vRef')?.parentElement;
+  voiceScreen.insertBefore(notice, verse ? verse.nextSibling : voiceScreen.children[3]);
+  showManual();
+}
+function copyAppLinkForBrowser(){
+  const url='https://junwoo7979-source.github.io/PAT_Bible/app/';
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(()=>toast('앱 주소가 복사되었습니다')).catch(()=>prompt('아래 주소를 복사하세요:', url));
+  }else{
+    prompt('아래 주소를 복사하세요:', url);
+  }
 }
 
 async function toggleMic(){
@@ -1300,6 +1343,13 @@ function startVoiceRecognition(SR){
     return cleaned;
   };
   const recover=(msg)=>{
+    if(isMobileBrowser()){
+      recognizing=false;
+      setMicRec(false);
+      toast(msg || '음성 인식이 멈췄습니다 — 녹음 버튼을 다시 눌러주세요');
+      document.getElementById('voiceRestart').style.display = 'block';
+      return;
+    }
     if(voiceStopRequested || voiceRecoveryCount >= VOICE_RECOVERY_LIMIT){
       toast(msg || '음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용');
       document.getElementById('voiceRestart').style.display = 'block';
