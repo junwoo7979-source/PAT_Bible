@@ -1023,6 +1023,7 @@ const VOICE_RELEASE_DELAY=300;
 const VOICE_RECOVERY_LIMIT=5;
 let voiceRecoveryCount=0, voiceStopRequested=false;
 let voiceMicPermissionReady=false;
+let micKeepAliveStream=null; // STT 시작 전까지 스트림 유지 (모바일 권한 창 방지)
 // 진행 단계 바 (1:음성1 2:음성2 3:타이핑1 4:타이핑2)
 const STEP_NAMES = ['음성 1차','음성 2차','타이핑 1차','타이핑 2차'];
 function stepScore(n){
@@ -1144,9 +1145,15 @@ async function ensureMicrophonePermission(){
         // 'prompt'이면 여기서 사용자에게 한 번만 물어보고 이후엔 묻지 않음
       }catch(err){}
     }
-    // getUserMedia로 실제 권한 획득 (이 한 번의 호출로 이후 SpeechRecognition 권한 창 방지)
+    // getUserMedia로 실제 권한 획득
+    // 스트림을 즉시 종료하지 않고 micKeepAliveStream에 유지
+    // → SpeechRecognition의 onstart 이벤트 이후에 종료해야 모바일에서 재요청 방지
+    if(micKeepAliveStream){
+      micKeepAliveStream.getTracks().forEach(t=>t.stop());
+      micKeepAliveStream=null;
+    }
     const stream=await nav.mediaDevices.getUserMedia({ audio:true });
-    stream.getTracks().forEach(track=>track.stop());
+    micKeepAliveStream=stream; // onstart 전까지 살려둠
     voiceMicPermissionReady=true;
     return true;
   }catch(err){
@@ -1171,9 +1178,13 @@ async function prewarmMicPermission(){
     if(nav.permissions && nav.permissions.query){
       const status=await nav.permissions.query({ name:'microphone' });
       if(status.state==='granted'){
-        // 이미 허용됨 → getUserMedia로 확보
+        // 이미 허용됨 → getUserMedia로 스트림 확보 후 살려둠
+        if(micKeepAliveStream){
+          micKeepAliveStream.getTracks().forEach(t=>t.stop());
+          micKeepAliveStream=null;
+        }
         const stream=await nav.mediaDevices.getUserMedia({ audio:true });
-        stream.getTracks().forEach(t=>t.stop());
+        micKeepAliveStream=stream;
         voiceMicPermissionReady=true;
       }
       // 'prompt' 또는 'denied'는 버튼 클릭 시점에 처리
@@ -1204,6 +1215,9 @@ async function toggleMic(){
   const hasMicPermission=await ensureMicrophonePermission();
   micBtn.disabled=false;
   if(!hasMicPermission) return;
+  // 2회차 이후: voiceMicPermissionReady=true로 ensureMic을 건너뛰므로
+  // 매번 STT 직전에 스트림을 새로 확보해 모바일에서 권한 창 재표시를 방지
+  await warmMicForSTT();
   voiceRecoveryCount=0; voiceStopRequested=false;
   clearVoiceRecognition(true);
   const wait=Math.max(0, voiceReadyAt-Date.now());
@@ -1217,6 +1231,23 @@ async function toggleMic(){
     return;
   }
   startVoiceRecognition(SR);
+}
+// STT 시작 직전 스트림을 확보해 모바일에서 SpeechRecognition 권한 창 방지
+async function warmMicForSTT(){
+  const nav=window.navigator;
+  if(!nav || !nav.mediaDevices || !nav.mediaDevices.getUserMedia) return;
+  try{
+    if(micKeepAliveStream) return; // 이미 스트림 있음
+    micKeepAliveStream=await nav.mediaDevices.getUserMedia({ audio:true });
+  }catch(e){
+    micKeepAliveStream=null;
+  }
+}
+// STT onstart 이후 keep-alive 스트림 해제
+function releaseMicKeepAlive(){
+  if(!micKeepAliveStream) return;
+  micKeepAliveStream.getTracks().forEach(t=>t.stop());
+  micKeepAliveStream=null;
 }
 async function restartVoiceRecognitionSafely(SR){
   if(!voiceMicPermissionReady){
@@ -1286,7 +1317,7 @@ function startVoiceRecognition(SR){
   try{
     recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true; recog.continuous=true;
     recognizing=true; setMicPreparing();
-    recog.onstart=()=>{ setMicRec(true); };
+    recog.onstart=()=>{ releaseMicKeepAlive(); setMicRec(true); };
     recog.onresult=(e)=>{
       let eventFinalText='';
       let interimText='';
