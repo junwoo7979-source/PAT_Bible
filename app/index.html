@@ -1083,7 +1083,7 @@ function manualVoiceCheck(){
   evalVoice(t);
 }
 function resetMemorizeState(){
-  releaseGlobalMicStream(); // 이전 세션 스트림 정리
+  // 스트림은 해제하지 않음 — 재사용으로 권한 창 방지
   clearVoiceStartTimer();
   clearVoiceRecognition(true);
   recognizing=false;
@@ -1162,6 +1162,12 @@ function acquireGlobalMicStream(){
   return globalMicStreamPromise;
 }
 function releaseGlobalMicStream(){
+  // track.stop() 하지 않음 — 스트림을 살려두어야 다음 세션에 getUserMedia 재호출 없음
+  // (track.stop() 하면 브라우저가 권한을 "미사용"으로 판단 → 다시 허용 창)
+  globalMicStreamPromise=null;
+}
+function destroyGlobalMicStream(){
+  // 앱 종료 시에만 호출 — 진짜 스트림 해제
   globalMicStreamPromise=null;
   if(!globalMicStream) return;
   globalMicStream.getTracks().forEach(t=>t.stop());
@@ -1514,7 +1520,7 @@ function completeMemorize(){
     recs.push(record);
     saveRec(recs);
     memorizeCompleted=true;
-    releaseGlobalMicStream(); // 암송 완료 → 마이크 스트림 해제
+    // 스트림 유지 — 재검수 시 getUserMedia 재호출 없도록
     // Firebase 저장 (클라우드 모드)
     if(window.PAT_DB && PAT_DB.ready()){
       PAT_DB.saveRecord(DB.church.code, record);
@@ -1679,6 +1685,12 @@ let toastT;
 function toast(msg){
   const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ====== 앱 종료 시 마이크 스트림 해제 ======
+if(typeof window !== 'undefined' && window.addEventListener){
+  window.addEventListener('pagehide', destroyGlobalMicStream);
+  window.addEventListener('beforeunload', destroyGlobalMicStream);
 }
 
 // 코드 입력 자동 진행
