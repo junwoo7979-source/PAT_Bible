@@ -308,6 +308,11 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <!-- 가족 등록 폼 -->
     <div id="panelMember" style="display:none">
       <p class="muted" style="margin:10px 0 4px">내 이름과 대표에게 받은 비밀번호를 입력하세요</p>
+      <div class="card" id="registeredFamilyRoomCard" style="margin-top:8px">
+        <p class="muted" style="margin:0 0 6px">등록된 가족방</p>
+        <h2 id="registeredFamilyRoomName" style="margin:0"></h2>
+        <p class="muted" id="registeredFamilyRoomMeta" style="margin:6px 0 0"></p>
+      </div>
       <div class="card" style="margin-top:8px">
         <label class="lbl">내 이름</label>
         <input class="field" id="joinMemberName" placeholder="예: 이영희">
@@ -734,6 +739,24 @@ function renderFamilyProfile(){
   } else {
     document.getElementById('familyProfile').textContent = '가족방을 등록해주세요';
   }
+  renderRegisteredFamilyRoom();
+}
+function renderRegisteredFamilyRoom(){
+  const nameEl = document.getElementById('registeredFamilyRoomName');
+  const metaEl = document.getElementById('registeredFamilyRoomMeta');
+  if(!nameEl || !metaEl) return;
+  const profile = loadFamilyProfile();
+  const roomName = familyRoomName(profile);
+  if(profile && roomName){
+    const parishLabel = profile.parish ? (/교구$/.test(profile.parish) ? profile.parish : profile.parish+'교구') : '';
+    const districtLabel = profile.district ? (/구역$/.test(profile.district) ? profile.district : profile.district+'구역') : '';
+    const leaderLabel = profile.leaderName ? '대표 '+profile.leaderName : (profile.memberName ? profile.memberName+' 등록됨' : '');
+    nameEl.textContent = roomName;
+    metaEl.textContent = [leaderLabel, parishLabel, districtLabel].filter(Boolean).join(' ');
+  } else {
+    nameEl.textContent = '등록된 가족방이 없습니다';
+    metaEl.textContent = '대표 등록을 먼저 하거나 초대 링크로 참여하세요';
+  }
 }
 function switchRegTab(tab){
   const isLeader = tab==='leader';
@@ -743,6 +766,7 @@ function switchRegTab(tab){
   document.getElementById('tabLeader').style.color = isLeader?'#fff':'var(--text)';
   document.getElementById('tabMember').style.background = isLeader?'var(--surface)':'var(--accent)';
   document.getElementById('tabMember').style.color = isLeader?'var(--text)':'#fff';
+  renderRegisteredFamilyRoom();
 }
 function joinFamilyManual(){
   const name = document.getElementById('joinMemberName').value.trim();
@@ -810,6 +834,7 @@ function openFamilyRegister(tab){
   document.getElementById('familyDistrict').value=profile?.district||'';
   document.getElementById('familyPassword').value=profile?.familyPassword||DB.church.code;
   renderMemberRows(profile?.members||[]);
+  renderRegisteredFamilyRoom();
   switchRegTab(tab||'leader');
   go('s-family-register');
 }

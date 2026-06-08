@@ -65,6 +65,11 @@ assert.ok(Array.isArray(saved.members));
 assert.equal(getElement('familyRoomTitle').textContent, '👨‍👩‍👧 믿음 가족방');
 assert.equal(getElement('familyProfile').textContent, '대표 김민수 동부교구 3구역');
 
+context.openFamilyRegister('member');
+assert.equal(getElement('panelMember').style.display, '');
+assert.match(getElement('registeredFamilyRoomName').textContent, /믿음 가족방/);
+assert.match(getElement('registeredFamilyRoomMeta').textContent, /김민수/);
+
 storage.set('pat_family_profile', JSON.stringify({
   roomName: '\uC608\uC6B4\uC774\uB124 \uAC00\uC871',
   leaderName: '\uC608\uC6B4',
