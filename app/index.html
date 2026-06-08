@@ -1011,13 +1011,14 @@ function renderVerse(){
     startBtn.textContent = '암송 시작';
   }
 }
-function startMemorize(){
+async function startMemorize(){
   resetMemorizeState();
   renderVoice();
   go('s-voice');
-  // UI 전환 후 사용자 제스처 컨텍스트에서 마이크 권한 사전 획득 (백그라운드)
-  // → toggleMic 클릭 시 이미 stream 확보되어 권한 창 없이 즉시 녹음 시작
-  acquireGlobalMicStream().catch(()=>{});
+  // 사용자 제스처(암송 시작)에서 딱 한 번만 마이크 권한을 요청한다.
+  // 이후 음성 1차/2차/재검수는 이 스트림을 재사용해서 권한 창이 다시 뜨지 않게 한다.
+  const ok=await requestMicPermissionAtSessionStart();
+  if(ok) document.getElementById('micHint').textContent='마이크 허용 완료 · 탭하여 녹음 시작';
 }
 
 // ====== S5 음성 암송 ======
@@ -1031,6 +1032,7 @@ const VOICE_RECOVERY_LIMIT=5;
 let voiceRecoveryCount=0, voiceStopRequested=false;
 let voiceMicPermissionReady=false;
 let globalMicStream=null; // 암송 세션 전체 유지 스트림 (매 toggleMic 권한 창 방지)
+let micPermissionRequestedThisSession=false;
 // 진행 단계 바 (1:음성1 2:음성2 3:타이핑1 4:타이핑2)
 const STEP_NAMES = ['음성 1차','음성 2차','타이핑 1차','타이핑 2차'];
 function stepScore(n){
@@ -1091,11 +1093,13 @@ function resetMemorizeState(){
   voiceStage=1; voiceScore1=0; voiceScore2=0; typeStage=1; typeScore1=0; typeScore2=0; typeCurrentScore=0;
   voiceInput1=''; voiceInput2=''; typeInput1=''; typeInput2=''; memorizeCompleted=false; reviewMode=false;
 }
-function restartMemorize(){
+async function restartMemorize(){
   resetMemorizeState();
   renderVoice();
   go('s-voice');
   toast('음성 1차부터 다시 시작합니다');
+  const ok=await requestMicPermissionAtSessionStart();
+  if(ok) document.getElementById('micHint').textContent='마이크 허용 완료 · 탭하여 녹음 시작';
 }
 
 // 텍스트 정규화 + 유사도(레벤슈타인 기반)
@@ -1135,12 +1139,20 @@ function clearVoiceStartTimer(){
 //   → 이후 모든 SpeechRecognition 호출은 스트림이 살아있으므로 권한 창 없음
 // releaseGlobalMicStream : 암송 완료 또는 이탈 시 해제
 let globalMicStreamPromise=null; // 진행 중인 getUserMedia Promise (중복 호출 방지)
+function hasLiveGlobalMicStream(){
+  return !!(globalMicStream && globalMicStream.getTracks().some(t=>t.readyState==='live'));
+}
 function acquireGlobalMicStream(){
   const nav=window.navigator;
   if(!nav || !nav.mediaDevices || !nav.mediaDevices.getUserMedia) return Promise.resolve(true);
-  if(globalMicStream) return Promise.resolve(true); // 이미 획득됨
+  if(hasLiveGlobalMicStream()){
+    voiceMicPermissionReady=true;
+    return Promise.resolve(true);
+  }
+  globalMicStream=null;
   if(globalMicStreamPromise) return globalMicStreamPromise; // 진행 중이면 같은 Promise 재사용
   globalMicStreamPromise=(async()=>{
+    micPermissionRequestedThisSession=true;
     try{
       globalMicStream=await nav.mediaDevices.getUserMedia({ audio:true });
       voiceMicPermissionReady=true;
@@ -1161,6 +1173,21 @@ function acquireGlobalMicStream(){
   })();
   return globalMicStreamPromise;
 }
+async function requestMicPermissionAtSessionStart(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const insecure = location.protocol === 'file:' || (!window.isSecureContext && location.hostname!=='localhost');
+  if(!SR || insecure) return true;
+  if(hasLiveGlobalMicStream()){
+    voiceMicPermissionReady=true;
+    return true;
+  }
+  const micBtn=document.getElementById('micBtn');
+  micBtn.disabled=true;
+  document.getElementById('micHint').textContent='처음 한 번만 마이크 권한을 허용해주세요';
+  const ok=await acquireGlobalMicStream();
+  micBtn.disabled=false;
+  return ok;
+}
 function releaseGlobalMicStream(){
   // track.stop() 하지 않음 — 스트림을 살려두어야 다음 세션에 getUserMedia 재호출 없음
   // (track.stop() 하면 브라우저가 권한을 "미사용"으로 판단 → 다시 허용 창)
@@ -1173,22 +1200,27 @@ function destroyGlobalMicStream(){
   globalMicStream.getTracks().forEach(t=>t.stop());
   globalMicStream=null;
   voiceMicPermissionReady=false;
+  micPermissionRequestedThisSession=false;
 }
 
 // toggleMic 에서 사용 — 전역 스트림 확인만, getUserMedia 재호출 없음
 async function ensureMicrophonePermission(){
-  if(voiceMicPermissionReady) return true;
-  // startMemorize를 거치지 않고 직접 진입한 경우 폴백 획득 시도
-  const ok=await acquireGlobalMicStream();
-  return ok;
+  if(voiceMicPermissionReady && hasLiveGlobalMicStream()) return true;
+  voiceMicPermissionReady=false;
+  document.getElementById('voiceRestart').style.display='block';
+  if(micPermissionRequestedThisSession){
+    toast('마이크 권한이 차단되었습니다 — 주소창 사이트 설정에서 마이크를 허용해주세요');
+  }else{
+    toast('암송 시작 버튼에서 마이크를 처음 한 번 허용해주세요');
+  }
+  showManual();
+  return false;
 }
 
 // renderVoice 진입 시 조용히 호출 — startMemorize에서 이미 호출되므로 여기선 중복 차단
 async function prewarmMicPermission(){
-  // acquireGlobalMicStream은 startMemorize(사용자 제스처) 시 이미 호출됨
-  // permissions.query 호출 없이 바로 확인만
-  if(voiceMicPermissionReady) return;
-  await acquireGlobalMicStream().catch(()=>{});
+  // 자동/백그라운드 권한 요청 금지: 권한 창은 암송 시작 버튼에서만 띄운다.
+  return;
 }
 
 async function toggleMic(){
