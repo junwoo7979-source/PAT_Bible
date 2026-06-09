@@ -148,7 +148,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <p class="center muted">교회·가족·개인 성경 암송</p>
     <div class="spacer"></div>
     <p class="muted center" style="margin-bottom:12px">교회 코드 또는 가족 비밀번호를 입력하세요</p>
-    <input class="field code-input" id="churchCode" maxlength="20" placeholder="· · · · ·" style="letter-spacing:4px">
+    <input class="field code-input" id="churchCode" maxlength="20" placeholder="· · · · ·" autocomplete="off" style="letter-spacing:4px">
     <button class="btn" onclick="enterChurch()">시작하기</button>
     <p class="center muted" style="margin-top:14px">체험용 교회 코드: <b style="color:var(--accent)">11111</b></p>
     <button class="btn ghost" id="installAppBtn" onclick="installPatApp()" style="margin-top:12px">📱 PAT 아이콘 설치</button>
@@ -1835,6 +1835,7 @@ document.getElementById('adminPw').addEventListener('keyup',e=>{ if(e.key==='Ent
 
 // ====== 초기화: 저장된 교회명/구절 반영 ======
 applyStoredData();
+document.getElementById('churchCode').value='';
 
 // 초기 화면(로그인)에서는 하단 탭바 숨김 (go() 미호출 시 기본 노출 방지)
 (function initTabbar(){

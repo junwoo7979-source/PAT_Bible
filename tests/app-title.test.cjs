@@ -10,7 +10,7 @@ const storage = new Map();
 function getElement(id) {
   if (!elements.has(id)) {
     elements.set(id, {
-      value: '',
+      value: id === 'churchCode' ? '아들1' : '',
       textContent: '',
       innerHTML: '',
       style: {},
@@ -34,12 +34,16 @@ const context = {
     getElementById: getElement,
     querySelectorAll() { return []; },
   },
-  window: { scrollTo() {} },
+  window: { scrollTo() {}, addEventListener() {} },
+  navigator: {},
   setTimeout() { return 1; },
   clearTimeout() {},
 };
 
 vm.runInNewContext(script, context);
+
+assert.match(html, /id="churchCode"[^>]*autocomplete="off"/);
+assert.equal(getElement('churchCode').value, '');
 
 getElement('inAppTitle').value = '세광교회 PAT';
 context.saveAppTitle();
