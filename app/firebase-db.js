@@ -404,6 +404,17 @@ window.PAT_DB = (() => {
     } catch(e) { return null; }
   }
 
+  async function getFamilyProgress(churchCode, familyId, verseRef) {
+    if (!ready() || !familyId) return [];
+    try {
+      const members = await getFamilyMembers(churchCode, familyId);
+      const docs = verseRef ? await fsQueryWhere(`churches/${churchCode}`, 'records',
+        [{ field: 'familyId', value: familyId }, { field: 'verseRef', value: verseRef }], 100) : [];
+      const doneIds = new Set(docs.map(r => r.deviceId));
+      return members.map(member => ({ ...member, done: doneIds.has(member.deviceId) }));
+    } catch(e) { console.warn('[PAT_DB] getFamilyProgress:', e.message); return []; }
+  }
+
   function unsubscribeAll() {
     if (_polling) { clearInterval(_polling); _polling = null; }
   }
@@ -413,7 +424,7 @@ window.PAT_DB = (() => {
     saveVerse, getLatestVerse, subscribeVerse,
     saveFamily, findFamilyByPassword, joinFamily, getFamilyMembers, subscribeFamily,
     saveRecord, hasRecord,
-    getDashboardStats, getFamilyStats,
+    getDashboardStats, getFamilyStats, getFamilyProgress,
     unsubscribeAll,
   };
 })();

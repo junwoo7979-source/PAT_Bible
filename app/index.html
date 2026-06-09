@@ -976,6 +976,8 @@ function checkInviteParam(){
 }
 function memberHomeTitle(){ return DB.church.name+' PAT'; }
 let familyProgressSyncKey='';
+let familyProgressPollKey='';
+let familyProgressPollTimer=null;
 function renderFamilyMemberList(members){
   const safeMembers = members.length ? members : [{ name:'나', me:true, done:false }];
   DB.members = safeMembers;
@@ -1003,8 +1005,17 @@ async function syncFamilyProgressFromCloud(profile){
   }));
   renderFamilyMemberList(members);
   const names = members.map(m=>m.name).filter(Boolean);
-  localStorage.setItem('pat_family_profile', JSON.stringify({ ...profile, members }));
+  localStorage.setItem('pat_family_profile', JSON.stringify({ ...profile, members:names }));
   renderRegisteredFamilyRoom();
+}
+function startFamilyProgressPolling(profile){
+  const familyId = localStorage.getItem('pat_family_id')||'';
+  if(!profile || !familyId || !window.PAT_DB || !PAT_DB.ready() || !PAT_DB.getFamilyProgress) return;
+  const pollKey = familyId+'|'+DB.verse.ref;
+  if(familyProgressPollKey === pollKey && familyProgressPollTimer) return;
+  if(familyProgressPollTimer) clearInterval(familyProgressPollTimer);
+  familyProgressPollKey = pollKey;
+  familyProgressPollTimer = setInterval(()=>syncFamilyProgressFromCloud(loadFamilyProfile()), 10000);
 }
 function renderFamily(){
   const recs = loadRec();
@@ -1022,7 +1033,8 @@ function renderFamily(){
   const me = DB.members.find(m=>m.me);
   if(recs.length>0 && me) me.done = true;
   renderFamilyMemberList(DB.members);
-  syncFamilyProgressFromCloud(profile);
+  const syncPromise = syncFamilyProgressFromCloud(profile);
+  startFamilyProgressPolling(profile);
   renderFamilyProfile();
   // 초대 링크 버튼: 가족방이 등록된 경우에만 표시
   const invBtn=document.getElementById('inviteLinkBtn');
@@ -1032,6 +1044,7 @@ function renderFamily(){
   renderMemberDateLabels();
   document.getElementById('famVerseRef').textContent = DB.verse.ref;
   document.getElementById('famVerseText').textContent = DB.verse.text;
+  return syncPromise;
 }
 
 // ====== S4 구절 ======

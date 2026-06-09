@@ -8,6 +8,7 @@ const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 function createContext(fakeDb) {
   const elements = new Map();
   const storage = new Map();
+  const intervals = [];
 
   function getElement(id) {
     if (!elements.has(id)) {
@@ -43,9 +44,11 @@ function createContext(fakeDb) {
     PAT_DB: fakeDb,
     setTimeout() { return 1; },
     clearTimeout() {},
+    setInterval(fn, ms) { intervals.push({ fn, ms }); return intervals.length; },
+    clearInterval() {},
   };
   vm.runInNewContext(script, context);
-  return { context, getElement, storage };
+  return { context, getElement, storage, intervals };
 }
 
 (async () => {
@@ -114,6 +117,38 @@ function createContext(fakeDb) {
   assert.deepEqual(Array.from(joinedProfile.members), ['김민수', '예운']);
   assert.equal(memberJoins[0].familyId, 'family-1');
   assert.equal(memberJoins[0].name, '예운');
+
+  let progressCalls = 0;
+  const progressDb = {
+    init() { return true; },
+    ready() { return true; },
+    subscribeVerse() {},
+    getFamilyProgress(churchCode, familyId, verseRef) {
+      progressCalls++;
+      assert.equal(churchCode, '11111');
+      assert.equal(familyId, 'family-1');
+      assert.equal(verseRef, '요한복음 3:16');
+      return Promise.resolve([
+        { displayName: '김민수', deviceId: 'leader-device', done: false },
+        { displayName: '예운', deviceId: 'member-device', done: true },
+        { displayName: '아들1', deviceId: 'son-device', done: true },
+      ]);
+    },
+  };
+  const progressCase = createContext(progressDb);
+  progressCase.storage.set('pat_family_id', 'family-1');
+  progressCase.storage.set('pat_family_profile', JSON.stringify(foundFamily));
+  await progressCase.context.renderFamily();
+
+  assert.equal(progressCalls, 1);
+  assert.match(progressCase.getElement('memberList').innerHTML, /예운/);
+  assert.match(progressCase.getElement('memberList').innerHTML, /아들1/);
+  assert.match(progressCase.getElement('memberList').innerHTML, /✔ 완료/);
+  assert.equal(progressCase.getElement('familyProgress').textContent, '이번 주 달성률 2/3명');
+  assert.equal(progressCase.intervals.length, 1);
+  assert.equal(progressCase.intervals[0].ms, 10000);
+  await progressCase.intervals[0].fn();
+  assert.equal(progressCalls, 2);
 
   console.log('family cloud sync: PASS');
 })();
