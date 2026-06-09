@@ -58,6 +58,8 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 .verse{background:var(--surface);border-left:4px solid var(--accent);border-radius:10px;padding:20px;margin:14px 0;}
 .ref{color:var(--accent);font-weight:700;font-size:calc(var(--fs) - 1px);margin-bottom:10px;}
 .verse-text{font-size:var(--fs-lg);line-height:1.8;}
+.verse-blurred .verse-text{filter:blur(9px);transition:filter .25s;cursor:pointer;user-select:none;-webkit-user-select:none;}
+.verse-blurred .verse-text:active{filter:blur(0);}
 .row{display:flex;gap:12px;}
 .row>*{flex:1;}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;text-align:center;}
@@ -367,7 +369,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <div class="steps" id="stepsVoice"></div>
     <h1>음성 암송 <span style="color:var(--accent)" id="voiceStage">1차</span></h1>
     <p class="muted">마이크를 켜고 아래 구절을 낭독하세요</p>
-    <div class="verse"><div class="ref" id="vRef"></div><div class="verse-text" id="vText" style="font-size:var(--fs)"></div></div>
+    <div class="verse" id="verseBox"><div class="ref" id="vRef"></div><div class="verse-text" id="vText" style="font-size:var(--fs)"></div></div>
+    <div style="text-align:right;margin:-10px 0 6px">
+      <button class="btn ghost sm" id="blurToggleBtn" onclick="toggleVerseBlur()">🫣 숨기기</button>
+    </div>
     <button class="mic" id="micBtn" onclick="toggleMic()">🎙️</button>
     <p class="center muted" id="micHint">탭하여 녹음 시작</p>
     <div class="card">
@@ -1125,6 +1130,31 @@ function renderSteps(active, showReview=reviewMode){
   }).join('');
   ['stepsVoice','stepsTyping','stepsComplete','stepsVerse'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
 }
+let verseBlurred = false;
+function toggleVerseBlur(){
+  const box = document.getElementById('verseBox');
+  const btn = document.getElementById('blurToggleBtn');
+  if(!box) return;
+  verseBlurred = !verseBlurred;
+  if(verseBlurred){
+    box.classList.add('verse-blurred');
+    btn.textContent = '👁️ 보기';
+    // 모바일: 길게 눌러서 peek
+    if(box.addEventListener){ box.addEventListener('touchstart', _versePeekOn, {passive:true}); box.addEventListener('touchend', _versePeekOff, {passive:true}); box.addEventListener('touchcancel', _versePeekOff, {passive:true}); }
+  } else {
+    box.classList.remove('verse-blurred');
+    btn.textContent = '🫣 숨기기';
+    if(box.removeEventListener){ box.removeEventListener('touchstart', _versePeekOn); box.removeEventListener('touchend', _versePeekOff); box.removeEventListener('touchcancel', _versePeekOff); }
+  }
+}
+function _versePeekOn(){
+  const box = document.getElementById('verseBox');
+  if(box) box.classList.remove('verse-blurred');
+}
+function _versePeekOff(){
+  const box = document.getElementById('verseBox');
+  if(box && verseBlurred) box.classList.add('verse-blurred');
+}
 function renderVoice(){
   document.getElementById('vRef').textContent = DB.verse.ref;
   document.getElementById('vText').textContent = DB.verse.text;
@@ -1144,6 +1174,12 @@ function renderVoice(){
   document.getElementById('voiceManual').readOnly = false;
   document.getElementById('voiceManualCheck').disabled = false;
   voiceRecoveryCount=0; voiceStopRequested=false;
+  // 단계 바뀔 때 블러 초기화 (2차 시작 시 숨긴 상태 유지 × — 매번 보임으로 시작)
+  const _vbox = document.getElementById('verseBox');
+  const _vbtn = document.getElementById('blurToggleBtn');
+  if(_vbox){ _vbox.classList.remove('verse-blurred'); if(_vbox.removeEventListener){ _vbox.removeEventListener('touchstart',_versePeekOn); _vbox.removeEventListener('touchend',_versePeekOff); _vbox.removeEventListener('touchcancel',_versePeekOff); } }
+  if(_vbtn) _vbtn.textContent = '🫣 숨기기';
+  verseBlurred = false;
   // file:// 등 비보안 환경이면 마이크가 막히므로 안내
   const insecure = location.protocol === 'file:' || (!window.isSecureContext && location.hostname!=='localhost');
   document.getElementById('micHint').textContent = insecure
