@@ -1,11 +1,11 @@
-// PAT Bible — Cloud Firestore 설정
-// GCP 프로젝트: pat-bible-app | Firestore: asia-northeast3 (서울)
-// Firebase SDK 없이 REST API 직접 사용
+// PAT Bible — Firebase Functions API 설정
+// 백엔드: Firebase Functions (us-central1)
+// API 키 불필요 — 모든 Firestore 접근은 Functions 서버에서 처리
 
 window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCsENXeyM9uMRCPZ7c9IQPtPXq31jb6wHM",
   projectId: "pat-bible-app",
+  apiBase: "https://us-central1-pat-bible-app.cloudfunctions.net",
 };
 
-// 설정이 자리표시자가 아니면 클라우드 모드 활성화
-window.FIREBASE_READY = !String(window.FIREBASE_CONFIG.apiKey).startsWith("여기에");
+// Functions API 항상 활성화
+window.FIREBASE_READY = true;
