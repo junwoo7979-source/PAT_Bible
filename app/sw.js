@@ -5,6 +5,8 @@ const APP_SHELL = [
   './firebase-config.js',
   './firebase-db.js',
   './manifest.json',
+  './icons/pat-icon-192.png',
+  './icons/pat-icon-512.png',
   './icons/pat-icon.svg'
 ];
 
