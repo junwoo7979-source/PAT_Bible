@@ -68,8 +68,6 @@ function updateTyped(rawInput){
     `진행률 ${pct}%`+(typedEnough?(pass?' · 통과! 완료 확인을 누르세요':''):'  · 끝까지 입력하세요');
   document.getElementById('typeDone').disabled = !pass;
 }
-function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;'); }
-
 // ── 암송 완료 / 재검수 ────────────────────────────────────
 function completeMemorize(){
   const record = { ref:DB.verse.ref, voiceScore1, voiceScore2, typeScore1, typeScore2,
