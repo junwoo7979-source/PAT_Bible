@@ -32,6 +32,14 @@ When the user gives a modification request:
 - Report exactly what was verified.
 - If no code was changed, say so clearly.
 
+## Mobile, Google Play, And AppsInToss Readiness
+
+- Keep the mobile browser, installed app, Google Play build, and AppsInToss mini-app aligned on the same family mission dashboard behavior.
+- Registered family members must be able to see the same family mission progress, parish progress, and church progress from the shared Firestore data.
+- Do not add chat or messaging features unless explicitly requested; PAT is a mission progress dashboard, not a chat app.
+- Before Google Play release work, check privacy policy, Data safety, microphone permission disclosure, and runtime permission handling.
+- Before AppsInToss release work, check the non-game launch checklist, TDS expectations, bundle size, and review guide.
+
 # PAT Bible 작업 지침
 
 ## 프로젝트 위치
