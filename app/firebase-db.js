@@ -27,21 +27,37 @@ window.PAT_DB = (() => {
   }
 
   // ── API 헬퍼 ─────────────────────────────────────────
-  async function apiGet(path, params = {}) {
+  async function apiGet(path, params = {}, retries = 2) {
     const qs = new URLSearchParams(params).toString();
-    const r = await fetch(`${API}/${path}${qs ? '?' + qs : ''}`);
-    if (!r.ok) throw new Error(`API ${path} ${r.status}`);
-    return r.json();
+    const url = `${API}/${path}${qs ? '?' + qs : ''}`;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`API ${path} ${r.status}`);
+        return await r.json();
+      } catch (e) {
+        if (i === retries) throw e;
+        await new Promise(r => setTimeout(r, 500 * (i + 1)));
+      }
+    }
   }
 
-  async function apiPost(path, body = {}) {
-    const r = await fetch(`${API}/${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) throw new Error(`API ${path} ${r.status}`);
-    return r.json();
+  async function apiPost(path, body = {}, retries = 2) {
+    const url = `${API}/${path}`;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!r.ok) throw new Error(`API ${path} ${r.status}`);
+        return await r.json();
+      } catch (e) {
+        if (i === retries) throw e;
+        await new Promise(r => setTimeout(r, 500 * (i + 1)));
+      }
+    }
   }
 
   // ════════════════════════════════════════════════════════

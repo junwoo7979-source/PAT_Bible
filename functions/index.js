@@ -11,6 +11,17 @@ function cors(res) {
   res.set('Access-Control-Allow-Headers', 'Content-Type');
 }
 
+/** 공통 에러 응답 */
+function errRes(res, e, code = 500) {
+  console.error('[PAT Functions]', e.message);
+  res.status(code).json({ error: e.message || 'Internal server error' });
+}
+
+/** churchCode 유효성 검사 (영문/숫자/하이픈 1~30자) */
+function validChurchCode(code) {
+  return typeof code === 'string' && /^[a-zA-Z0-9_-]{1,30}$/.test(code);
+}
+
 // ── 연결 확인 ─────────────────────────────────────────────
 exports.ping = onRequest({ cors: true, region: 'us-central1' }, (req, res) => {
   res.json({ status: 'ok', message: 'PAT Bible API 연결 성공', timestamp: new Date().toISOString() });
@@ -23,13 +34,13 @@ exports.getVerse = onRequest({ cors: true, region: 'us-central1' }, async (req, 
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
   try {
     const { churchCode } = req.query;
-    if (!churchCode) { res.status(400).json({ error: 'churchCode required' }); return; }
+    if (!validChurchCode(churchCode)) { res.status(400).json({ error: 'churchCode required' }); return; }
     const snap = await db.collection(`churches/${churchCode}/verses`)
       .orderBy('createdAt', 'desc').limit(1).get();
     if (snap.empty) { res.json({ verse: null }); return; }
     const doc = snap.docs[0];
     res.json({ verse: { id: doc.id, ...doc.data() } });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { errRes(res, e); }
 });
 
 exports.saveVerse = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
@@ -42,7 +53,7 @@ exports.saveVerse = onRequest({ cors: true, region: 'us-central1' }, async (req,
       ref, text, weekOf: weekOf || '', createdAt: FieldValue.serverTimestamp(),
     });
     res.json({ id: docRef.id });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { errRes(res, e); }
 });
 
 // ── 가족방 ────────────────────────────────────────────────
@@ -61,7 +72,7 @@ exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
       const ref = await col.add({ ...data, createdAt: FieldValue.serverTimestamp() });
       res.json({ familyId: ref.id });
     }
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { errRes(res, e); }
 });
 
 exports.findFamily = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
@@ -75,7 +86,7 @@ exports.findFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
     if (snap.empty) { res.json({ family: null }); return; }
     const doc = snap.docs[0];
     res.json({ family: { id: doc.id, ...doc.data() } });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { errRes(res, e); }
 });
 
 exports.joinFamily = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
@@ -88,7 +99,7 @@ exports.joinFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
       displayName: displayName || '성도', deviceId, joinedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { errRes(res, e); }
 });
 
 exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
@@ -106,7 +117,7 @@ exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, asy
       recSnap.docs.forEach(d => doneIds.add(d.data().deviceId));
     }
     res.json({ members: members.map(m => ({ ...m, done: doneIds.has(m.deviceId) })) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { errRes(res, e); }
 });
 
 // ── 암송 기록 ─────────────────────────────────────────────
@@ -121,7 +132,7 @@ exports.saveRecord = onRequest({ cors: true, region: 'us-central1' }, async (req
       ...record, createdAt: FieldValue.serverTimestamp(),
     });
     res.json({ id: ref.id });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { errRes(res, e); }
 });
 
 exports.hasRecord = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
@@ -133,7 +144,7 @@ exports.hasRecord = onRequest({ cors: true, region: 'us-central1' }, async (req,
     const snap = await db.collection(`churches/${churchCode}/records`)
       .where('deviceId', '==', deviceId).where('verseRef', '==', verseRef).limit(1).get();
     res.json({ exists: !snap.empty });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { errRes(res, e); }
 });
 
 // ── 대시보드 ──────────────────────────────────────────────
@@ -157,5 +168,5 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
       byParish[p] = (byParish[p] || 0) + 1;
     });
     res.json({ total: seen.size, byParish });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { errRes(res, e); }
 });
