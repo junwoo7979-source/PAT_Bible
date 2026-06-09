@@ -68,6 +68,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 .family-member-chips{display:flex;flex-wrap:wrap;gap:8px;}
 .family-member-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-weight:700;}
 .family-member-chip small{color:var(--accent);font-size:calc(var(--fs) - 5px);}
+.family-member-delete{border:none;background:transparent;color:var(--danger);font-weight:800;cursor:pointer;font-family:inherit;}
 .tag-ok{color:var(--accent);font-weight:700;}
 .tag-wait{color:var(--muted);}
 .mic{width:96px;height:96px;border-radius:50%;background:var(--accent);margin:24px auto;
@@ -771,7 +772,11 @@ function renderRegisteredFamilyRoom(){
     if(membersEl){
       const names = familyMemberNames(profile);
       membersEl.innerHTML = names.length
-        ? `<div class="family-member-chips">${names.map(name=>`<span class="family-member-chip">${name}<small>등록</small></span>`).join('')}</div>`
+        ? `<div class="family-member-chips">${names.map(name=>{
+            const canDelete = name !== profile.leaderName;
+            const deleteButton = canDelete ? `<button class="family-member-delete" onclick="deleteFamilyMember('${encodeURIComponent(name)}')">삭제</button>` : '';
+            return `<span class="family-member-chip">${esc(name)}<small>등록</small>${deleteButton}</span>`;
+          }).join('')}</div>`
         : '<p class="muted" style="margin:0">등록된 구성원이 없습니다</p>';
     }
   } else {
@@ -789,6 +794,19 @@ function switchRegTab(tab){
   document.getElementById('tabMember').style.background = isLeader?'var(--surface)':'var(--accent)';
   document.getElementById('tabMember').style.color = isLeader?'var(--text)':'#fff';
   renderRegisteredFamilyRoom();
+}
+function deleteFamilyMember(encodedName){
+  const name = decodeURIComponent(encodedName);
+  const profile = loadFamilyProfile();
+  if(!profile || !Array.isArray(profile.members)) return;
+  const members = profile.members.filter(member => member !== name);
+  const nextProfile = { ...profile, members };
+  localStorage.setItem('pat_family_profile', JSON.stringify(nextProfile));
+  if(window.PAT_DB && PAT_DB.ready()){
+    PAT_DB.saveFamily(DB.church.code, nextProfile);
+  }
+  renderRegisteredFamilyRoom();
+  renderFamilyProfile();
 }
 async function joinFamilyManual(){
   const name = document.getElementById('joinMemberName').value.trim();

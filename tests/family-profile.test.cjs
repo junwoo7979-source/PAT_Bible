@@ -36,7 +36,8 @@ const context = {
     getElementById: getElement,
     querySelectorAll() { return []; },
   },
-  window: { scrollTo() {} },
+  window: { scrollTo() {}, addEventListener() {} },
+  navigator: {},
   setTimeout() { return 1; },
   clearTimeout() {},
 };
@@ -75,6 +76,12 @@ assert.match(getElement('registeredFamilyMembers').innerHTML, /김민수/);
 assert.match(getElement('registeredFamilyMembers').innerHTML, /예운/);
 assert.match(getElement('registeredFamilyMembers').innerHTML, /family-member-chip/);
 assert.equal((getElement('registeredFamilyMembers').innerHTML.match(/class="family-member-chip"/g) || []).length, 2);
+assert.match(getElement('registeredFamilyMembers').innerHTML, /삭제/);
+assert.equal((getElement('registeredFamilyMembers').innerHTML.match(/삭제/g) || []).length, 1);
+context.deleteFamilyMember('예운');
+const afterDelete = JSON.parse(storage.get('pat_family_profile'));
+assert.deepEqual(afterDelete.members, ['김민수']);
+assert.doesNotMatch(getElement('registeredFamilyMembers').innerHTML, /예운/);
 
 storage.set('pat_family_profile', JSON.stringify({
   roomName: '\uC608\uC6B4\uC774\uB124 \uAC00\uC871',
