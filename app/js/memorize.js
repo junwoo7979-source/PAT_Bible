@@ -1,0 +1,244 @@
+// ====== PAT Bible — memorize.js ======
+// 타이핑 암송, 완료 처리, 재검수, 대시보드, 설정
+
+// ── 타이핑 렌더링 ─────────────────────────────────────────
+function renderTyping(focusInput=true){
+  document.getElementById('typeStage').textContent = typeStage+'차';
+  renderSteps(2+typeStage);
+  document.getElementById('typeRef').textContent   = DB.verse.ref;
+  document.getElementById('typeInput').value       = '';
+  document.getElementById('typeInput').readOnly    = false;
+  document.getElementById('typeDone').disabled     = true;
+  document.getElementById('typingRestart').style.display = 'none';
+  document.getElementById('typingRepeat').style.display  = 'none';
+  document.getElementById('typeDone').textContent = (typeStage===1) ? '1차 완료 → 2차 진행' : '완료 확인';
+  typeCurrentScore = 0;
+  updateTyped('');
+  if(focusInput) document.getElementById('typeInput').focus();
+}
+function typingNext(){
+  const input = document.getElementById('typeInput').value;
+  if(typeStage===1){
+    typeScore1 = typeCurrentScore; typeInput1 = input;
+    typeStage = 2;
+    renderTyping();
+    toast('✓ 타이핑 1차 통과! 2차 입력하세요');
+  }else{
+    typeScore2 = typeCurrentScore; typeInput2 = input;
+    completeMemorize();
+  }
+}
+function repeatCurrentStep(kind){
+  if(kind==='voice'){
+    if(voiceStage===1){ voiceScore1=0; voiceInput1=''; } else { voiceScore2=0; voiceInput2=''; }
+    renderVoice();
+    toast(STEP_NAMES[voiceStage-1]+' 다시 시작');
+    return;
+  }
+  if(typeStage===1){ typeScore1=0; typeInput1=''; } else { typeScore2=0; typeInput2=''; }
+  renderTyping();
+  toast(STEP_NAMES[typeStage+1]+' 다시 시작');
+}
+function blockPaste(e){ e.preventDefault(); toast('붙여넣기는 사용할 수 없습니다'); return false; }
+function onType(){ updateTyped(document.getElementById('typeInput').value); }
+function updateTyped(rawInput){
+  const input  = (rawInput||'').replace(/\s+$/,'');
+  const target = DB.verse.text;
+  const nInput = normalize(input);
+  let html='', pos=0;
+  for(const tc of target){
+    const ntc = normalize(tc);
+    if(!ntc){ html += (tc===' '?'&nbsp;':`<span class="n">${esc(tc)}</span>`); continue; }
+    if(pos < nInput.length){
+      html += `<span class="${nInput[pos]===ntc?'g':'b'}">${esc(tc)}</span>`; pos++;
+    }else if(pos === nInput.length){ html += `<span class="cur n">${esc(tc)}</span>`; pos++; }
+    else html += `<span class="n">${esc(tc)}</span>`;
+  }
+  document.getElementById('typedDisplay').innerHTML = html;
+  const nt  = normalize(target);
+  const pct = similarity(input, target);
+  typeCurrentScore = pct;
+  const typedEnough = nInput.length >= nt.length;
+  const pass = pct >= TH().typing && typedEnough;
+  document.getElementById('typeBar').style.width    = pct+'%';
+  document.getElementById('typingRestart').style.display = nInput.length && pct<100 ? 'block' : 'none';
+  document.getElementById('typingRepeat').style.display  = pass ? 'block' : 'none';
+  document.getElementById('typeInput').readOnly     = pass;
+  document.getElementById('typeStatus').textContent =
+    `진행률 ${pct}%`+(typedEnough?(pass?' · 통과! 완료 확인을 누르세요':''):'  · 끝까지 입력하세요');
+  document.getElementById('typeDone').disabled = !pass;
+}
+function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;'); }
+
+// ── 암송 완료 / 재검수 ────────────────────────────────────
+function completeMemorize(){
+  const record = { ref:DB.verse.ref, voiceScore1, voiceScore2, typeScore1, typeScore2,
+    voiceInput1, voiceInput2, typeInput1, typeInput2, typingPassed:true,
+    completedAt:new Date().toISOString(), badge:'weekly_complete' };
+  if(!memorizeCompleted){
+    const recs = loadRec(); recs.push(record); saveRec(recs);
+    memorizeCompleted = true;
+    if(window.PAT_DB && PAT_DB.ready()){ PAT_DB.saveRecord(DB.church.code, record); }
+  }else{
+    const recs  = loadRec();
+    const index = recs.map(r=>r.ref).lastIndexOf(DB.verse.ref);
+    if(index>=0){ recs[index]={...recs[index],...record}; saveRec(recs); }
+  }
+  document.getElementById('completeRef').textContent  = DB.verse.ref+' 암송 성공';
+  document.getElementById('cVoice1').textContent = (voiceScore1||90)+'%';
+  document.getElementById('cVoice2').textContent = (voiceScore2||92)+'%';
+  renderSteps(5, false);
+  go('s-complete');
+}
+function reviewStep(n){
+  clearVoiceStartTimer();
+  clearVoiceRecognition(true);
+  recognizing=false; setMicRec(false);
+  const score = stepScore(n);
+  if(n<=2){
+    voiceStage = n;
+    go('s-voice', false, false);
+    renderVoice();
+    if(score){
+      document.getElementById('simBar').style.width   = score+'%';
+      document.getElementById('simLabel').innerHTML   =
+        `이전 유사도 <b style="color:${score<100?'var(--danger)':'var(--accent)'}">${score}%</b> · 다시 검수할 수 있습니다`;
+      document.getElementById('recognized').textContent = n===1 ? voiceInput1 : voiceInput2;
+      document.getElementById('voiceManual').value       = n===1 ? voiceInput1 : voiceInput2;
+      document.getElementById('voiceManual').readOnly    = true;
+      document.getElementById('voiceManualCheck').disabled = true;
+      document.getElementById('voiceRestart').style.display = score<100 ? 'block' : 'none';
+      document.getElementById('voiceRepeat').style.display  = 'block';
+      document.getElementById('micBtn').disabled = true;
+      document.getElementById('micHint').textContent = '입력 완료 · 다시 하려면 아래 버튼을 누르세요';
+      document.getElementById('voiceNext').disabled  = score < TH().voice;
+    }
+    toast(STEP_NAMES[n-1]+' 다시 검수');
+    return;
+  }
+  typeStage = n-2;
+  go('s-typing', false, false);
+  renderTyping(false);
+  if(score){
+    const savedInput = n===3 ? typeInput1 : typeInput2;
+    document.getElementById('typeInput').value   = savedInput;
+    updateTyped(savedInput);
+    document.getElementById('typeInput').readOnly  = true;
+    document.getElementById('typeBar').style.width = score+'%';
+    document.getElementById('typeStatus').textContent =
+      `이전 진행률 ${score}% · 다시 입력해 검수할 수 있습니다`;
+    document.getElementById('typingRestart').style.display = score<100 ? 'block' : 'none';
+    document.getElementById('typingRepeat').style.display  = 'block';
+  }
+  toast(STEP_NAMES[n-1]+' 다시 검수');
+}
+
+// ── 대시보드 ─────────────────────────────────────────────
+const PARISH_STATS = [
+  { name:'1교구 진도표', matchName:'1교구', done:52, total:80 },
+  { name:'2교구 진도표', matchName:'2교구', done:48, total:72 },
+  { name:'3교구 진도표', matchName:'3교구', done:44, total:68 },
+  { name:'블레싱 진도표', matchName:'블레싱', done:30, total:400, isTotal:true },
+];
+function renderParishStats(myCount){
+  const profile = loadFamilyProfile();
+  document.getElementById('dParishList').innerHTML = PARISH_STATS.map(item=>{
+    const isMine = !item.isTotal && profile?.parish &&
+      (profile.parish===item.matchName||profile.parish===item.name||profile.parish.includes(item.matchName));
+    const done = item.done + (item.isTotal && myCount>0 ? myCount : 0);
+    const pct  = Math.round(done/item.total*100);
+    const rowStyle = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);'
+      +(item.isTotal?'border-top:1px solid var(--line);margin-top:4px;':'');
+    const nameStyle = 'min-width:48px;font-weight:700;'+(isMine?'color:var(--accent)':'');
+    return `<div style="${rowStyle}">
+      <span style="${nameStyle}">${item.name}${isMine?' ★':''}</span>
+      <small class="muted" style="min-width:74px">${done}/${item.total}명</small>
+      <div class="bar" style="flex:1;margin:0"><span style="width:${pct}%"></span></div>
+      <small style="min-width:36px;text-align:right;font-weight:700">${pct}%</small>
+    </div>`;
+  }).join('');
+}
+async function renderDashboard(){
+  const recs    = loadRec();
+  const myCount = recs.length;
+  document.getElementById('dMyCount').textContent = myCount;
+  document.getElementById('dStreak').textContent  = myCount>0?1:0;
+  document.getElementById('dBadge').textContent   = myCount;
+  const me = DB.members.find(m=>m.me); if(myCount>0) me.done=true;
+  const doneCount = DB.members.filter(m=>m.done).length;
+  document.getElementById('dFamily').textContent = Math.round(doneCount/DB.members.length*100)+'%';
+  if(window.PAT_DB && PAT_DB.ready()){
+    const stats = await PAT_DB.getDashboardStats(DB.church.code, DB.verse.ref);
+    if(stats){
+      const total = stats.total;
+      document.getElementById('dChurch').textContent =
+        `참여율 ${Math.round(total/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${total}명`;
+      document.getElementById('dChurchBar').style.width = Math.round(total/DB.church.memberCount*100)+'%';
+      renderParishStatsFirebase(stats.byParish, myCount);
+      return;
+    }
+  }
+  renderParishStats(myCount);
+  const base = 188+(myCount>0?1:0);
+  document.getElementById('dChurch').textContent =
+    `참여율 ${Math.round(base/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${base}명`;
+  document.getElementById('dChurchBar').style.width = Math.round(base/DB.church.memberCount*100)+'%';
+  document.getElementById('dMyScore').textContent = myCount+'회';
+}
+function renderParishStatsFirebase(byParish, myCount){
+  const profile    = loadFamilyProfile();
+  const parishKeys = ['1교구','2교구','3교구'];
+  const rows = parishKeys.map(key=>{
+    const done  = byParish[key]||0;
+    const total = key==='1교구'?80:key==='2교구'?72:68;
+    const pct   = Math.round(done/total*100);
+    const isMine = profile?.parish && (profile.parish===key||profile.parish.includes(key));
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)">
+      <span style="min-width:48px;font-weight:700;${isMine?'color:var(--accent)':''}">${key} 진도표${isMine?' ★':''}</span>
+      <small class="muted" style="min-width:74px">${done}/${total}명</small>
+      <div class="bar" style="flex:1;margin:0"><span style="width:${pct}%"></span></div>
+      <small style="min-width:36px;text-align:right;font-weight:700">${pct}%</small>
+    </div>`;
+  });
+  const totalDone = Object.values(byParish).reduce((a,b)=>a+b,0)+(myCount>0?1:0);
+  const totalPct  = Math.round(totalDone/DB.church.memberCount*100);
+  rows.push(`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);margin-top:4px">
+    <span style="min-width:48px;font-weight:700">블레싱 진도표</span>
+    <small class="muted" style="min-width:74px">${totalDone}/${DB.church.memberCount}명</small>
+    <div class="bar" style="flex:1;margin:0"><span style="width:${totalPct}%"></span></div>
+    <small style="min-width:36px;text-align:right;font-weight:700">${totalPct}%</small>
+  </div>`);
+  document.getElementById('dParishList').innerHTML = rows.join('');
+}
+
+// ── 설정 ─────────────────────────────────────────────────
+function toggleTheme(){
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme', dark?'cream':'dark');
+  document.getElementById('swTheme').classList.toggle('on', !dark);
+}
+function toggleFont(){
+  const lg = document.documentElement.getAttribute('data-fontsize')==='large';
+  document.documentElement.setAttribute('data-fontsize', lg?'normal':'large');
+  document.getElementById('swFont').classList.toggle('on', !lg);
+}
+function toggleLenient(){
+  LENIENT = !LENIENT;
+  document.getElementById('swLenient').classList.toggle('on', LENIENT);
+  toast(LENIENT?'관대 모드 ON (기준 완화)':'관대 모드 OFF');
+}
+function resetData(){
+  localStorage.removeItem('pat_records');
+  DB.members.find(m=>m.me).done = false;
+  toast('기록이 초기화되었습니다');
+  renderFamily();
+}
+
+// ── 페이지 진입 초기화 (모든 모듈 로드 완료 후 실행) ────────
+if(typeof document !== 'undefined' && typeof document.getElementById === 'function'){
+  applyStoredData();
+  const _code = document.getElementById('churchCode');
+  if(_code) _code.value = '';
+  const _tb = document.getElementById('tabbar');
+  if(_tb && _tb.style) _tb.style.display = 'none';
+}

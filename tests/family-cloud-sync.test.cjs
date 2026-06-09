@@ -1,9 +1,10 @@
-const assert = require('node:assert/strict');
+﻿const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
 const html = fs.readFileSync('app/index.html', 'utf8');
-const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const { loadAppScript } = require('./helpers/load-scripts.cjs');
+const script = loadAppScript();
 
 function createContext(fakeDb) {
   const elements = new Map();

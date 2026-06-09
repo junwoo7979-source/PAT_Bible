@@ -1,9 +1,10 @@
-const assert = require('node:assert/strict');
+﻿const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
 const html = fs.readFileSync('app/index.html', 'utf8');
-const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const { loadAppScript } = require('./helpers/load-scripts.cjs');
+const script = loadAppScript();
 const elements = new Map();
 const storage = new Map();
 let focusCount = 0;

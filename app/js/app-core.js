@@ -1,0 +1,163 @@
+// ====== PAT Bible — app-core.js ======
+// 전역 상태(DB), 화면 전환(go), 인증, 공통 유틸리티
+
+// ── 전역 데이터 ───────────────────────────────────────────
+const DB = {
+  church: { name:'세광교회', code:'11111', memberCount:248 },
+  verse: { ref:'요한복음 3:16', weekOf:'2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 일요일',
+    text:'하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라' },
+  members: [
+    { name:'아빠', done:true }, { name:'엄마', done:true },
+    { name:'나', done:false, me:true }, { name:'동생', done:false }
+  ]
+};
+
+// 검증 임계값
+let LENIENT = false;
+const TH = () => LENIENT ? { voice:100, typing:90 } : { voice:100, typing:100 };
+
+// ── localStorage 헬퍼 ─────────────────────────────────────
+function loadRec(){ try{ return JSON.parse(localStorage.getItem('pat_records')||'[]'); }catch(e){ return []; } }
+function saveRec(r){ localStorage.setItem('pat_records', JSON.stringify(r)); }
+function loadVerses(){ try{ return JSON.parse(localStorage.getItem('pat_verses')||'[]'); }catch(e){ return []; } }
+function saveVerses(v){ localStorage.setItem('pat_verses', JSON.stringify(v)); }
+
+// ── 앱 제목 / 교회명 ──────────────────────────────────────
+const APP_TITLE_DEFAULT = 'PAT Bible';
+function applyAppTitle(){
+  const title = localStorage.getItem('pat_app_title') || APP_TITLE_DEFAULT;
+  document.getElementById('loginAppTitle').textContent = title;
+  return title;
+}
+function applyStoredData(){
+  applyAppTitle();
+  const cn = localStorage.getItem('pat_church_name');
+  if(cn) DB.church.name = cn;
+  const vs = loadVerses();
+  if(vs.length){ DB.verse = { ref:vs[0].ref, weekOf:vs[0].weekOf, text:vs[0].text }; }
+  checkInviteParam();
+  initFirebase();
+}
+function initFirebase(){
+  if(!window.PAT_DB) return;
+  const ok = PAT_DB.init();
+  if(!ok){ console.log('[PAT] 로컬 모드'); return; }
+  console.log('[PAT] Firebase 모드 활성화');
+  PAT_DB.subscribeVerse(DB.church.code, verse => {
+    DB.verse = { ref:verse.ref, text:verse.text, weekOf:verse.weekOf };
+    const activeId = document.querySelector('.screen.active')?.id;
+    if(activeId==='s-family') renderFamily();
+    else if(activeId==='s-verse') renderVerse();
+    toast('📖 이번 주 구절이 업데이트됐습니다');
+  });
+}
+
+// ── 관리자 ────────────────────────────────────────────────
+const ADMIN = { id:'admin', pw:'1234' };
+function adminLogin(){
+  const id = document.getElementById('adminId').value.trim();
+  const pw = document.getElementById('adminPw').value.trim();
+  if(id !== ADMIN.id || pw !== ADMIN.pw){ toast('아이디 또는 비밀번호가 올바르지 않습니다'); return; }
+  document.getElementById('adminPw').value = '';
+  renderAdmin();
+  go('s-admin');
+}
+function adminLogout(){ go('s-login'); toast('로그아웃되었습니다'); }
+function memberLogout(){
+  const code = document.getElementById('churchCode');
+  if(code) code.value = '';
+  go('s-login');
+  toast('로그아웃되었습니다');
+}
+function renderAdmin(){
+  document.getElementById('adminChurchLabel').textContent = '관리 교회: '+DB.church.name;
+  document.getElementById('inAppTitle').value = applyAppTitle();
+  document.getElementById('inChurchName').value = DB.church.name;
+  if(!document.getElementById('inDate').value){
+    document.getElementById('inDate').value = new Date().toISOString().slice(0,10);
+  }
+  updateWeekFromDate();
+  renderVerseList();
+  renderPreview();
+}
+
+// ── 화면 전환 ─────────────────────────────────────────────
+function go(id, resetScroll=true, animate=true){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
+  const target = document.getElementById(id);
+  if(!animate) target.classList.add('no-motion');
+  target.classList.add('active');
+  const tabbar = document.getElementById('tabbar');
+  const noTab = ['s-login','s-adminlogin','s-admin','s-family-register','s-invite'];
+  tabbar.style.display = noTab.includes(id) ? 'none' : 'flex';
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.screen===id);
+  });
+  if(id==='s-verse'){ renderVerse(); }
+  else if(id==='s-family'){ renderFamily(); }
+  else if(id==='s-dashboard'){ renderDashboard(); }
+  if(resetScroll) window.scrollTo(0,0);
+}
+function tabGo(id){ go(id); }
+
+// ── 교회 입장 ─────────────────────────────────────────────
+function enterChurch(){
+  const code = document.getElementById('churchCode').value.trim();
+  const profile = loadFamilyProfile();
+  const famPw = profile?.familyPassword;
+  const hasCustomPw = famPw && famPw !== DB.church.code;
+  if(hasCustomPw){
+    if(code !== famPw){ toast('가족 비밀번호가 올바르지 않습니다 — 가족 외 접근 불가'); return; }
+  } else {
+    if(code !== DB.church.code && !(famPw && code === famPw)){
+      toast('교회 코드가 올바르지 않습니다'); return;
+    }
+  }
+  document.getElementById('churchName').textContent = memberHomeTitle();
+  renderMemberDateLabels();
+  renderFamily();
+  go('s-family');
+}
+
+// ── 공통 유틸 ─────────────────────────────────────────────
+function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;'); }
+
+let toastT;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+// ── PWA 설치 ─────────────────────────────────────────────
+let deferredInstallPrompt = null;
+if(typeof window !== 'undefined' && window.addEventListener){
+  window.addEventListener('beforeinstallprompt', e=>{
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const btn = document.getElementById('installAppBtn');
+    if(btn) btn.textContent = '📱 PAT 아이콘 설치';
+  });
+}
+async function installPatApp(){
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice.catch(()=>{});
+    deferredInstallPrompt = null;
+    return;
+  }
+  const ua = (typeof navigator !== 'undefined' ? navigator.userAgent : '') || '';
+  if(/KAKAOTALK/i.test(ua)){
+    alert('카카오톡 안에서는 설치가 어렵습니다.\n오른쪽 위 메뉴(⋮ 또는 …)에서 "다른 브라우저로 열기"를 누른 뒤, Chrome/Safari에서 PAT 아이콘을 홈 화면에 추가해주세요.');
+    return;
+  }
+  if(/iPhone|iPad|iPod/i.test(ua)){
+    alert('iPhone/iPad 설치 방법\n1. Safari에서 이 페이지 열기\n2. 아래 공유 버튼 누르기\n3. "홈 화면에 추가" 선택\n4. PAT Bible 아이콘으로 실행');
+    return;
+  }
+  alert('Android 설치 방법\n1. Chrome에서 이 페이지 열기\n2. 오른쪽 위 메뉴(⋮) 누르기\n3. "앱 설치" 또는 "홈 화면에 추가" 선택\n4. PAT Bible 아이콘으로 실행');
+}
+
+// ── DOM 이벤트 (body 내 스크립트이므로 DOM 준비 완료) ─────
+document.getElementById('churchCode').addEventListener('keyup',e=>{ if(e.key==='Enter') enterChurch(); });
+document.getElementById('adminPw').addEventListener('keyup',e=>{ if(e.key==='Enter') adminLogin(); });
