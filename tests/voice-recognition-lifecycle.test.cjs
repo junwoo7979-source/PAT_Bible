@@ -147,7 +147,7 @@ context.navigator = {
       micPermissionRequests++;
       return {
         getTracks() {
-          return [{ stop() {} }];
+          return [{ stop() {}, readyState: 'live' }];
         },
       };
     },
@@ -165,7 +165,7 @@ vm.runInNewContext(script, context);
 const verse = '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라';
 
 (async () => {
-context.startMemorize();
+await context.startMemorize();
 await context.toggleMic();
 // acquireGlobalMicStream: permissions.query 없이 getUserMedia 직접 호출 → queries=0, requests=1
 assert.equal(micPermissionQueries, 0);

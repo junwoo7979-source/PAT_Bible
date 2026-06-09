@@ -975,6 +975,37 @@ function checkInviteParam(){
   try{ showInvitePage(JSON.parse(decodeURIComponent(atob(invite)))); }catch(e){}
 }
 function memberHomeTitle(){ return DB.church.name+' PAT'; }
+let familyProgressSyncKey='';
+function renderFamilyMemberList(members){
+  const safeMembers = members.length ? members : [{ name:'나', me:true, done:false }];
+  DB.members = safeMembers;
+  const doneCount = safeMembers.filter(m=>m.done).length;
+  const pct = Math.round(doneCount/safeMembers.length*100);
+  document.getElementById('familyProgress').textContent = `이번 주 달성률 ${doneCount}/${safeMembers.length}명`;
+  document.getElementById('familyBar').style.width = pct+'%';
+  const list = safeMembers.map(m=>
+    `<div class="member"><span>${esc(m.name)}${m.me?' (나)':''}</span>
+     <span class="${m.done?'tag-ok':'tag-wait'}">${m.done?'✔ 완료':'대기'}</span></div>`).join('');
+  document.getElementById('memberList').innerHTML = list;
+}
+async function syncFamilyProgressFromCloud(profile){
+  const familyId = localStorage.getItem('pat_family_id')||'';
+  if(!profile || !familyId || !window.PAT_DB || !PAT_DB.ready() || !PAT_DB.getFamilyProgress) return;
+  const syncKey = familyId+'|'+DB.verse.ref;
+  familyProgressSyncKey = syncKey;
+  const cloudMembers = await PAT_DB.getFamilyProgress(DB.church.code, familyId, DB.verse.ref);
+  if(familyProgressSyncKey !== syncKey || !Array.isArray(cloudMembers) || !cloudMembers.length) return;
+  const myName = profile.memberName || profile.leaderName || '';
+  const members = cloudMembers.map((member, index)=>({
+    name: member.displayName || member.name || '성도',
+    me: myName ? member.displayName === myName : index === 0,
+    done: !!member.done
+  }));
+  renderFamilyMemberList(members);
+  const names = members.map(m=>m.name).filter(Boolean);
+  localStorage.setItem('pat_family_profile', JSON.stringify({ ...profile, members }));
+  renderRegisteredFamilyRoom();
+}
 function renderFamily(){
   const recs = loadRec();
   const profile = loadFamilyProfile();
@@ -989,15 +1020,9 @@ function renderFamily(){
     if(!DB.members.find(m=>m.me)) DB.members[0].me=true;
   }
   const me = DB.members.find(m=>m.me);
-  if(recs.length>0) me.done = true;
-  const doneCount = DB.members.filter(m=>m.done).length;
-  const pct = Math.round(doneCount/DB.members.length*100);
-  document.getElementById('familyProgress').textContent = `이번 주 달성률 ${doneCount}/${DB.members.length}명`;
-  document.getElementById('familyBar').style.width = pct+'%';
-  const list = DB.members.map(m=>
-    `<div class="member"><span>${m.name}${m.me?' (나)':''}</span>
-     <span class="${m.done?'tag-ok':'tag-wait'}">${m.done?'✔ 완료':'대기'}</span></div>`).join('');
-  document.getElementById('memberList').innerHTML = list;
+  if(recs.length>0 && me) me.done = true;
+  renderFamilyMemberList(DB.members);
+  syncFamilyProgressFromCloud(profile);
   renderFamilyProfile();
   // 초대 링크 버튼: 가족방이 등록된 경우에만 표시
   const invBtn=document.getElementById('inviteLinkBtn');
@@ -1062,10 +1087,12 @@ let voiceMicPermissionReady=false;
 let globalMicStream=null; // 암송 세션 전체 유지 스트림 (매 toggleMic 권한 창 방지)
 let micPermissionRequestedThisSession=false;
 function isMobileBrowser(){
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
+  const ua=(typeof navigator!=='undefined'?navigator.userAgent:'')||'';
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
 }
 function isKakaoInAppBrowser(){
-  return /KAKAOTALK/i.test(navigator.userAgent||'');
+  const ua=(typeof navigator!=='undefined'?navigator.userAgent:'')||'';
+  return /KAKAOTALK/i.test(ua);
 }
 // 진행 단계 바 (1:음성1 2:음성2 3:타이핑1 4:타이핑2)
 const STEP_NAMES = ['음성 1차','음성 2차','타이핑 1차','타이핑 2차'];
@@ -1401,7 +1428,7 @@ function startVoiceRecognition(SR){
     toast(msg); showManual();
   };
   // iOS Safari는 continuous=true 미지원 → false + 자동 재연결로 처리
-  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent||'')&&!window.MSStream;
+  const isIOS=/iPad|iPhone|iPod/.test((typeof navigator!=='undefined'?navigator.userAgent:'')||'')&&!(typeof window!=='undefined'&&window.MSStream);
   try{
     recog = new SR(); recog.lang='ko-KR'; recog.interimResults=true;
     recog.continuous = !isIOS; // iOS: false(자동재연결), Android/PC: true
@@ -1791,12 +1818,14 @@ function resetData(){ localStorage.removeItem('pat_records'); DB.members.find(m=
 
 // ====== 홈 화면 설치(PWA) ======
 let deferredInstallPrompt=null;
-window.addEventListener('beforeinstallprompt', e=>{
-  e.preventDefault();
-  deferredInstallPrompt=e;
-  const btn=document.getElementById('installAppBtn');
-  if(btn) btn.textContent='📱 PAT 아이콘 설치';
-});
+if(typeof window !== 'undefined' && window.addEventListener){
+  window.addEventListener('beforeinstallprompt', e=>{
+    e.preventDefault();
+    deferredInstallPrompt=e;
+    const btn=document.getElementById('installAppBtn');
+    if(btn) btn.textContent='📱 PAT 아이콘 설치';
+  });
+}
 async function installPatApp(){
   if(deferredInstallPrompt){
     deferredInstallPrompt.prompt();
@@ -1804,7 +1833,7 @@ async function installPatApp(){
     deferredInstallPrompt=null;
     return;
   }
-  const ua=navigator.userAgent||'';
+  const ua=(typeof navigator!=='undefined'?navigator.userAgent:'')||'';
   if(/KAKAOTALK/i.test(ua)){
     alert('카카오톡 안에서는 설치가 어렵습니다.\n오른쪽 위 메뉴(⋮ 또는 …)에서 “다른 브라우저로 열기”를 누른 뒤, Chrome/Safari에서 PAT 아이콘을 홈 화면에 추가해주세요.');
     return;
@@ -1844,7 +1873,7 @@ document.getElementById('churchCode').value='';
   if(tabbar && tabbar.style) tabbar.style.display = 'none'; // 시작 화면은 항상 로그인
 })();
 
-if('serviceWorker' in navigator){
+if(typeof navigator !== 'undefined' && 'serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
