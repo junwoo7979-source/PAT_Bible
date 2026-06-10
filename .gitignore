@@ -34,3 +34,8 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Temp / Test artifacts
+memory/
+*-screenshot.png
+test-*.png

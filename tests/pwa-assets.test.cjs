@@ -22,6 +22,12 @@ assert.match(icon512.purpose, /maskable/);
 assert.match(html, /<link rel="apple-touch-icon" href="icons\/pat-icon-192\.png">/);
 assert.match(sw, /'\.\/icons\/pat-icon-192\.png'/);
 assert.match(sw, /'\.\/icons\/pat-icon-512\.png'/);
+assert.match(sw, /'\.\/js\/app-core\.js'/);
+assert.match(sw, /'\.\/js\/verse\.js'/);
+assert.match(sw, /'\.\/js\/family\.js'/);
+assert.match(sw, /'\.\/js\/voice\.js'/);
+assert.match(sw, /'\.\/js\/voice-ui\.js'/);
+assert.match(sw, /'\.\/js\/memorize\.js'/);
 
 assert.ok(fs.existsSync('app/icons/pat-icon-192.png'), '192 PNG icon file must exist');
 assert.ok(fs.existsSync('app/icons/pat-icon-512.png'), '512 PNG icon file must exist');

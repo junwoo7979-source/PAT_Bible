@@ -87,7 +87,7 @@ git diff --check
 - 음성 암송은 일반/관대 모드 모두 유사도 `100%`일 때만 통과한다.
 - 음성 인식 결과가 원문과 다르면 초록/빨강/점선 표시로 다른 위치를 보여준다.
 
-<!-- START_TTAPP_RULES:1.0.1 -->
+<!-- START_TTAPP_RULES:1.0.2 -->
 <!-- ⚠️ DO NOT EDIT THIS BLOCK - AUTOMATICALLY MANAGED BY TTAPP -->
 # CLAUDE.md (ttapp rules)
 <!-- ⚠️ DO NOT REMOVE OR MODIFY this section. These rules are required by the ttapp desktop app to function correctly. If accidentally removed, the app will automatically restore them. -->
@@ -123,6 +123,7 @@ Once the user clearly says to begin (e.g. "해줘", "적용해줘", "시작하�
 
 ## Always
 - Keep responses concise (the user reads on a small screen)
+- **Always respond in the same language the user writes in.** If they write in English, respond in English. If in Korean, respond in Korean. If in Japanese, respond in Japanese. Match their language every single time — never switch to a different language.
 
 ## Code Quality — File Size Limit
 - Keep each file under **500 lines** maximum. If a file exceeds this, split it into smaller modules.
@@ -201,15 +202,15 @@ When the user asks to verify UI, test a feature, or check if something works, **
 adb devices  # check if emulator is running
 ```
 
-If an emulator is detected, say something like:
-> "ttapp에서는 제가 직접 에뮬레이터를 조작할 수 있어요 — 빌드하고 설치한 다음 스크린샷으로 결과를 바로 확인해드리는 기능이에요. 해볼까요?"
+If an emulator is detected, suggest it in the user's language. Example (adapt to their language):
+> "ttapp can directly control the emulator for you — I can build, install, tap, and send you screenshots. Want me to try?"
 
-If no emulator but Android Studio might be installed:
-> "ttapp의 에뮬레이터 직접 조작 기능을 사용하면 제가 대신 앱을 실행하고 확인해드릴 수 있어요. 에뮬레이터를 띄워주시면 바로 시작할게요."
+If no emulator but Android Studio might be installed, suggest it in the user's language. Example:
+> "ttapp's direct emulator control feature lets me run the app and verify it for you. Just launch an emulator and I'll take it from there."
 
 ### If adb is not installed at all:
-Present it as unlocking a ttapp feature:
-> "Android 개발환경(adb)만 설치하면 ttapp의 에뮬레이터 직접 조작 기능을 사용할 수 있어요 — 제가 앱을 직접 실행하고 스크린샷으로 결과를 확인해드릴 수 있거든요. 지금 설치해드릴까요?"
+Present it as unlocking a ttapp feature, in the user's language. Example:
+> "Once Android SDK (adb) is installed, ttapp can directly control the emulator — I can run the app and send you screenshots. Want me to set it up?"
 
 ### Key adb commands:
 ```bash
@@ -247,7 +248,8 @@ If the user reports a problem that seems to be with **ttapp itself** (not their 
 - Third-party API or service errors
 
 ### How to suggest support:
-> "이건 ttapp 서비스 자체의 문제일 수 있어요. 모바일 앱 → 설정 → 고객센터에서 문의해주시면 ttapp 팀이 직접 확인해드릴 수 있어요."
+Suggest support in the user's language. Example (adapt to their language):
+> "This might be a ttapp service issue. Please contact the ttapp team via the in-app support center: Mobile app → Settings → Support."
 
 Do NOT suggest the customer center for general coding issues or Claude AI behavior — only for ttapp service functionality.
 
@@ -267,7 +269,7 @@ When the project would benefit from external tool integrations, suggest installi
 - Android project with Play Store deployment → suggest **Play Store MCP**
 - Mobile app project with emulator testing needs → suggest **Mobile MCP**
 
-Do NOT proactively install — always ask the user first: "이 프로젝트에 Firebase MCP를 연결하면 Firestore/Functions를 직접 조회할 수 있어요. 설치할까요?"
+Do NOT proactively install — always ask the user first, in their language. Example: "Connecting the Firebase MCP to this project would let me query Firestore/Functions directly. Want me to set it up?"
 
 ## Windows File Permission Issues
 On Windows, Edit/Write tools may fail with permission errors. This is NOT a ttapp issue — it's a Windows filesystem limitation. Common causes and solutions:
@@ -315,7 +317,7 @@ Example structure:
 ttapp runs Claude Code in interactive TUI mode. The session (PTY) is **terminated after each task completes**. This means:
 
 - ❌ `ScheduleWakeup` — will NEVER fire in ttapp. Do not use it.
-- ❌ Saying "나중에 알려드릴게요" without actually scheduling — this is a broken promise.
+- ❌ Saying "I'll let you know later" (or equivalent in the user's language) without actually scheduling — this is a broken promise.
 - ✅ `mcp__ttapp__tbot_project_schedule_add` — Firestore-backed, survives session close, triggers a new Claude session at the scheduled time.
 
 **Pattern: background task + scheduled follow-up (polling)**
@@ -327,7 +329,7 @@ When starting a long background task (nohup build, deploy, etc.) and you want to
 3. Schedule a follow-up (omit projectId — auto-detected via TTAPP_PROJECT_ID env var):
 ```
 mcp__ttapp__tbot_project_schedule_add
-  message: "로그(/tmp/build.log)를 확인해줘. 완료됐으면 결과 요약. 아직 진행중이면 5분 후 다시 확인 예약해줘."
+  message: "Check the log at /tmp/build.log. If done, summarize the result. If still running, schedule another check in 5 minutes."
   scheduledAt: <result of date command + max 5 minutes>
 ```
 
@@ -335,6 +337,6 @@ mcp__ttapp__tbot_project_schedule_add
 
 ⚠️ **scheduledAt rule**: ALWAYS run `date +"%Y-%m-%dT%H:%M:%S"` first. The system context only has the date, not the time — never guess or estimate the current time.
 
-**Rule**: Every time you use a phrase like "완료되면 알려드릴게요" or "나중에 확인해드릴게요", you MUST follow it with `mcp__ttapp__tbot_project_schedule_add`. Never say it without actually scheduling.
+**Rule**: Every time you use a phrase like "I'll let you know when it's done" or "I'll check later" (or equivalent in the user's language), you MUST follow it with `mcp__ttapp__tbot_project_schedule_add`. Never say it without actually scheduling.
 
 <!-- END_TTAPP_RULES -->
