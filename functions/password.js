@@ -24,14 +24,19 @@ function verifyFamilyPassword(churchCode, password, storedHash, pepper) {
   return hashFamilyPassword(churchCode, password, pepper) === storedHash;
 }
 
+// 클라이언트가 saveFamily로 저장할 수 있는 허용 필드 (화이트리스트)
+const FAMILY_ALLOWED_FIELDS = ['roomName', 'leaderName', 'parish', 'district', 'members'];
+
 function sanitizeFamilyDataForSave(churchCode, data, pepper) {
-  const next = { ...data };
-  // 클라이언트가 임의로 보낸 해시 필드를 항상 제거 (계정 탈취 방지)
-  delete next.familyPasswordHash;
-  if (next.familyPassword) {
-    next.familyPasswordHash = hashFamilyPassword(churchCode, next.familyPassword, pepper);
+  // allowlist만 복사 — 임의 필드(isAdmin, role 등) 주입 차단
+  const next = {};
+  for (const key of FAMILY_ALLOWED_FIELDS) {
+    if (key in data) next[key] = data[key];
   }
-  delete next.familyPassword;
+  // 비밀번호는 allowlist 외부에서 별도 처리 → 해시로 변환
+  if (data.familyPassword) {
+    next.familyPasswordHash = hashFamilyPassword(churchCode, data.familyPassword, pepper);
+  }
   return next;
 }
 

@@ -217,8 +217,11 @@ function saveFamilyProfile(){
 function copyInviteLink(){
   const profile = loadFamilyProfile();
   if(!profile){ toast('먼저 가족방을 등록하세요'); return; }
+  const familyId = localStorage.getItem('pat_family_id') || '';
+  // ⚠️ familyPassword 제외 — URL에 평문 비밀번호 노출 차단
   const data = { roomName:profile.roomName, leaderName:profile.leaderName,
-    parish:profile.parish, district:profile.district, familyPassword:profile.familyPassword };
+    parish:profile.parish, district:profile.district,
+    familyId: familyId, v: 2 };
   const encoded = btoa(encodeURIComponent(JSON.stringify(data)));
   const url = location.href.split('?')[0]+'?invite='+encoded;
   navigator.clipboard.writeText(url).then(()=>{
@@ -236,15 +239,31 @@ function showInvitePage(data){
   window._inviteData = data;
   go('s-invite');
 }
-function joinFamilyFromInvite(){
+async function joinFamilyFromInvite(){
   const data = window._inviteData;
   if(!data){ toast('초대 정보를 찾을 수 없습니다'); return; }
   const pw = document.getElementById('invitePasswordInput').value.trim();
-  if(pw !== data.familyPassword){ toast('비밀번호가 올바르지 않습니다'); return; }
-  localStorage.setItem('pat_family_profile', JSON.stringify({
-    roomName:data.roomName, leaderName:data.leaderName,
-    parish:data.parish, district:data.district, familyPassword:data.familyPassword
-  }));
+  if(!pw){ toast('비밀번호를 입력해주세요'); return; }
+
+  // 서버에서 비밀번호 검증 (평문 로컬 비교 제거)
+  if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
+    const found = await PAT_DB.findFamilyByPassword(DB.church.code, pw, data.familyId);
+    if(!found){ toast('비밀번호가 올바르지 않습니다'); return; }
+    if(found.id) localStorage.setItem('pat_family_id', found.id);
+    localStorage.setItem('pat_family_profile', JSON.stringify({
+      roomName: found.roomName || data.roomName,
+      leaderName: found.leaderName || data.leaderName,
+      parish: found.parish || data.parish,
+      district: found.district || data.district,
+      familyPassword: pw,
+    }));
+  } else {
+    // 오프라인 fallback: 로컬 정보로만 저장
+    localStorage.setItem('pat_family_profile', JSON.stringify({
+      roomName:data.roomName, leaderName:data.leaderName,
+      parish:data.parish, district:data.district, familyPassword:pw,
+    }));
+  }
   window._inviteData = null;
   document.getElementById('churchName').textContent = memberHomeTitle();
   renderMemberDateLabels();

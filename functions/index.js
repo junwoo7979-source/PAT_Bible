@@ -88,6 +88,7 @@ exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
       }, { merge: true });
       res.json({ familyId });
     } else {
+      if (!data.familyPassword) { res.status(400).json({ error: 'familyPassword required' }); return; }
       const ref = await col.add({ ...familyData, createdAt: FieldValue.serverTimestamp() });
       res.json({ familyId: ref.id });
     }
@@ -101,7 +102,9 @@ async function migrateAndReturn(doc, passwordHash) {
     familyPassword: FieldValue.delete(),
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
-  return publicFamily(doc.id, doc.data());
+  // stale 스냅샷 대신 최신 데이터 재조회
+  const fresh = await doc.ref.get();
+  return publicFamily(fresh.id, fresh.data());
 }
 
 exports.findFamily = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {

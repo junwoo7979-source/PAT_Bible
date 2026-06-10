@@ -134,10 +134,10 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] saveFamily:', e.message); return null; }
   }
 
-  async function findFamilyByPassword(churchCode, familyPassword) {
+  async function findFamilyByPassword(churchCode, familyPassword, familyIdOverride) {
     if (!ready() || !familyPassword) return null;
     try {
-      const familyId = localStorage.getItem('pat_family_id') || undefined;
+      const familyId = familyIdOverride || localStorage.getItem('pat_family_id') || undefined;
       const data = await apiPost('findFamily', { churchCode, familyPassword, familyId });
       return data.family || null;
     } catch (e) { console.warn('[PAT_DB] findFamilyByPassword:', e.message); return null; }
