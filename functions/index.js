@@ -2,6 +2,12 @@ const { onRequest } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { applyCors, assertChurchCode, assertToken } = require('./security');
+const {
+  hashFamilyPassword,
+  verifyFamilyPassword,
+  sanitizeFamilyDataForSave,
+  publicFamily,
+} = require('./password');
 
 initializeApp();
 const db = getFirestore();
@@ -72,28 +78,69 @@ exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
   try {
     const { churchCode, familyId, ...data } = req.body;
     if (!assertChurchCode(churchCode, res)) return;
+    const familyData = sanitizeFamilyDataForSave(churchCode, data);
     const col = db.collection(`churches/${churchCode}/families`);
     if (familyId) {
-      await col.doc(familyId).set({ ...data, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      await col.doc(familyId).set({
+        ...familyData,
+        familyPassword: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
       res.json({ familyId });
     } else {
-      const ref = await col.add({ ...data, createdAt: FieldValue.serverTimestamp() });
+      const ref = await col.add({ ...familyData, createdAt: FieldValue.serverTimestamp() });
       res.json({ familyId: ref.id });
     }
   } catch (e) { errRes(res, e); }
 });
 
+// 레거시 평문 비밀번호 → 해시로 마이그레이션 후 family 반환
+async function migrateAndReturn(doc, passwordHash) {
+  await doc.ref.set({
+    familyPasswordHash: passwordHash,
+    familyPassword: FieldValue.delete(),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+  return publicFamily(doc.id, doc.data());
+}
+
 exports.findFamily = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
   if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  if (!requireClientWrite(req, res)) return;
   try {
-    const { churchCode, familyPassword } = req.query;
+    const { churchCode, familyPassword, familyId } = req.body;
     if (!assertChurchCode(churchCode, res)) return;
     if (!familyPassword) { res.status(400).json({ error: 'familyPassword required' }); return; }
-    const snap = await db.collection(`churches/${churchCode}/families`)
-      .where('familyPassword', '==', familyPassword).limit(1).get();
-    if (snap.empty) { res.json({ family: null }); return; }
-    const doc = snap.docs[0];
-    res.json({ family: { id: doc.id, ...doc.data() } });
+
+    const col = db.collection(`churches/${churchCode}/families`);
+    const passwordHash = hashFamilyPassword(churchCode, familyPassword);
+
+    if (familyId) {
+      const doc = await col.doc(familyId).get();
+      if (!doc.exists) { res.json({ family: null }); return; }
+      const data = doc.data();
+      if (verifyFamilyPassword(churchCode, familyPassword, data.familyPasswordHash)) {
+        res.json({ family: publicFamily(doc.id, data) });
+        return;
+      }
+      if (data.familyPassword === familyPassword) {
+        res.json({ family: await migrateAndReturn(doc, passwordHash) });
+        return;
+      }
+      res.json({ family: null });
+      return;
+    }
+
+    const hashSnap = await col.where('familyPasswordHash', '==', passwordHash).limit(1).get();
+    if (!hashSnap.empty) {
+      res.json({ family: publicFamily(hashSnap.docs[0].id, hashSnap.docs[0].data()) });
+      return;
+    }
+
+    const legacySnap = await col.where('familyPassword', '==', familyPassword).limit(1).get();
+    if (legacySnap.empty) { res.json({ family: null }); return; }
+    res.json({ family: await migrateAndReturn(legacySnap.docs[0], passwordHash) });
   } catch (e) { errRes(res, e); }
 });
 
@@ -133,11 +180,14 @@ exports.saveRecord = onRequest({ cors: true, region: 'us-central1' }, async (req
   if (!begin(req, res)) return;
   if (!requireClientWrite(req, res)) return;
   try {
-    const { churchCode, ...record } = req.body;
+    const { churchCode, verseRef, deviceId, familyId, parish, district,
+            leaderName, voiceScore1, voiceScore2, typeScore1, typeScore2, badge } = req.body;
     if (!assertChurchCode(churchCode, res)) return;
-    if (!record.verseRef) { res.status(400).json({ error: 'verseRef required' }); return; }
+    if (!verseRef) { res.status(400).json({ error: 'verseRef required' }); return; }
     const ref = await db.collection(`churches/${churchCode}/records`).add({
-      ...record, createdAt: FieldValue.serverTimestamp(),
+      verseRef, deviceId, familyId, parish, district,
+      leaderName, voiceScore1, voiceScore2, typeScore1, typeScore2, badge,
+      createdAt: FieldValue.serverTimestamp(),
     });
     res.json({ id: ref.id });
   } catch (e) { errRes(res, e); }

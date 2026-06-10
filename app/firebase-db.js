@@ -126,7 +126,7 @@ window.PAT_DB = (() => {
         churchCode, familyId,
         roomName: profile.roomName, leaderName: profile.leaderName,
         parish: profile.parish, district: profile.district,
-        familyPassword: profile.familyPassword || '',
+        familyPassword: profile.familyPassword || undefined,
         members: Array.isArray(profile.members) ? profile.members : [],
       });
       if (!familyId) localStorage.setItem('pat_family_id', data.familyId);
@@ -137,7 +137,8 @@ window.PAT_DB = (() => {
   async function findFamilyByPassword(churchCode, familyPassword) {
     if (!ready() || !familyPassword) return null;
     try {
-      const data = await apiGet('findFamily', { churchCode, familyPassword });
+      const familyId = localStorage.getItem('pat_family_id') || undefined;
+      const data = await apiPost('findFamily', { churchCode, familyPassword, familyId });
       return data.family || null;
     } catch (e) { console.warn('[PAT_DB] findFamilyByPassword:', e.message); return null; }
   }

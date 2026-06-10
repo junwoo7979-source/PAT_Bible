@@ -1,9 +1,15 @@
-const CACHE_NAME = 'pat-bible-app-v1';
+const CACHE_NAME = 'pat-bible-app-v2';
 const APP_SHELL = [
   './',
   './index.html',
   './firebase-config.js',
   './firebase-db.js',
+  './js/app-core.js',
+  './js/verse.js',
+  './js/family.js',
+  './js/voice.js',
+  './js/voice-ui.js',
+  './js/memorize.js',
   './manifest.json',
   './icons/pat-icon-192.png',
   './icons/pat-icon-512.png',
