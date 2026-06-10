@@ -5,7 +5,8 @@
  */
 
 window.PAT_DB = (() => {
-  const API = 'https://us-central1-pat-bible-app.cloudfunctions.net';
+  const CONFIG = window.FIREBASE_CONFIG || {};
+  const API = CONFIG.apiBase || 'https://us-central1-pat-bible-app.cloudfunctions.net';
 
   // ── 활성화 여부 ───────────────────────────────────────
   function ready() { return !!window.FIREBASE_READY; }
@@ -48,7 +49,7 @@ window.PAT_DB = (() => {
       try {
         const r = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders(path),
           body: JSON.stringify(body),
         });
         if (!r.ok) throw new Error(`API ${path} ${r.status}`);
@@ -58,6 +59,19 @@ window.PAT_DB = (() => {
         await new Promise(r => setTimeout(r, 500 * (i + 1)));
       }
     }
+  }
+
+  function storedToken(key) {
+    try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
+  }
+
+  function authHeaders(path) {
+    const headers = { 'Content-Type': 'application/json' };
+    const clientToken = CONFIG.clientToken || storedToken('pat_client_token');
+    const adminToken = CONFIG.adminToken || storedToken('pat_admin_token');
+    if (clientToken) headers['x-pat-client-token'] = clientToken;
+    if (path === 'saveVerse' && adminToken) headers['x-pat-admin-token'] = adminToken;
+    return headers;
   }
 
   // ════════════════════════════════════════════════════════

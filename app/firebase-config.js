@@ -1,11 +1,12 @@
-// PAT Bible — Firebase Functions API 설정
-// 백엔드: Firebase Functions (us-central1)
-// API 키 불필요 — 모든 Firestore 접근은 Functions 서버에서 처리
+// PAT Bible Firebase Functions API configuration.
+// Do not commit real tokens here. Inject them at deploy time or store them
+// locally in the browser for a controlled test/admin device.
 
 window.FIREBASE_CONFIG = {
-  projectId: "pat-bible-app",
-  apiBase: "https://us-central1-pat-bible-app.cloudfunctions.net",
+  projectId: 'pat-bible-app',
+  apiBase: 'https://us-central1-pat-bible-app.cloudfunctions.net',
+  clientToken: '',
+  adminToken: '',
 };
 
-// Functions API 항상 활성화
 window.FIREBASE_READY = true;
