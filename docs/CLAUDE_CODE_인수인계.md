@@ -1,5 +1,110 @@
 # Claude Code 인수인계
 
+---
+
+## ✅ 최신 상태 (2026-06-10)
+
+> **이 섹션을 먼저 읽을 것 — 가장 최신 내용이다.**
+
+### 프로젝트 개요
+- **앱**: PAT Bible — 성도 성경 암송 진도 관리 PWA
+- **브랜치**: `main`
+- **배포 주소**: https://junwoo7979-source.github.io/PAT_Bible/app/index.html
+- **로컬 주소**: `http://localhost:8000/app/index.html`
+- **체험 교회 코드**: `11111` / 관리자: `admin` / `1234`
+
+### 주요 파일 구조
+```
+app/
+  index.html          ← 진입점 (JS 모듈만 로드)
+  js/
+    app-core.js       ← 공통 유틸 (esc, 화면전환, 이벤트)
+    verse.js          ← 구절 로드/표시
+    family.js         ← 가족방 등록/조회
+    voice.js          ← 음성 인식 엔진
+    voice-ui.js       ← 음성 화면 UI
+    memorize.js       ← 암송 단계 진행 관리
+  firebase-db.js      ← Firebase Functions API 연동 (API 키 없음)
+  firebase-config.js  ← FIREBASE_READY 플래그만 선언
+functions/
+  index.js            ← Firebase Functions 10개 엔드포인트 (Node.js 22)
+```
+
+### 백엔드 구조
+- **Firebase Functions** (Node.js 22, us-central1)
+- API 엔드포인트: `ping, getVerse, saveVerse, saveFamily, findFamily, joinFamily, getFamilyProgress, saveRecord, hasRecord, getDashboard`
+- 클라이언트에 API 키 없음 — 모든 Firestore 접근은 Functions에서만
+- 폴링 방식 (10초): onSnapshot 전환은 API 키 재노출 문제로 보류
+
+### Android APK (TWA) 빌드 완료
+- **APK**: `C:/Users/SAMSUNG/Desktop/ai/PAT_Bible_TWA/pat-bible-v1.apk` (1.1MB)
+- 키스토어: `android.keystore` (alias: android, pass: patbible2024)
+- SHA-256: `F4:2B:12:83:...D9:DD`
+- assetlinks.json: https://junwoo7979-source.github.io/.well-known/assetlinks.json
+- packageId: `com.patbible.app`
+- minSdkVersion: 21 (19에서 상향 — androidbrowserhelper 요구사항)
+- **Play Store 등록은 미진행** (개발자 계정 $25 등록 필요 시 진행)
+
+### Android SDK 설치 경로 (재빌드 시 필요)
+- ANDROID_HOME: `C:/Users/SAMSUNG/AppData/Local/Android/Sdk`
+- JAVA_HOME: `C:/Program Files/Microsoft/jdk-21.0.11.10-hotspot`
+- build-tools: 34.0.0, platforms: android-34
+
+### TWA 재빌드 방법
+```powershell
+# PowerShell에서
+$env:JAVA_HOME = 'C:\Program Files\Microsoft\jdk-21.0.11.10-hotspot'
+$env:ANDROID_HOME = 'C:\Users\SAMSUNG\AppData\Local\Android\Sdk'
+Set-Location 'C:\Users\SAMSUNG\Desktop\ai\PAT_Bible_TWA'
+.\gradlew.bat assembleRelease
+# 서명
+& 'C:\Users\SAMSUNG\AppData\Local\Android\Sdk\build-tools\34.0.0\apksigner.bat' sign `
+  --ks .\android.keystore --ks-key-alias android `
+  --ks-pass pass:patbible2024 --key-pass pass:patbible2024 `
+  --out .\pat-bible-v1.apk `
+  .\app\build\outputs\apk\release\app-release-unsigned.apk
+```
+
+### 테스트 실행
+```powershell
+node tests\week-period.test.cjs
+node tests\voice-recognition-lifecycle.test.cjs
+node tests\app-title.test.cjs
+node tests\family-profile.test.cjs
+node tests\parish-dashboard.test.cjs
+node tests\memorization-review.test.cjs
+node tests\voice-threshold.test.cjs
+node tests\voice-diff.test.cjs
+node tests\kakao-oauth.test.cjs
+node tests\kakao-send-to-me.test.cjs
+node tests\kakao-local-oauth.test.cjs
+node tests\env-loader.test.cjs
+```
+
+### 최근 커밋
+| 커밋 | 내용 |
+|------|------|
+| `1c0a05d` | memorize.js 중복 esc 함수 제거 |
+| `ee4cf97` | Firebase Functions Node.js 20→22 업그레이드 |
+| `25af955` | index.html 모듈 분리 (1932줄→6개 JS 모듈) |
+| `9eb2a9f` | Functions 에러 처리 강화 |
+| `54dc2b0` | API 키 제거 (보안) |
+
+### 보안 규칙
+- 클라이언트(브라우저)에 Firebase API 키 없음
+- 키스토어 비밀번호는 문서에 기록됨 (patbible2024) — Git에는 keystore 파일 자체를 올리지 않음
+- 카카오 토큰은 `.kakao-tokens.json` (gitignore) 에만 저장
+
+### 작업 규칙 (사용자 확정)
+- 브레인 = AI 어시스턴트, 대표 = junwoo7979@gmail.com
+- **"커푸리"** 명령 = 커밋 + 푸시 + 메모리 저장 자동 실행
+- 기존 기능 삭제/되돌리기 전 대표 확인 필수
+- 폴더 구조, API 경로, DB 구조 변경 금지 (승인 없이)
+
+---
+
+## 이전 작업 히스토리 (참고용)
+
 ## 현재 상태
 
 - 브랜치: `main`
