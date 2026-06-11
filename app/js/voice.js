@@ -170,7 +170,13 @@ async function toggleMic(){
     showManual();
     return;
   }
-  if(recognizing){ voiceStopRequested=true; recog && recog.stop(); return; }
+  if(recognizing){
+    voiceStopRequested=true;
+    clearVoiceStartTimer(); // 복구 대기 타이머도 즉시 취소
+    if(recog){ recog.stop(); }
+    else { recognizing=false; setMicRec(false); toast('녹음을 종료했습니다'); } // recog=null인 복구 gap 처리
+    return;
+  }
   const micBtn = document.getElementById('micBtn');
   // 권한이 이미 확보된 경우 disabled/힌트 처리 생략 → 즉각 반응
   const alreadyReady = voiceMicPermissionReady && (isMobileBrowser() || hasLiveGlobalMicStream());
@@ -196,6 +202,7 @@ async function toggleMic(){
   startVoiceRecognition(SR);
 }
 async function restartVoiceRecognitionSafely(SR, isRecovery=false){
+  if(voiceStopRequested){ recognizing=false; setMicRec(false); return; } // 정지 요청 시 재시작 차단
   if(!voiceMicPermissionReady){
     toast('마이크 권한을 먼저 허용한 뒤 다시 시작해주세요');
     document.getElementById('voiceRestart').style.display = 'block';
@@ -249,10 +256,10 @@ function startVoiceRecognition(SR, isRecovery=false){
       if(!isMobileBrowser()) showManual();
       return;
     }
-    // 모바일/데스크톱 공통 자동 재시작 — voiceRecoveryCount(최대 5회)로 무한루프 방지
+    // 자동 재시작 — recognizing=true 유지, UI 변화 없음 (seamless, 사용자 체감 꺼짐 없음)
     voiceRecoveryCount++;
-    recognizing=false;
-    setMicReconnecting(); // rec 클래스 유지 → 버튼 깜빡임 없이 재연결
+    // recognizing은 true 유지: toggleMic() 정지 흐름 보존, 버튼 ⏹️ 그대로 유지
+    // setMicReconnecting() 제거: 🔄 깜빡임 없음 — onstart에서 setMicRec(true) 호출되면 자동 복원
     document.getElementById('manualBox').style.display='none';
     const wait=Math.max(VOICE_RELEASE_DELAY, voiceReadyAt-Date.now());
     clearVoiceStartTimer();
