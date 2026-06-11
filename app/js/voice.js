@@ -40,6 +40,7 @@ function similarity(a,b){
 
 // ── Recognition 정리 ─────────────────────────────────────
 function clearVoiceRecognition(cancel=false){
+  console.log('[VOICE-LOG] clearVoiceRecognition cancel:'+cancel+' recog:'+(recog?'live':'null'));
   const activeRecog = recog;
   recog = null;
   if(!activeRecog) return;
@@ -161,6 +162,7 @@ function copyAppLinkForBrowser(){
 
 // ── 마이크 버튼 토글 ─────────────────────────────────────
 async function toggleMic(){
+  console.log('[VOICE-LOG] toggleMic recognizing:'+recognizing+' stopReq:'+voiceStopRequested+' recov:'+voiceRecoveryCount);
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const insecure = location.protocol==='file:' || (!window.isSecureContext && location.hostname!=='localhost');
   if(!SR || insecure){
@@ -205,6 +207,7 @@ async function restartVoiceRecognitionSafely(SR, isRecovery=false){
 
 // ── SpeechRecognition 엔진 ────────────────────────────────
 function startVoiceRecognition(SR, isRecovery=false){
+  console.log('[VOICE-LOG] startVoiceRecognition isRecovery:'+isRecovery+' stage:'+voiceStage+' prevRecog:'+(recog?'live':'null')+' recov:'+voiceRecoveryCount);
   document.getElementById('voiceRestart').style.display = 'none';
   let finalText='', latestText='', handled=false;
   let recogStartedAt=0; // onstart 시각 — 초기 잡소리 제거 기준
@@ -235,20 +238,18 @@ function startVoiceRecognition(SR, isRecovery=false){
     return cleaned;
   };
   const recover=(msg)=>{
-    if(isMobileBrowser()){
+    console.log('[VOICE-LOG] recover mobile:'+isMobileBrowser()+' stopReq:'+voiceStopRequested+' count:'+voiceRecoveryCount+'/'+VOICE_RECOVERY_LIMIT+' msg:'+(msg||''));
+    // 사용자 정지 요청 또는 복구 한도 초과 → 완전히 종료
+    if(voiceStopRequested||voiceRecoveryCount>=VOICE_RECOVERY_LIMIT){
       recognizing=false; setMicRec(false);
-      toast(msg||'음성 인식이 멈췄습니다 — 녹음 버튼을 다시 눌러주세요');
+      toast(msg||'음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용');
       document.getElementById('voiceRestart').style.display='block';
       document.getElementById('voiceRepeat').style.display='block';
       document.getElementById('micHint').textContent='🎙️ 탭하여 다시 녹음 시작';
+      if(!isMobileBrowser()) showManual();
       return;
     }
-    if(voiceStopRequested||voiceRecoveryCount>=VOICE_RECOVERY_LIMIT){
-      toast(msg||'음성이 인식되지 않았습니다 — 다시 시도하거나 대체 입력 사용');
-      document.getElementById('voiceRestart').style.display='block';
-      showManual();
-      return;
-    }
+    // 모바일/데스크톱 공통 자동 재시작 — voiceRecoveryCount(최대 5회)로 무한루프 방지
     voiceRecoveryCount++;
     recognizing=false;
     setMicReconnecting(); // rec 클래스 유지 → 버튼 깜빡임 없이 재연결
@@ -258,6 +259,7 @@ function startVoiceRecognition(SR, isRecovery=false){
     voiceStartTimer=setTimeout(()=>{ voiceStartTimer=null; restartVoiceRecognitionSafely(SR, true); }, wait);
   };
   const fail=(msg)=>{
+    console.log('[VOICE-LOG] fail msg:"'+msg+'" handled:'+handled);
     if(handled) return; handled=true;
     recognizing=false; setMicRec(false);
     clearVoiceRecognition();
@@ -275,12 +277,16 @@ function startVoiceRecognition(SR, isRecovery=false){
       document.getElementById('micHint').textContent='🔴 마이크 연결 중... 잠시 후 말씀하세요';
     }
     recog.onstart=()=>{
-      recogStartedAt=Date.now(); // 실제 마이크 활성 시각 기록
-      setMicRec(true);           // onstart 기준으로 "녹음 중" UI 전환
+      recogStartedAt=Date.now();
+      console.log('[VOICE-LOG] onstart — 마이크 활성화 stage:'+voiceStage+' isRecovery:'+isRecovery+' time:'+recogStartedAt);
+      setMicRec(true);
     };
     recog.onresult=(e)=>{
+      const _elapsed=Date.now()-recogStartedAt;
+      const _last=e.results[e.results.length-1];
+      console.log('[VOICE-LOG] onresult isFinal:'+_last.isFinal+' elapsed:'+_elapsed+'ms results:'+e.results.length+' "'+_last[0].transcript.substring(0,40)+'"');
       // onstart 직후 N ms 이내 result는 탭 소리·주변 잡음일 가능성이 높으므로 무시
-      if(recogStartedAt && Date.now()-recogStartedAt < STARTUP_NOISE_GUARD) return;
+      if(recogStartedAt && _elapsed < STARTUP_NOISE_GUARD) return;
       finalText='';
       for(let i=0;i<e.results.length;i++){
         const r=e.results[i];
@@ -294,6 +300,7 @@ function startVoiceRecognition(SR, isRecovery=false){
     };
     recog.onerror=(e)=>{
       const err=(e&&e.error)||'unknown';
+      console.log('[VOICE-LOG] onerror err:"'+err+'" handled:'+handled+' stopReq:'+voiceStopRequested+' recov:'+voiceRecoveryCount);
       if(['no-speech','network','aborted'].includes(err)){
         if(handled) return; handled=true;
         clearVoiceRecognition();
@@ -303,6 +310,7 @@ function startVoiceRecognition(SR, isRecovery=false){
       fail('음성 인식 오류('+err+') — 아래 대체 입력 사용');
     };
     recog.onend=()=>{
+      console.log('[VOICE-LOG] onend handled:'+handled+' stopReq:'+voiceStopRequested+' text:"'+(latestText||'').substring(0,30)+'" recov:'+voiceRecoveryCount);
       if(handled) return; handled=true;
       clearVoiceRecognition();
       if(voiceStopRequested){
@@ -318,6 +326,7 @@ function startVoiceRecognition(SR, isRecovery=false){
           :'음성이 인식되지 않았습니다 — 자동으로 다시 시작합니다');
       }
     };
+    console.log('[VOICE-LOG] recog.start() — continuous:'+recog.continuous+' interimResults:'+recog.interimResults+' lang:'+recog.lang);
     recog.start();
     // UI는 onstart 이벤트에서 업데이트 — 실제 마이크 활성 시점과 일치시킴
   }catch(err){ fail('마이크를 시작할 수 없습니다 — 아래 대체 입력 사용'); }
