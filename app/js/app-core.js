@@ -96,6 +96,7 @@ function go(id, resetScroll=true, animate=true){
   if(id==='s-verse'){ renderVerse(); }
   else if(id==='s-family'){ renderFamily(); }
   else if(id==='s-dashboard'){ renderDashboard(); }
+  else if(id==='s-prayer'){ renderPrayer(); }
   if(resetScroll) window.scrollTo(0,0);
 }
 function tabGo(id){ go(id); }

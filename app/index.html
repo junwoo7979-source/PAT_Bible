@@ -324,51 +324,6 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <p style="font-size:calc(var(--fs) - 1px);color:var(--muted);font-weight:600;letter-spacing:.3px">✨ 예운이와 함께하는 PAT ✨</p>
     </div>
 
-    <!-- 오늘의 과제 카드 (암송 · 쓰기 · 기도) -->
-    <div class="hm-card">
-      <h2 class="hm-card-title">📋 오늘의 과제</h2>
-      <div class="hm-tasks">
-
-        <!-- 암송 (주간 구절 — 완료 시 자동 체크) -->
-        <div class="hm-task" id="hmTaskMemorize">
-          <div class="hm-task-icon">💬</div>
-          <div class="hm-task-info">
-            <p class="hm-task-label">암송</p>
-            <p class="hm-task-desc">주간 암송 구절</p>
-          </div>
-          <button class="hm-check-btn" id="hmCheckMemorize" onclick="tabGo('s-verse')">○</button>
-        </div>
-
-        <!-- 성경 쓰기 (최대 2회) -->
-        <div class="hm-task" id="hmTaskWriting">
-          <div class="hm-task-icon">✍️</div>
-          <div class="hm-task-info">
-            <p class="hm-task-label">성경 쓰기</p>
-            <p class="hm-task-desc">하루 2회</p>
-          </div>
-          <div class="hm-task-counter">
-            <button class="hm-cnt-btn" id="btnWritingMinus" onclick="changeTask('writing',-1)">−</button>
-            <div class="hm-dots">
-              <span class="hm-dot" id="hmDotW0"></span>
-              <span class="hm-dot" id="hmDotW1"></span>
-            </div>
-            <button class="hm-cnt-btn plus" id="btnWritingPlus" onclick="changeTask('writing',1)">+</button>
-          </div>
-        </div>
-
-        <!-- 기도 (하루 1회 체크) -->
-        <div class="hm-task" id="hmTaskPrayer">
-          <div class="hm-task-icon">🙏</div>
-          <div class="hm-task-info">
-            <p class="hm-task-label">기도</p>
-            <p class="hm-task-desc">하루 1회</p>
-          </div>
-          <button class="hm-check-btn" id="hmCheckPrayer" onclick="toggleDailyTask('prayer')">○</button>
-        </div>
-
-      </div>
-    </div>
-
     <!-- 이번 주 암송 구절 카드 -->
     <div class="hm-verse-card" id="hmVerseCard">
       <p class="hm-verse-label">📜 이번 주 암송 구절</p>
@@ -621,10 +576,35 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <button class="btn ghost" onclick="resetData()">기록 초기화 (체험용)</button>
   </section>
 
+  <!-- S-prayer: 기도 -->
+  <section class="screen" id="s-prayer">
+    <h1>🙏 기도</h1>
+    <p class="muted" id="prayerDateLabel"></p>
+
+    <!-- 오늘 기도 상태 -->
+    <div class="hm-card" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="font-size:var(--fs);font-weight:700">오늘의 기도</h2>
+        <span id="prayerDoneBadge" style="display:none;background:var(--accent);color:#04231a;font-size:calc(var(--fs)-4px);font-weight:700;padding:4px 12px;border-radius:20px">✓ 완료</span>
+      </div>
+      <textarea class="field" id="prayerText" rows="6"
+        placeholder="오늘 기도 제목이나 감사한 것을 적어보세요...&#10;&#10;예) 예운이가 말씀을 잘 암송할 수 있도록&#10;건강과 지혜를 주셔서 감사합니다"
+        style="resize:none;line-height:1.7"></textarea>
+      <button class="btn" id="prayerSaveBtn" onclick="savePrayer()" style="margin-top:8px">🙏 기도 완료</button>
+    </div>
+
+    <!-- 최근 기도 기록 -->
+    <div class="hm-card" style="margin-top:4px">
+      <h2 style="font-size:var(--fs);font-weight:700;margin-bottom:12px">📖 최근 기도 기록</h2>
+      <div id="prayerHistory"></div>
+    </div>
+  </section>
+
   <!-- 하단 탭 -->
   <nav class="tabbar" id="tabbar">
     <button class="tab active" data-screen="s-family" onclick="tabGo('s-family')"><span class="ico">🏠</span>홈</button>
     <button class="tab" data-screen="s-verse" onclick="tabGo('s-verse')"><span class="ico">📖</span>암송</button>
+    <button class="tab" data-screen="s-prayer" onclick="tabGo('s-prayer')"><span class="ico">🙏</span>기도</button>
     <button class="tab" data-screen="s-dashboard" onclick="tabGo('s-dashboard');renderDashboard()"><span class="ico">📊</span>현황</button>
     <button class="tab" data-screen="s-settings" onclick="tabGo('s-settings')"><span class="ico">⚙️</span>설정</button>
   </nav>
@@ -639,6 +619,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 <script src="js/voice.js"></script>
 <script src="js/voice-ui.js"></script>
 <script src="js/memorize.js"></script>
+<script src="js/prayer.js"></script>
 <script>
 // memorize.js 로드 시 applyStoredData()·churchCode·tabbar 초기화 완료
 // 서비스 워커 등록
