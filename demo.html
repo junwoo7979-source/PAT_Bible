@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAT Bible — 데모 미리보기</title>
+<script>
+  // 모바일이면 앱으로 바로 이동
+  if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+    location.replace('./app/index.html');
+  }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    background: #0f0f1a;
+    color: #e8e8e8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* 상단 헤더 */
+  header {
+    width: 100%;
+    background: #16213e;
+    border-bottom: 1px solid #2a3a5e;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-logo img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+  }
+  .header-logo span {
+    font-size: 20px;
+    font-weight: 700;
+    color: #16c784;
+  }
+  .header-badge {
+    background: #16c784;
+    color: #04231a;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  /* 메인 레이아웃 */
+  main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 60px;
+    padding: 48px 32px;
+    width: 100%;
+    max-width: 1200px;
+  }
+
+  /* 폰 프레임 */
+  .phone-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .phone-label {
+    font-size: 13px;
+    color: #8b93a7;
+    letter-spacing: .5px;
+  }
+  .phone-frame {
+    width: 390px;
+    height: 760px;
+    background: #1a1a2e;
+    border-radius: 44px;
+    border: 10px solid #2a2a40;
+    box-shadow:
+      0 0 0 2px #3a3a55,
+      0 30px 80px rgba(0,0,0,.7),
+      inset 0 0 0 1px rgba(255,255,255,.05);
+    overflow: hidden;
+    position: relative;
+  }
+  /* 노치 */
+  .phone-frame::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 28px;
+    background: #2a2a40;
+    border-radius: 0 0 20px 20px;
+    z-index: 10;
+  }
+  .phone-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  .refresh-btn {
+    background: #16213e;
+    border: 1px solid #2a3a5e;
+    color: #16c784;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background .2s;
+  }
+  .refresh-btn:hover { background: #1e2f50; }
+
+  /* 우측 정보 패널 */
+  .info-panel {
+    flex: 1;
+    max-width: 380px;
+    padding-top: 20px;
+  }
+  .info-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .info-title span { color: #16c784; }
+  .info-sub {
+    color: #8b93a7;
+    font-size: 15px;
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  /* QR 카드 */
+  .qr-card {
+    background: #16213e;
+    border: 1px solid #2a3a5e;
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .qr-card p {
+    font-size: 13px;
+    color: #8b93a7;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .qr-card img {
+    width: 180px;
+    height: 180px;
+    border-radius: 12px;
+    background: #fff;
+    padding: 8px;
+    display: block;
+    margin: 0 auto 16px;
+  }
+  .qr-url {
+    font-size: 11px;
+    color: #16c784;
+    word-break: break-all;
+    background: rgba(22,199,132,.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-family: monospace;
+  }
+
+  /* 링크 버튼들 */
+  .link-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #16213e;
+    border: 1px solid #2a3a5e;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    text-decoration: none;
+    color: #e8e8e8;
+    transition: border-color .2s, background .2s;
+    cursor: pointer;
+  }
+  .link-btn:hover { border-color: #16c784; background: #1e2f50; }
+  .link-btn .ico { font-size: 24px; }
+  .link-btn .lbl { flex: 1; }
+  .link-btn .lbl b { display: block; font-size: 15px; margin-bottom: 2px; }
+  .link-btn .lbl small { color: #8b93a7; font-size: 12px; }
+  .link-btn .arr { color: #16c784; font-size: 18px; }
+
+  /* 업데이트 뱃지 */
+  .update-info {
+    background: rgba(22,199,132,.1);
+    border: 1px solid rgba(22,199,132,.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #16c784;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  @media (max-width: 900px) {
+    main { flex-direction: column; align-items: center; gap: 32px; }
+    .phone-frame { width: 340px; height: 660px; }
+    .info-panel { max-width: 100%; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">
+    <img src="app/icons/pat-logo.png" alt="PAT">
+    <span>PAT Bible</span>
+  </div>
+  <span class="header-badge">🔴 LIVE</span>
+</header>
+
+<main>
+  <!-- 좌측: 폰 프레임 -->
+  <div class="phone-wrap">
+    <p class="phone-label">📱 실시간 미리보기 (항상 최신 버전)</p>
+    <div class="phone-frame">
+      <iframe id="appFrame" src="app/index.html" title="PAT Bible App"></iframe>
+    </div>
+    <button class="refresh-btn" onclick="document.getElementById('appFrame').src='app/index.html?t='+Date.now()">
+      🔄 새로고침
+    </button>
+  </div>
+
+  <!-- 우측: 정보 패널 -->
+  <div class="info-panel">
+    <h1 class="info-title">✨ 예운이와 함께하는<br><span>PAT Bible</span></h1>
+    <p class="info-sub">
+      부모가 선생님이 되어 자녀와 함께 성경을 암송하고<br>
+      믿음의 유산을 전수하는 가족 성경 암송 앱입니다.
+    </p>
+
+    <!-- QR 코드 -->
+    <div class="qr-card">
+      <p>📷 모바일에서 QR 코드를 스캔하세요</p>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=16c784&bgcolor=ffffff&data=https://junwoo7979-source.github.io/PAT_Bible/app/index.html" alt="QR코드">
+      <div class="qr-url">https://junwoo7979-source.github.io/PAT_Bible/app/index.html</div>
+    </div>
+
+    <!-- 링크 버튼들 -->
+    <a class="link-btn" href="app/index.html" target="_blank">
+      <span class="ico">🌐</span>
+      <div class="lbl">
+        <b>웹 앱으로 열기</b>
+        <small>새 탭에서 전체 화면으로 실행</small>
+      </div>
+      <span class="arr">›</span>
+    </a>
+
+    <a class="link-btn" href="https://junwoo7979-source.github.io/PAT_Bible/app/index.html" target="_blank">
+      <span class="ico">🚀</span>
+      <div class="lbl">
+        <b>배포 버전 열기 (GitHub Pages)</b>
+        <small>최신 배포 버전 직접 접속</small>
+      </div>
+      <span class="arr">›</span>
+    </a>
+
+    <div class="update-info">
+      ✅ 코드 수정 후 git push 하면 자동으로 이 미리보기에도 반영됩니다
+    </div>
+  </div>
+</main>
+
+</body>
+</html>
