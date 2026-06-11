@@ -203,7 +203,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <p class="muted center" style="margin-bottom:12px">교회 코드 또는 가족 비밀번호를 입력하세요</p>
     <input class="field code-input" id="churchCode" maxlength="20" placeholder="· · · · ·" autocomplete="off" style="letter-spacing:4px">
     <button class="btn" onclick="enterChurch()">시작하기</button>
-    <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-reset-pw')">🔑 가족 비밀번호 재설정</button>
+    <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-reset-pw')">🔑 교회 관리자 초기화</button>
     <button class="back" style="margin:8px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
     <div class="spacer"></div>
   </section>
@@ -387,6 +387,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <button class="btn ghost" style="flex:1;margin:0" onclick="openFamilyRegister('member')">🙋 가족 등록</button>
     </div>
     <button class="btn ghost" id="inviteLinkBtn" onclick="copyInviteLink()" style="display:none">📎 초대 링크 복사</button>
+    <button class="btn ghost" onclick="goResetPwFromFamily()" style="margin-top:8px;color:var(--muted);border-color:var(--line)">🔑 비밀번호 재설정</button>
 
     <!-- JS 호환용 숨김 요소 -->
     <p id="weekLabel" style="display:none"></p>

@@ -1,6 +1,18 @@
 // ====== PAT Bible — reset-pw.js ======
 // 가족 비밀번호 재설정 (본인 직접 + 관리자)
 
+// 가족방에서 진입 시 — 교회코드·대표자·교구·구역 자동 입력
+function goResetPwFromFamily() {
+  const profile = loadFamilyProfile();
+  go('s-reset-pw');
+  if (!profile) return;
+  const el = id => document.getElementById(id);
+  if (el('rpChurchCode'))  el('rpChurchCode').value  = DB.church.code || '';
+  if (el('rpLeaderName'))  el('rpLeaderName').value  = profile.leaderName || '';
+  if (el('rpParish'))      el('rpParish').value       = profile.parish    || '';
+  if (el('rpDistrict'))    el('rpDistrict').value     = profile.district  || '';
+}
+
 async function doResetFamilyPassword() {
   const churchCode = (document.getElementById('rpChurchCode')?.value || '').trim();
   const leaderName = (document.getElementById('rpLeaderName')?.value || '').trim();
