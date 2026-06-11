@@ -190,18 +190,18 @@ async function toggleMic(){
   }
   startVoiceRecognition(SR);
 }
-async function restartVoiceRecognitionSafely(SR){
+async function restartVoiceRecognitionSafely(SR, isRecovery=false){
   if(!voiceMicPermissionReady){
     toast('마이크 권한을 먼저 허용한 뒤 다시 시작해주세요');
     document.getElementById('voiceRestart').style.display = 'block';
     showManual();
     return;
   }
-  startVoiceRecognition(SR);
+  startVoiceRecognition(SR, isRecovery);
 }
 
 // ── SpeechRecognition 엔진 ────────────────────────────────
-function startVoiceRecognition(SR){
+function startVoiceRecognition(SR, isRecovery=false){
   document.getElementById('voiceRestart').style.display = 'none';
   let finalText='', latestText='', handled=false;
   let recogStartedAt=0; // onstart 시각 — 초기 잡소리 제거 기준
@@ -247,11 +247,12 @@ function startVoiceRecognition(SR){
       return;
     }
     voiceRecoveryCount++;
-    recognizing=false; setMicPreparing();
+    recognizing=false;
+    setMicReconnecting(); // rec 클래스 유지 → 버튼 깜빡임 없이 재연결
     document.getElementById('manualBox').style.display='none';
     const wait=Math.max(VOICE_RELEASE_DELAY, voiceReadyAt-Date.now());
     clearVoiceStartTimer();
-    voiceStartTimer=setTimeout(()=>{ voiceStartTimer=null; restartVoiceRecognitionSafely(SR); }, wait);
+    voiceStartTimer=setTimeout(()=>{ voiceStartTimer=null; restartVoiceRecognitionSafely(SR, true); }, wait);
   };
   const fail=(msg)=>{
     if(handled) return; handled=true;
@@ -266,8 +267,10 @@ function startVoiceRecognition(SR){
     recog=new SR(); recog.lang='ko-KR'; recog.interimResults=true;
     recog.continuous=!isIOS;
     recognizing=true;
-    // recog.start() 전에 즉시 "연결 중" 피드백 — 탭 반응 체감 개선
-    document.getElementById('micHint').textContent='🔴 마이크 연결 중... 잠시 후 말씀하세요';
+    // 첫 시작만 "연결 중" 힌트 표시 — recovery 재시작은 "재연결 중" 유지
+    if(!isRecovery){
+      document.getElementById('micHint').textContent='🔴 마이크 연결 중... 잠시 후 말씀하세요';
+    }
     recog.onstart=()=>{
       recogStartedAt=Date.now(); // 실제 마이크 활성 시각 기록
       setMicRec(true);           // onstart 기준으로 "녹음 중" UI 전환
@@ -322,6 +325,12 @@ function setMicPreparing(){
   const b = document.getElementById('micBtn');
   b.classList.remove('rec'); b.textContent = '🎙️';
   document.getElementById('micHint').textContent = '마이크 준비 중... 잠시만 기다려주세요';
+}
+// 자동 재연결 중 — rec 클래스 유지로 버튼 깜빡임 방지
+function setMicReconnecting(){
+  const b = document.getElementById('micBtn');
+  b.classList.add('rec'); b.textContent = '🔄';
+  document.getElementById('micHint').textContent = '🔄 재연결 중...';
 }
 function setMicRec(on){
   const b = document.getElementById('micBtn');
