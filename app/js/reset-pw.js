@@ -1,6 +1,16 @@
 // ====== PAT Bible — reset-pw.js ======
 // 가족 비밀번호 재설정 (본인 직접 + 관리자)
 
+// 비밀번호 눈동자 토글
+function togglePw(btn) {
+  const input = btn.previousElementSibling;
+  if (!input) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁️';
+  btn.classList.toggle('on', show);
+}
+
 // 가족방에서 진입 시 — 교회코드·대표자·교구·구역 자동 입력
 function goResetPwFromFamily() {
   const profile = loadFamilyProfile();
