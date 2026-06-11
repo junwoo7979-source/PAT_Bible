@@ -383,7 +383,7 @@ function initHomeScreen(){
 }
 
 // ── 가족 진행 상황 폴링 ───────────────────────────────────
-let familyProgressSyncKey = '';
+let familyProgressNonce = 0;   // 단조 증가 nonce — 경쟁 요청 방지
 let familyProgressPollKey = '';
 let familyProgressPollTimer = null;
 
@@ -402,12 +402,18 @@ function renderFamilyMemberList(members){
 async function syncFamilyProgressFromCloud(profile){
   const familyId = localStorage.getItem('pat_family_id')||'';
   if(!profile || !familyId || !window.PAT_DB || !PAT_DB.ready() || !PAT_DB.getFamilyProgress) return;
-  const syncKey = familyId+'|'+DB.verse.ref;
-  familyProgressSyncKey = syncKey;
-  const cloudMembers = await PAT_DB.getFamilyProgress(DB.church.code, familyId, DB.verse.ref);
-  if(familyProgressSyncKey !== syncKey || !Array.isArray(cloudMembers)) return;
 
-  const myName = profile.memberName || profile.leaderName || '';
+  // ★ nonce 발급 — await 완료 후 더 최신 호출이 있으면 폐기 (경쟁 요청 방지)
+  const myNonce = ++familyProgressNonce;
+
+  const cloudMembers = await PAT_DB.getFamilyProgress(DB.church.code, familyId, DB.verse.ref);
+
+  if(myNonce !== familyProgressNonce) return; // 더 최신 호출이 있음 → 폐기
+  if(!Array.isArray(cloudMembers)) return;
+
+  // ★ await 이후 stale profile 방지 — localStorage 최신값 재조회
+  const freshProfile = loadFamilyProfile() || profile;
+  const myName = freshProfile.memberName || freshProfile.leaderName || '';
 
   // Firebase는 완료 여부만 가져옴 — 로컬 멤버 목록이 "누가 있는지" 기준
   const doneMap = {};
@@ -417,7 +423,7 @@ async function syncFamilyProgressFromCloud(profile){
   });
 
   // 로컬 멤버 기준으로 표시 (Firebase에 등록 안 된 멤버도 유지)
-  const localNames = familyMemberNames(profile);
+  const localNames = familyMemberNames(freshProfile);
 
   // Firebase에만 있는 멤버(다른 기기에서 joinFamily한 사람)도 추가
   cloudMembers.forEach(m => {
@@ -434,9 +440,9 @@ async function syncFamilyProgressFromCloud(profile){
 
   renderFamilyMemberList(merged);
 
-  // localStorage 구성원 목록도 머지된 버전으로 업데이트
+  // ★ stale spread 제거 — 최신 profile(freshProfile)로 저장
   const mergedNames = merged.map(m=>m.name).filter(Boolean);
-  localStorage.setItem('pat_family_profile', JSON.stringify({ ...profile, members: mergedNames }));
+  localStorage.setItem('pat_family_profile', JSON.stringify({ ...freshProfile, members: mergedNames }));
   renderRegisteredFamilyRoom();
 }
 function startFamilyProgressPolling(profile){

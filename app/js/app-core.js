@@ -197,6 +197,24 @@ async function installPatApp(){
   alert('Android 설치 방법\n1. Chrome에서 이 페이지 열기\n2. 오른쪽 위 메뉴(⋮) 누르기\n3. "앱 설치" 또는 "홈 화면에 추가" 선택\n4. PAT Bible 아이콘으로 실행');
 }
 
+// ── SW 업데이트 감지 — 새 버전 배포 시 배너 표시 ───────────
+if(typeof navigator !== 'undefined' && navigator.serviceWorker){
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // 이미 배너가 있으면 중복 표시 방지
+    if(document.getElementById('swUpdateBanner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'swUpdateBanner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#1976d2;'
+      + 'color:#fff;text-align:center;padding:10px 16px;font-size:14px;'
+      + 'display:flex;align-items:center;justify-content:center;gap:12px;';
+    banner.innerHTML = '🔄 새 버전이 있습니다.'
+      + '<button onclick="location.reload()" style="background:#fff;color:#1976d2;'
+      + 'border:none;padding:4px 14px;border-radius:4px;cursor:pointer;font-weight:bold;">'
+      + '새로고침</button>';
+    document.body.appendChild(banner);
+  });
+}
+
 // ── DOM 이벤트 (body 내 스크립트이므로 DOM 준비 완료) ─────
 document.getElementById('churchCode').addEventListener('keyup',e=>{ if(e.key==='Enter') enterChurch(); });
 document.getElementById('adminPw').addEventListener('keyup',e=>{ if(e.key==='Enter') adminLogin(); });
