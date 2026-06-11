@@ -231,15 +231,23 @@ function startVoiceRecognition(SR, isRecovery=false){
     }
     return current+' '+next;
   };
-  const collapseRepeatedVersePrefix=(text)=>{
+  // 구절의 모든 서브구(2어절 이상)가 인식 텍스트에 중복 등장하면 첫 번째만 남기고 제거
+  // collapseRepeatedVersePrefix(prefix만)보다 넓음 — 중간 구절 반복(Android 현상)도 처리
+  const collapseRepeatedVerseSubphrases=(text)=>{
     let cleaned=(text||'').trim();
+    if(!DB||!DB.verse||!DB.verse.text) return cleaned;
     const words=DB.verse.text.split(/\s+/).filter(Boolean);
+    // 긴 구절부터 처리해야 짧은 구절이 일부만 제거되는 오탐 방지
     for(let size=Math.min(words.length,12);size>=2;size--){
-      const prefix=words.slice(0,size).join(' ');
-      let index=cleaned.indexOf(prefix,prefix.length);
-      while(index>0){
-        cleaned=(cleaned.slice(0,index).trimEnd()+' '+cleaned.slice(index+prefix.length).trimStart()).trim();
-        index=cleaned.indexOf(prefix,prefix.length);
+      for(let start=0;start<=words.length-size;start++){
+        const phrase=words.slice(start,start+size).join(' ');
+        const firstIdx=cleaned.indexOf(phrase);
+        if(firstIdx<0) continue;
+        let idx=cleaned.indexOf(phrase,firstIdx+phrase.length);
+        while(idx>0){
+          cleaned=(cleaned.slice(0,idx).trimEnd()+' '+cleaned.slice(idx+phrase.length).trimStart()).trim();
+          idx=cleaned.indexOf(phrase,firstIdx+phrase.length);
+        }
       }
     }
     return cleaned;
@@ -294,13 +302,15 @@ function startVoiceRecognition(SR, isRecovery=false){
       console.log('[VOICE-LOG] onresult isFinal:'+_last.isFinal+' elapsed:'+_elapsed+'ms results:'+e.results.length+' "'+_last[0].transcript.substring(0,40)+'"');
       // onstart 직후 N ms 이내 result는 탭 소리·주변 잡음일 가능성이 높으므로 무시
       if(recogStartedAt && _elapsed < STARTUP_NOISE_GUARD) return;
-      finalText='';
+      // isFinal 세그먼트: mergeSpeechText 없이 단순 연결 후 중복 구절 제거
+      // (mergeSpeechText는 한국어 어절 경계 overlap 미감지 → append → 반복 누적 버그)
+      const isFinalParts=[];
       for(let i=0;i<e.results.length;i++){
-        const r=e.results[i];
-        if(r.isFinal) finalText=collapseRepeatedVersePrefix(mergeSpeechText(finalText,r[0].transcript));
+        if(e.results[i].isFinal) isFinalParts.push(e.results[i][0].transcript.trim());
       }
+      finalText=collapseRepeatedVerseSubphrases(isFinalParts.join(' ').trim());
       const last=e.results[e.results.length-1];
-      const interimText=last.isFinal?'':last[0].transcript;
+      const interimText=last.isFinal?'':last[0].transcript.trim();
       latestText=(interimText?mergeSpeechText(finalText,interimText):finalText).trim();
       document.getElementById('recognized').textContent=latestText;
       previewVoice(latestText);
