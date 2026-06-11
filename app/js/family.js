@@ -348,12 +348,6 @@ function initHomeScreen(){
   if(el('hmDate')) el('hmDate').textContent =
     (now.getMonth()+1)+'월 '+now.getDate()+'일 ('+days[now.getDay()]+')';
 
-  // 인사말
-  const profile = loadFamilyProfile();
-  const name    = profile?.leaderName || profile?.memberName || '';
-  if(el('hmGreeting')) el('hmGreeting').textContent =
-    name ? '안녕하세요, '+name+'님 👋' : '안녕하세요! 👋';
-
   // 스트릭
   const streak = parseInt(localStorage.getItem('pat_streak_days')||'0');
   if(el('hmStreakCard')) el('hmStreakCard').style.display = streak>0 ? 'flex' : 'none';

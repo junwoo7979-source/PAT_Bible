@@ -291,11 +291,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <!-- S3: 가족방 (church-bible-challenge 디자인) -->
   <section class="screen" id="s-family">
 
-    <!-- 상단 헤더: 날짜 + 인사 + 달성률 원 -->
+    <!-- 상단 헤더: 날짜 + 달성률 원 (인사 제거) -->
     <div class="hm-header">
       <div>
         <p class="hm-date" id="hmDate"></p>
-        <h1 class="hm-greeting" id="hmGreeting">안녕하세요! 👋</h1>
         <p id="churchName" style="color:var(--muted);font-size:calc(var(--fs) - 2px);margin-top:2px"></p>
       </div>
       <div class="hm-circle" id="hmCircle">0%</div>
@@ -320,10 +319,25 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       </div>
     </div>
 
-    <!-- 오늘의 과제 카드 (성경 쓰기 · 암송 · 기도) -->
+    <!-- 예운이와 함께하는 PAT 배너 -->
+    <div style="text-align:center;margin-bottom:12px">
+      <p style="font-size:calc(var(--fs) - 1px);color:var(--muted);font-weight:600;letter-spacing:.3px">✨ 예운이와 함께하는 PAT ✨</p>
+    </div>
+
+    <!-- 오늘의 과제 카드 (암송 · 쓰기 · 기도) -->
     <div class="hm-card">
       <h2 class="hm-card-title">📋 오늘의 과제</h2>
       <div class="hm-tasks">
+
+        <!-- 암송 (주간 구절 — 완료 시 자동 체크) -->
+        <div class="hm-task" id="hmTaskMemorize">
+          <div class="hm-task-icon">💬</div>
+          <div class="hm-task-info">
+            <p class="hm-task-label">암송</p>
+            <p class="hm-task-desc">주간 암송 구절</p>
+          </div>
+          <button class="hm-check-btn" id="hmCheckMemorize" onclick="tabGo('s-verse')">○</button>
+        </div>
 
         <!-- 성경 쓰기 (최대 2회) -->
         <div class="hm-task" id="hmTaskWriting">
@@ -340,16 +354,6 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
             </div>
             <button class="hm-cnt-btn plus" id="btnWritingPlus" onclick="changeTask('writing',1)">+</button>
           </div>
-        </div>
-
-        <!-- 암송 (주간 구절 — 완료 시 자동 체크) -->
-        <div class="hm-task" id="hmTaskMemorize">
-          <div class="hm-task-icon">💬</div>
-          <div class="hm-task-info">
-            <p class="hm-task-label">암송</p>
-            <p class="hm-task-desc">주간 암송 구절</p>
-          </div>
-          <button class="hm-check-btn" id="hmCheckMemorize" onclick="tabGo('s-verse')">○</button>
         </div>
 
         <!-- 기도 (하루 1회 체크) -->
