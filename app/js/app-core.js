@@ -82,9 +82,13 @@ function renderAdmin(){
 }
 
 // ── 화면 전환 ─────────────────────────────────────────────
+// popstate 처리 중 중복 pushState 방지 플래그
+let _poppingState = false;
+
 function go(id, resetScroll=true, animate=true){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
   const target = document.getElementById(id);
+  if(!target) return;
   if(!animate) target.classList.add('no-motion');
   target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
@@ -98,8 +102,30 @@ function go(id, resetScroll=true, animate=true){
   else if(id==='s-dashboard'){ renderDashboard(); }
   else if(id==='s-prayer'){ renderPrayer(); }
   if(resetScroll) window.scrollTo(0,0);
+
+  // 브라우저 히스토리 관리 — popstate 중이면 pushState 건너뜀
+  if(!_poppingState && typeof history !== 'undefined'){
+    const isAuthScreen = ['s-login','s-adminlogin'].includes(id);
+    if(isAuthScreen){
+      history.replaceState({ screen: id }, '', location.pathname + location.search);
+    } else {
+      history.pushState({ screen: id }, '', location.pathname + location.search);
+    }
+  }
 }
 function tabGo(id){ go(id); }
+
+// 브라우저 뒤로가기/앞으로가기 처리 (브라우저 환경에서만 실행)
+if(typeof window !== 'undefined' && window.history){
+  window.addEventListener('popstate', e => {
+    const screen = e.state?.screen;
+    _poppingState = true;
+    go(screen || 's-family', true, false);
+    _poppingState = false;
+  });
+  // 초기 히스토리 상태 설정 (페이지 최초 로드)
+  history.replaceState({ screen: 's-login' }, '', location.pathname + location.search);
+}
 
 // ── 교회 입장 ─────────────────────────────────────────────
 function enterChurch(){
