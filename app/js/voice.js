@@ -204,6 +204,8 @@ async function restartVoiceRecognitionSafely(SR){
 function startVoiceRecognition(SR){
   document.getElementById('voiceRestart').style.display = 'none';
   let finalText='', latestText='', handled=false;
+  let recogStartedAt=0; // onstart 시각 — 초기 잡소리 제거 기준
+  const STARTUP_NOISE_GUARD=150; // 시작 후 N ms 동안 result 무시 (탭 소리 등 차단)
 
   const mergeSpeechText=(base,fragment)=>{
     const current=(base||'').trim(); const next=(fragment||'').trim();
@@ -264,8 +266,15 @@ function startVoiceRecognition(SR){
     recog=new SR(); recog.lang='ko-KR'; recog.interimResults=true;
     recog.continuous=!isIOS;
     recognizing=true;
-    recog.onstart=()=>{ setMicRec(true); };
+    // recog.start() 전에 즉시 "연결 중" 피드백 — 탭 반응 체감 개선
+    document.getElementById('micHint').textContent='🔴 마이크 연결 중... 잠시 후 말씀하세요';
+    recog.onstart=()=>{
+      recogStartedAt=Date.now(); // 실제 마이크 활성 시각 기록
+      setMicRec(true);           // onstart 기준으로 "녹음 중" UI 전환
+    };
     recog.onresult=(e)=>{
+      // onstart 직후 N ms 이내 result는 탭 소리·주변 잡음일 가능성이 높으므로 무시
+      if(recogStartedAt && Date.now()-recogStartedAt < STARTUP_NOISE_GUARD) return;
       finalText='';
       for(let i=0;i<e.results.length;i++){
         const r=e.results[i];
@@ -304,7 +313,7 @@ function startVoiceRecognition(SR){
       }
     };
     recog.start();
-    setMicRec(true); // start() 성공 직후 즉시 녹음 중 UI (onstart 이벤트 기다리지 않음)
+    // UI는 onstart 이벤트에서 업데이트 — 실제 마이크 활성 시점과 일치시킴
   }catch(err){ fail('마이크를 시작할 수 없습니다 — 아래 대체 입력 사용'); }
 }
 
