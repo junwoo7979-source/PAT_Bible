@@ -85,6 +85,13 @@ function renderAdmin(){
 // popstate 처리 중 중복 pushState 방지 플래그
 let _poppingState = false;
 
+// 화면 ID → 해시 URL 변환 (모바일에서 같은 URL 반복 시 히스토리 미생성 문제 방지)
+function _screenUrl(id){
+  const authScreens = ['s-login','s-adminlogin'];
+  if(authScreens.includes(id)) return location.pathname + location.search;
+  return location.pathname + location.search + '#' + id;
+}
+
 function go(id, resetScroll=true, animate=true){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
   const target = document.getElementById(id);
@@ -103,27 +110,32 @@ function go(id, resetScroll=true, animate=true){
   else if(id==='s-prayer'){ renderPrayer(); }
   if(resetScroll) window.scrollTo(0,0);
 
-  // 브라우저 히스토리 관리 — popstate 중이면 pushState 건너뜀
+  // 브라우저 히스토리 관리 — 모바일 대응: 해시(#id)로 URL 구분
   if(!_poppingState && typeof history !== 'undefined'){
     const isAuthScreen = ['s-login','s-adminlogin'].includes(id);
     if(isAuthScreen){
-      history.replaceState({ screen: id }, '', location.pathname + location.search);
+      // 로그인 화면은 replace — 뒤로가기로 로그인화면 재진입 방지
+      history.replaceState({ screen: id }, '', _screenUrl(id));
     } else {
-      history.pushState({ screen: id }, '', location.pathname + location.search);
+      history.pushState({ screen: id }, '', _screenUrl(id));
     }
   }
 }
 function tabGo(id){ go(id); }
 
-// 브라우저 뒤로가기/앞으로가기 처리 (브라우저 환경에서만 실행)
+// 브라우저/모바일 뒤로가기 처리
 if(typeof window !== 'undefined' && window.history){
   window.addEventListener('popstate', e => {
-    const screen = e.state?.screen;
+    // state 우선, 없으면 해시에서 추출 (모바일 폴백)
+    const hash = location.hash.replace('#','');
+    const screen = e.state?.screen
+      || (hash && document.getElementById(hash) ? hash : null)
+      || 's-family';
     _poppingState = true;
-    go(screen || 's-family', true, false);
+    go(screen, true, false);
     _poppingState = false;
   });
-  // 초기 히스토리 상태 설정 (페이지 최초 로드)
+  // 초기 상태: 해시 없이 replaceState
   history.replaceState({ screen: 's-login' }, '', location.pathname + location.search);
 }
 

@@ -223,7 +223,8 @@ function copyInviteLink(){
     parish:profile.parish, district:profile.district,
     familyId: familyId, v: 2 };
   const encoded = btoa(encodeURIComponent(JSON.stringify(data)));
-  const url = location.href.split('?')[0]+'?invite='+encoded;
+  // location.href에 hash가 붙을 수 있으므로 origin+pathname 사용
+  const url = location.origin + location.pathname + '?invite=' + encoded;
   navigator.clipboard.writeText(url).then(()=>{
     toast('✓ 초대 링크 복사 완료! 가족에게 공유하세요 📎');
   }).catch(()=>{
