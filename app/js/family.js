@@ -201,7 +201,8 @@ function saveFamilyProfile(){
   if(!roomName||!leaderName||!parish||!district){ toast('가족방 이름, 대표 이름, 교구와 구역을 입력하세요'); return; }
   if(!familyPassword) familyPassword = DB.church.code;
   if(!members.includes(leaderName)) members.unshift(leaderName);
-  localStorage.setItem('pat_family_profile', JSON.stringify({ roomName, leaderName, parish, district, familyPassword, members }));
+  // memberName: 대표자 기기에선 대표자가 "나"
+  localStorage.setItem('pat_family_profile', JSON.stringify({ roomName, leaderName, parish, district, familyPassword, members, memberName: leaderName }));
   if(window.PAT_DB && PAT_DB.ready()){
     PAT_DB.saveFamily(DB.church.code, { roomName, leaderName, parish, district, familyPassword, members })
       .then(familyId=>{
@@ -412,8 +413,11 @@ async function syncFamilyProgressFromCloud(profile){
     done : !!member.done
   }));
   renderFamilyMemberList(members);
-  const names = members.map(m=>m.name).filter(Boolean);
-  localStorage.setItem('pat_family_profile', JSON.stringify({ ...profile, members:names }));
+  // 클라우드 구성원이 로컬보다 적으면 로컬 members 유지 (방금 추가한 구성원 사라짐 방지)
+  const cloudNames  = members.map(m=>m.name).filter(Boolean);
+  const localNames  = Array.isArray(profile.members) ? profile.members.filter(Boolean) : [];
+  const mergedNames = localNames.length >= cloudNames.length ? localNames : cloudNames;
+  localStorage.setItem('pat_family_profile', JSON.stringify({ ...profile, members: mergedNames }));
   renderRegisteredFamilyRoom();
 }
 function startFamilyProgressPolling(profile){
@@ -429,10 +433,13 @@ function renderFamily(){
   const recs    = loadRec();
   const profile = loadFamilyProfile();
   const profileMembers = familyMemberNames(profile);
+  // memberName(이 기기 사용자 이름)으로 "나" 판별 — 없으면 leaderName, 없으면 첫 번째
+  const myName  = (profile?.memberName || profile?.leaderName || '').trim();
   if(profileMembers.length){
     DB.members = profileMembers.map((name,i)=>({
-      name, me: i===0,
-      done: i===0 ? (recs.length>0) : false
+      name,
+      me: myName ? name === myName : i===0,
+      done: false
     }));
     if(!DB.members.find(m=>m.me)) DB.members[0].me = true;
   }
