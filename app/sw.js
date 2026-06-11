@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pat-bible-app-v3';
+const CACHE_NAME = 'pat-bible-app-v4';
 const APP_SHELL = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const APP_SHELL = [
   './js/voice.js',
   './js/voice-ui.js',
   './js/memorize.js',
+  './js/prayer.js',
   './manifest.json',
   './icons/pat-icon-192.png',
   './icons/pat-icon-512.png',
