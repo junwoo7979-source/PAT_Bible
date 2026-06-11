@@ -405,18 +405,37 @@ async function syncFamilyProgressFromCloud(profile){
   const syncKey = familyId+'|'+DB.verse.ref;
   familyProgressSyncKey = syncKey;
   const cloudMembers = await PAT_DB.getFamilyProgress(DB.church.code, familyId, DB.verse.ref);
-  if(familyProgressSyncKey !== syncKey || !Array.isArray(cloudMembers) || !cloudMembers.length) return;
-  const myName  = profile.memberName || profile.leaderName || '';
-  const members = cloudMembers.map((member,index)=>({
-    name : member.displayName || member.name || '성도',
-    me   : myName ? member.displayName === myName : index === 0,
-    done : !!member.done
+  if(familyProgressSyncKey !== syncKey || !Array.isArray(cloudMembers)) return;
+
+  const myName = profile.memberName || profile.leaderName || '';
+
+  // Firebase는 완료 여부만 가져옴 — 로컬 멤버 목록이 "누가 있는지" 기준
+  const doneMap = {};
+  cloudMembers.forEach(m => {
+    const n = m.displayName || m.name || '';
+    if(n) doneMap[n] = !!m.done;
+  });
+
+  // 로컬 멤버 기준으로 표시 (Firebase에 등록 안 된 멤버도 유지)
+  const localNames = familyMemberNames(profile);
+
+  // Firebase에만 있는 멤버(다른 기기에서 joinFamily한 사람)도 추가
+  cloudMembers.forEach(m => {
+    const n = m.displayName || m.name || '';
+    if(n && !localNames.includes(n)) localNames.push(n);
+  });
+
+  const merged = localNames.map(name => ({
+    name,
+    me  : myName ? name === myName : false,
+    done: doneMap[name] || false,
   }));
-  renderFamilyMemberList(members);
-  // 클라우드 구성원이 로컬보다 적으면 로컬 members 유지 (방금 추가한 구성원 사라짐 방지)
-  const cloudNames  = members.map(m=>m.name).filter(Boolean);
-  const localNames  = Array.isArray(profile.members) ? profile.members.filter(Boolean) : [];
-  const mergedNames = localNames.length >= cloudNames.length ? localNames : cloudNames;
+  if(!merged.find(m=>m.me) && merged.length) merged[0].me = true;
+
+  renderFamilyMemberList(merged);
+
+  // localStorage 구성원 목록도 머지된 버전으로 업데이트
+  const mergedNames = merged.map(m=>m.name).filter(Boolean);
   localStorage.setItem('pat_family_profile', JSON.stringify({ ...profile, members: mergedNames }));
   renderRegisteredFamilyRoom();
 }
