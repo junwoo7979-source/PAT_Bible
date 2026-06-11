@@ -213,6 +213,12 @@ function evalVoice(text){
     document.getElementById('voiceRepeat').style.display = 'block';
     toast('✓ '+voiceStage+'차 통과!');
   }else{
+    // 통과 못한 경우: 진행 중인 recognition 정리 후 재시도 안내
+    recognizing = false;
+    setMicRec(false);
+    clearVoiceRecognition(true);
+    document.getElementById('voiceRepeat').style.display = 'block';
+    document.getElementById('micHint').textContent = '🎙️ 탭하여 다시 녹음 시작';
     toast('기준 미달 — 다시 낭독해주세요');
   }
 }

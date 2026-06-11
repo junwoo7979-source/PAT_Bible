@@ -7,7 +7,7 @@ let typeScore1=0, typeScore2=0, typeCurrentScore=0;
 let voiceInput1='', voiceInput2='', typeInput1='', typeInput2='';
 let memorizeCompleted=false, reviewMode=false;
 let voiceReadyAt=0, voiceStartTimer=null;
-const VOICE_RELEASE_DELAY=300;
+const VOICE_RELEASE_DELAY=150;
 const VOICE_RECOVERY_LIMIT=5;
 let voiceRecoveryCount=0, voiceStopRequested=false;
 let voiceMicPermissionReady=false;
@@ -170,8 +170,12 @@ async function toggleMic(){
   }
   if(recognizing){ voiceStopRequested=true; recog && recog.stop(); return; }
   const micBtn = document.getElementById('micBtn');
-  micBtn.disabled = true;
-  document.getElementById('micHint').textContent = '마이크 권한 확인 중...';
+  // 권한이 이미 확보된 경우 disabled/힌트 처리 생략 → 즉각 반응
+  const alreadyReady = voiceMicPermissionReady && (isMobileBrowser() || hasLiveGlobalMicStream());
+  if(!alreadyReady){
+    micBtn.disabled = true;
+    document.getElementById('micHint').textContent = '마이크 권한 확인 중...';
+  }
   const hasMicPermission = await ensureMicrophonePermission();
   micBtn.disabled = false;
   if(!hasMicPermission) return;
@@ -230,6 +234,8 @@ function startVoiceRecognition(SR){
       recognizing=false; setMicRec(false);
       toast(msg||'음성 인식이 멈췄습니다 — 녹음 버튼을 다시 눌러주세요');
       document.getElementById('voiceRestart').style.display='block';
+      document.getElementById('voiceRepeat').style.display='block';
+      document.getElementById('micHint').textContent='🎙️ 탭하여 다시 녹음 시작';
       return;
     }
     if(voiceStopRequested||voiceRecoveryCount>=VOICE_RECOVERY_LIMIT){
@@ -257,7 +263,7 @@ function startVoiceRecognition(SR){
   try{
     recog=new SR(); recog.lang='ko-KR'; recog.interimResults=true;
     recog.continuous=!isIOS;
-    recognizing=true; setMicPreparing();
+    recognizing=true;
     recog.onstart=()=>{ setMicRec(true); };
     recog.onresult=(e)=>{
       finalText='';
@@ -298,6 +304,7 @@ function startVoiceRecognition(SR){
       }
     };
     recog.start();
+    setMicRec(true); // start() 성공 직후 즉시 녹음 중 UI (onstart 이벤트 기다리지 않음)
   }catch(err){ fail('마이크를 시작할 수 없습니다 — 아래 대체 입력 사용'); }
 }
 
