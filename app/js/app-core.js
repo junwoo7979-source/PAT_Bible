@@ -197,6 +197,21 @@ async function installPatApp(){
   alert('Android 설치 방법\n1. Chrome에서 이 페이지 열기\n2. 오른쪽 위 메뉴(⋮) 누르기\n3. "앱 설치" 또는 "홈 화면에 추가" 선택\n4. PAT Bible 아이콘으로 실행');
 }
 
+// ── 메인화면 ⋮ 메뉴 ──────────────────────────────────────
+function toggleHmMenu(e){
+  if(e) e.stopPropagation();
+  const d = document.getElementById('hmDropdown');
+  if(!d) return;
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+function closeHmMenu(){
+  const d = document.getElementById('hmDropdown');
+  if(d) d.style.display = 'none';
+}
+if(typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
+  document.addEventListener('click', ()=> closeHmMenu());
+}
+
 // ── SW 업데이트 감지 — 새 버전 배포 시 배너 표시 ───────────
 if(typeof navigator !== 'undefined' && navigator.serviceWorker){
   navigator.serviceWorker.addEventListener('controllerchange', () => {
