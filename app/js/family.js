@@ -248,13 +248,22 @@ async function joinFamilyFromInvite(){
   if(!myName){ toast('내 이름을 입력해주세요'); return; }
   if(!pw){ toast('비밀번호를 입력해주세요'); return; }
 
-  // 서버에서 비밀번호 검증 (평문 로컬 비교 제거)
   if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
-    const found = await PAT_DB.findFamilyByPassword(DB.church.code, pw, data.familyId);
-    if(!found){ toast('비밀번호가 올바르지 않습니다'); return; }
+    let found = null;
+    try {
+      found = await PAT_DB.findFamilyByPassword(DB.church.code, pw, data.familyId);
+    } catch(e) {
+      toast('서버 연결 오류입니다. 잠시 후 다시 시도해주세요'); return;
+    }
+    if(!found){
+      if(!data.familyId){
+        // familyId 없음 = 대표자가 가족방을 아직 서버에 저장하지 않은 상태
+        toast('가족방이 서버에 등록되지 않았습니다. 대표자가 가족방을 다시 저장해주세요'); return;
+      }
+      toast('비밀번호가 올바르지 않습니다'); return;
+    }
     const familyId = found.id || data.familyId || '';
     if(familyId) localStorage.setItem('pat_family_id', familyId);
-    // 버그 수정: memberName 포함, members에 내 이름 추가
     const existingMembers = Array.isArray(found.members) ? found.members : [];
     const members = existingMembers.includes(myName) ? existingMembers : [...existingMembers, myName];
     localStorage.setItem('pat_family_profile', JSON.stringify({
@@ -263,10 +272,9 @@ async function joinFamilyFromInvite(){
       parish:       found.parish       || data.parish,
       district:     found.district     || data.district,
       familyPassword: pw,
-      memberName:   myName,   // 버그 수정: 내 이름 저장
+      memberName:   myName,
       members,
     }));
-    // 버그 수정: Firebase에 멤버로 등록
     if(familyId) await PAT_DB.joinFamily(DB.church.code, familyId, myName);
   } else {
     // 오프라인 fallback: 로컬 정보로만 저장
