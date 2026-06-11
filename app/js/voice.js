@@ -179,6 +179,9 @@ async function toggleMic(){
   const hasMicPermission = await ensureMicrophonePermission();
   micBtn.disabled = false;
   if(!hasMicPermission) return;
+  // 새 인식 시작 — 이전 통과 상태 초기화 (재시도 시 다음 단계 잠금)
+  document.getElementById('voiceNext').disabled = true;
+  document.getElementById('voiceRepeat').style.display = 'none';
   voiceRecoveryCount=0; voiceStopRequested=false;
   clearVoiceRecognition(true);
   const wait = Math.max(0, voiceReadyAt-Date.now());

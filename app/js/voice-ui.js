@@ -217,6 +217,10 @@ function evalVoice(text){
     recognizing = false;
     setMicRec(false);
     clearVoiceRecognition(true);
+    document.getElementById('voiceNext').disabled   = true;  // 기준 미달 시 다음 단계 반드시 잠금
+    document.getElementById('micBtn').disabled      = false; // 마이크 재사용 가능
+    document.getElementById('voiceManual').readOnly = false;
+    document.getElementById('voiceManualCheck').disabled = false;
     document.getElementById('voiceRepeat').style.display = 'block';
     document.getElementById('micHint').textContent = '🎙️ 탭하여 다시 녹음 시작';
     toast('기준 미달 — 다시 낭독해주세요');
