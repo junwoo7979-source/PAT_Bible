@@ -236,12 +236,27 @@ window.PAT_DB = (() => {
     if (_polling) { clearInterval(_polling); _polling = null; }
   }
 
+  async function resetFamilyPassword(churchCode, leaderName, parish, district, newPassword) {
+    if (!ready()) return { ok: false, error: '서버 연결 안 됨' };
+    try {
+      const data = await apiPost('resetFamilyPassword', {
+        churchCode, leaderName, parish, district, newPassword,
+      });
+      return data.ok ? { ok: true, familyId: data.familyId } : { ok: false, error: data.error || '재설정 실패' };
+    } catch (e) {
+      // 404: 가족방 못 찾음, 기타: 서버 오류
+      const msg = e.message || '서버 오류';
+      return { ok: false, error: msg };
+    }
+  }
+
   return {
     init, ready, getDeviceId,
     saveVerse, getLatestVerse, subscribeVerse,
     saveFamily, findFamilyByPassword, joinFamily, getFamilyMembers, subscribeFamily,
     saveRecord, hasRecord,
     getDashboardStats, getFamilyStats, getFamilyProgress,
+    resetFamilyPassword,
     unsubscribeAll,
   };
 })();

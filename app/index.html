@@ -203,8 +203,34 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <p class="muted center" style="margin-bottom:12px">교회 코드 또는 가족 비밀번호를 입력하세요</p>
     <input class="field code-input" id="churchCode" maxlength="20" placeholder="· · · · ·" autocomplete="off" style="letter-spacing:4px">
     <button class="btn" onclick="enterChurch()">시작하기</button>
-    <button class="back" style="margin:18px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
+    <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-reset-pw')">🔑 가족 비밀번호 재설정</button>
+    <button class="back" style="margin:8px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
     <div class="spacer"></div>
+  </section>
+
+  <!-- S-reset-pw: 가족 비밀번호 재설정 -->
+  <section class="screen" id="s-reset-pw">
+    <button class="back" onclick="go('s-login')">‹ 처음으로</button>
+    <div class="logo">🔑</div>
+    <h1 class="center">비밀번호 재설정</h1>
+    <p class="center muted">가족방 등록 시 입력한 정보로 본인을 확인합니다</p>
+    <div class="card" style="margin-top:16px">
+      <label class="lbl">교회 코드</label>
+      <input class="field" id="rpChurchCode" placeholder="예: 11111" autocomplete="off">
+      <label class="lbl">대표자 이름</label>
+      <input class="field" id="rpLeaderName" placeholder="가족방 대표자 이름" autocomplete="off">
+      <label class="lbl">교구</label>
+      <input class="field" id="rpParish" placeholder="예: 1교구" autocomplete="off">
+      <label class="lbl">구역</label>
+      <input class="field" id="rpDistrict" placeholder="예: 3구역" autocomplete="off">
+    </div>
+    <div class="card" style="margin-top:8px">
+      <label class="lbl">새 비밀번호</label>
+      <input class="field" id="rpNewPw" type="password" placeholder="새 비밀번호 (4자 이상)" autocomplete="new-password">
+      <label class="lbl">새 비밀번호 확인</label>
+      <input class="field" id="rpNewPw2" type="password" placeholder="새 비밀번호 다시 입력" autocomplete="new-password">
+    </div>
+    <button class="btn" onclick="doResetFamilyPassword()">🔑 비밀번호 재설정</button>
   </section>
 
   <!-- S2-admin: 관리자 로그인 -->
@@ -282,6 +308,21 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <div class="card">
       <h2>📋 등록된 구절</h2>
       <div id="verseList" style="margin-top:8px"></div>
+    </div>
+
+    <!-- 가족 비밀번호 초기화 (관리자용) -->
+    <div class="card">
+      <h2>🔑 가족 비밀번호 초기화</h2>
+      <p class="muted" style="margin:6px 0 12px">대표자 이름 + 교구 + 구역으로 가족방을 찾아 비밀번호를 초기화합니다</p>
+      <label class="lbl">대표자 이름</label>
+      <input class="field" id="adminRpLeader" placeholder="가족방 대표자 이름" autocomplete="off">
+      <label class="lbl">교구</label>
+      <input class="field" id="adminRpParish" placeholder="예: 1교구" autocomplete="off">
+      <label class="lbl">구역</label>
+      <input class="field" id="adminRpDistrict" placeholder="예: 3구역" autocomplete="off">
+      <label class="lbl">새 비밀번호</label>
+      <input class="field" id="adminRpNewPw" type="password" placeholder="새 비밀번호 (4자 이상)" autocomplete="new-password">
+      <button class="btn ghost" style="margin-top:4px" onclick="doAdminResetFamilyPassword()">🔑 비밀번호 초기화</button>
     </div>
   </section>
 
@@ -619,6 +660,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 <script src="js/voice-ui.js"></script>
 <script src="js/memorize.js"></script>
 <script src="js/prayer.js"></script>
+<script src="js/reset-pw.js"></script>
 <script>
 // memorize.js 로드 시 applyStoredData()·churchCode·tabbar 초기화 완료
 // 서비스 워커 등록

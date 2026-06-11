@@ -88,7 +88,7 @@ function go(id, resetScroll=true, animate=true){
   if(!animate) target.classList.add('no-motion');
   target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
-  const noTab = ['s-login','s-adminlogin','s-admin','s-family-register','s-invite'];
+  const noTab = ['s-login','s-adminlogin','s-admin','s-family-register','s-invite','s-reset-pw'];
   tabbar.style.display = noTab.includes(id) ? 'none' : 'flex';
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);

@@ -229,3 +229,36 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
     res.json({ total: seen.size, byParish });
   } catch (e) { errRes(res, e); }
 });
+
+// ── 가족 비밀번호 재설정 (본인 확인: 대표자 이름 + 교구 + 구역) ──
+exports.resetFamilyPassword = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  if (!requireClientWrite(req, res)) return;
+  try {
+    const { churchCode, leaderName, parish, district, newPassword } = req.body;
+    if (!assertChurchCode(churchCode, res)) return;
+    if (!leaderName || !parish || !district) {
+      res.status(400).json({ error: 'leaderName, parish, district required' }); return;
+    }
+    if (!newPassword || newPassword.length < 4) {
+      res.status(400).json({ error: 'newPassword must be at least 4 characters' }); return;
+    }
+    const col = db.collection(`churches/${churchCode}/families`);
+    const snap = await col
+      .where('leaderName', '==', leaderName)
+      .where('parish', '==', parish)
+      .where('district', '==', district)
+      .limit(1).get();
+    if (snap.empty) {
+      res.status(404).json({ error: '일치하는 가족방을 찾을 수 없습니다. 대표자 이름·교구·구역을 확인해주세요.' }); return;
+    }
+    const newHash = hashFamilyPassword(churchCode, newPassword);
+    await snap.docs[0].ref.set({
+      familyPasswordHash: newHash,
+      familyPassword: FieldValue.delete(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    res.json({ ok: true, familyId: snap.docs[0].id });
+  } catch (e) { errRes(res, e); }
+});
