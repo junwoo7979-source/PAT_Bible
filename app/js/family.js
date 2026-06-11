@@ -280,6 +280,93 @@ function checkInviteParam(){
 }
 function memberHomeTitle(){ return DB.church.name+' PAT'; }
 
+// ── 홈 화면 일일 과제 (church-bible-challenge 스타일) ─────
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function loadDailyTasks(){
+  try{ return JSON.parse(localStorage.getItem('pat_daily_tasks_'+todayKey())||'{}'); }catch(e){ return {}; }
+}
+function saveDailyTasks(data){
+  localStorage.setItem('pat_daily_tasks_'+todayKey(), JSON.stringify(data));
+}
+function changeTask(type, delta){
+  const tasks = loadDailyTasks();
+  tasks[type] = Math.max(0, Math.min(2, (tasks[type]||0)+delta));
+  saveDailyTasks(tasks);
+  updateHomeDisplay();
+}
+function toggleDailyTask(type){
+  const tasks = loadDailyTasks();
+  tasks[type] = !tasks[type];
+  saveDailyTasks(tasks);
+  updateHomeDisplay();
+}
+function updateHomeDisplay(){
+  const tasks    = loadDailyTasks();
+  const recs     = loadRec();
+  const today    = todayKey();
+  const memorized = recs.some(r => r.date && r.date.startsWith(today));
+  const writing  = tasks.writing||0;
+  const prayer   = !!tasks.prayer;
+  const total    = writing + (memorized?1:0) + (prayer?1:0);
+  const maxScore = 4;
+  const pct      = Math.round(total/maxScore*100);
+
+  const el = id => document.getElementById(id);
+
+  // 원형 퍼센트 + 점수 + 바
+  if(el('hmCircle'))        el('hmCircle').textContent    = pct+'%';
+  if(el('hmScore'))         el('hmScore').textContent     = total+'/'+maxScore+'점';
+  if(el('hmProgressFill'))  el('hmProgressFill').style.width = pct+'%';
+  if(el('hmAllDone'))       el('hmAllDone').style.display = (total===maxScore)?'block':'none';
+
+  // 성경 쓰기 도트
+  if(el('hmDotW0')) el('hmDotW0').classList.toggle('on', writing>=1);
+  if(el('hmDotW1')) el('hmDotW1').classList.toggle('on', writing>=2);
+  if(el('hmTaskWriting')) el('hmTaskWriting').classList.toggle('done', writing>=2);
+  if(el('btnWritingMinus')) el('btnWritingMinus').disabled = writing<=0;
+  if(el('btnWritingPlus'))  el('btnWritingPlus').disabled  = writing>=2;
+
+  // 암송 체크
+  if(el('hmCheckMemorize')){
+    el('hmCheckMemorize').textContent = memorized?'✓':'○';
+    el('hmCheckMemorize').classList.toggle('checked', memorized);
+  }
+  if(el('hmTaskMemorize')) el('hmTaskMemorize').classList.toggle('done', memorized);
+
+  // 기도 체크
+  if(el('hmCheckPrayer')){
+    el('hmCheckPrayer').textContent = prayer?'✓':'○';
+    el('hmCheckPrayer').classList.toggle('checked', prayer);
+  }
+  if(el('hmTaskPrayer')) el('hmTaskPrayer').classList.toggle('done', prayer);
+}
+function initHomeScreen(){
+  // 날짜
+  const now  = new Date();
+  const days = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+  const el   = id => document.getElementById(id);
+  if(el('hmDate')) el('hmDate').textContent =
+    (now.getMonth()+1)+'월 '+now.getDate()+'일 ('+days[now.getDay()]+')';
+
+  // 인사말
+  const profile = loadFamilyProfile();
+  const name    = profile?.leaderName || profile?.memberName || '';
+  if(el('hmGreeting')) el('hmGreeting').textContent =
+    name ? '안녕하세요, '+name+'님 👋' : '안녕하세요! 👋';
+
+  // 스트릭
+  const streak = parseInt(localStorage.getItem('pat_streak_days')||'0');
+  if(el('hmStreakCard')) el('hmStreakCard').style.display = streak>0 ? 'flex' : 'none';
+  if(el('hmStreakText')) el('hmStreakText').textContent   = streak+'일 연속 달성!';
+
+  // 이번 주 구절
+  if(el('hmVerseText')) el('hmVerseText').textContent = DB.verse.text ? '"'+DB.verse.text+'"' : '';
+  if(el('hmVerseRef'))  el('hmVerseRef').textContent  = DB.verse.ref  || '';
+  if(el('hmVerseCard')) el('hmVerseCard').style.display = DB.verse.text ? 'block' : 'none';
+
+  updateHomeDisplay();
+}
+
 // ── 가족 진행 상황 폴링 ───────────────────────────────────
 let familyProgressSyncKey = '';
 let familyProgressPollKey = '';
@@ -347,5 +434,6 @@ function renderFamily(){
   renderMemberDateLabels();
   document.getElementById('famVerseRef').textContent  = DB.verse.ref;
   document.getElementById('famVerseText').textContent = DB.verse.text;
+  initHomeScreen();
   return syncPromise;
 }

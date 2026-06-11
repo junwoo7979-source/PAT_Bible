@@ -138,6 +138,57 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 .pv-btn{background:var(--accent);color:#04231a;font-weight:700;text-align:center;padding:12px;border-radius:10px;font-size:calc(var(--fs) - 1px);}
 /* 입력 라벨 */
 .lbl{display:block;font-size:calc(var(--fs) - 3px);color:var(--muted);margin:4px 2px 6px;font-weight:700;}
+
+/* ===== 홈 화면 리디자인 (church-bible-challenge 스타일) ===== */
+.hm-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.hm-date{color:var(--muted);font-size:calc(var(--fs) - 3px);margin-bottom:3px;}
+.hm-greeting{font-size:var(--fs-xl);font-weight:700;margin:0;}
+.hm-circle{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a855f7);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:var(--fs-lg);
+  flex-shrink:0;box-shadow:0 4px 14px rgba(22,199,132,.4);}
+.hm-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:12px;}
+.hm-card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.hm-card-title{font-weight:700;font-size:var(--fs);margin-bottom:14px;}
+.hm-accent{color:var(--accent);font-weight:700;}
+.hm-progress{height:12px;background:var(--line);border-radius:6px;overflow:hidden;}
+.hm-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),#a855f7);border-radius:6px;transition:width .5s;}
+.hm-all-done{text-align:center;color:#a855f7;font-weight:600;font-size:calc(var(--fs) - 1px);margin-top:10px;}
+.hm-streak-card{background:linear-gradient(135deg,rgba(251,146,60,.15),rgba(234,179,8,.15));
+  border:1px solid rgba(251,146,60,.35);border-radius:18px;padding:16px;margin-bottom:12px;
+  display:flex;align-items:center;gap:14px;}
+.hm-streak-icon{font-size:34px;line-height:1;}
+.hm-streak-title{font-weight:700;color:#f97316;margin:0;}
+.hm-streak-sub{font-size:calc(var(--fs) - 4px);color:#ea580c;margin:0;}
+.hm-tasks{display:flex;flex-direction:column;gap:10px;}
+.hm-task{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;
+  border:1px solid var(--line);background:var(--bg);transition:border-color .2s,background .2s;}
+.hm-task.done{border-color:var(--accent);background:rgba(22,199,132,.07);}
+.hm-task-icon{font-size:28px;line-height:1;flex-shrink:0;}
+.hm-task-info{flex:1;min-width:0;}
+.hm-task-label{font-weight:600;font-size:var(--fs);margin:0;}
+.hm-task-desc{color:var(--muted);font-size:calc(var(--fs) - 4px);margin:0;}
+.hm-task-counter{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.hm-cnt-btn{width:30px;height:30px;border-radius:50%;border:none;background:var(--line);
+  color:var(--text);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;}
+.hm-cnt-btn.plus{background:rgba(22,199,132,.2);color:var(--accent);}
+.hm-cnt-btn:disabled{opacity:.3;cursor:not-allowed;}
+.hm-dots{display:flex;gap:6px;}
+.hm-dot{width:14px;height:14px;border-radius:50%;background:var(--line);transition:background .2s;}
+.hm-dot.on{background:var(--accent);}
+.hm-check-btn{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:transparent;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;
+  font-weight:700;color:var(--muted);transition:all .2s;flex-shrink:0;}
+.hm-check-btn.checked{border-color:var(--accent);background:var(--accent);color:#04231a;}
+.hm-verse-card{background:linear-gradient(135deg,rgba(22,199,132,.1),rgba(168,85,247,.1));
+  border:1px solid rgba(22,199,132,.3);border-radius:18px;padding:18px;margin-bottom:12px;}
+.hm-verse-label{font-size:calc(var(--fs) - 3px);font-weight:700;color:var(--accent);margin-bottom:8px;}
+.hm-verse-text{color:var(--text);font-size:calc(var(--fs));line-height:1.8;font-style:italic;margin-bottom:8px;}
+.hm-verse-ref{color:var(--accent);font-size:calc(var(--fs) - 2px);font-weight:700;text-align:right;}
+.hm-family-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.hm-logout-btn{background:transparent;border:1px solid var(--line);color:var(--muted);
+  border-radius:10px;padding:6px 12px;font-size:calc(var(--fs) - 4px);cursor:pointer;font-family:inherit;}
+/* 로고 이미지 */
+.logo-img{width:130px;margin:28px auto 4px;display:block;}
 </style>
 </head>
 <body>
@@ -145,8 +196,8 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
   <!-- S1: 로그인/교회입장 -->
   <section class="screen active" id="s-login">
-    <div class="logo">📖</div>
-    <h1 class="center" id="loginAppTitle">PAT Bible</h1>
+    <img src="icons/pat-logo.png" class="logo-img" alt="PAT Bible 로고">
+    <h1 class="center" id="loginAppTitle" style="font-size:var(--fs-lg);margin-bottom:4px">PAT Bible</h1>
     <p class="center muted">교회·가족·개인 성경 암송</p>
     <div class="spacer"></div>
     <p class="muted center" style="margin-bottom:12px">교회 코드 또는 가족 비밀번호를 입력하세요</p>
@@ -237,31 +288,113 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     </div>
   </section>
 
-  <!-- S3: 가족방 -->
+  <!-- S3: 가족방 (church-bible-challenge 디자인) -->
   <section class="screen" id="s-family">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <h1 id="churchName">세광교회 PAT</h1>
-      <button class="back" style="margin:0" onclick="memberLogout()">로그아웃</button>
+
+    <!-- 상단 헤더: 날짜 + 인사 + 달성률 원 -->
+    <div class="hm-header">
+      <div>
+        <p class="hm-date" id="hmDate"></p>
+        <h1 class="hm-greeting" id="hmGreeting">안녕하세요! 👋</h1>
+        <p id="churchName" style="color:var(--muted);font-size:calc(var(--fs) - 2px);margin-top:2px"></p>
+      </div>
+      <div class="hm-circle" id="hmCircle">0%</div>
     </div>
-    <p class="muted" id="weekLabel"></p>
-    <p class="muted" id="familyToday"></p>
-    <div class="card" style="margin-top:16px">
-      <h2 id="familyRoomTitle">👨‍👩‍👧 우리 가족방</h2>
+
+    <!-- 오늘의 달성률 카드 -->
+    <div class="hm-card">
+      <div class="hm-card-row">
+        <span style="color:var(--muted);font-size:calc(var(--fs) - 1px)">오늘의 달성률</span>
+        <span class="hm-accent" id="hmScore">0/4점</span>
+      </div>
+      <div class="hm-progress"><div class="hm-progress-fill" id="hmProgressFill" style="width:0%"></div></div>
+      <p id="hmAllDone" class="hm-all-done" style="display:none">🎉 오늘 모든 과제를 완료했어요!</p>
+    </div>
+
+    <!-- 연속 달성 스트릭 카드 -->
+    <div class="hm-streak-card" id="hmStreakCard" style="display:none">
+      <span class="hm-streak-icon">🔥</span>
+      <div>
+        <p class="hm-streak-title" id="hmStreakText">0일 연속 달성!</p>
+        <p class="hm-streak-sub">이 불길을 이어가세요 🔥</p>
+      </div>
+    </div>
+
+    <!-- 오늘의 과제 카드 (성경 쓰기 · 암송 · 기도) -->
+    <div class="hm-card">
+      <h2 class="hm-card-title">📋 오늘의 과제</h2>
+      <div class="hm-tasks">
+
+        <!-- 성경 쓰기 (최대 2회) -->
+        <div class="hm-task" id="hmTaskWriting">
+          <div class="hm-task-icon">✍️</div>
+          <div class="hm-task-info">
+            <p class="hm-task-label">성경 쓰기</p>
+            <p class="hm-task-desc">하루 2회</p>
+          </div>
+          <div class="hm-task-counter">
+            <button class="hm-cnt-btn" id="btnWritingMinus" onclick="changeTask('writing',-1)">−</button>
+            <div class="hm-dots">
+              <span class="hm-dot" id="hmDotW0"></span>
+              <span class="hm-dot" id="hmDotW1"></span>
+            </div>
+            <button class="hm-cnt-btn plus" id="btnWritingPlus" onclick="changeTask('writing',1)">+</button>
+          </div>
+        </div>
+
+        <!-- 암송 (주간 구절 — 완료 시 자동 체크) -->
+        <div class="hm-task" id="hmTaskMemorize">
+          <div class="hm-task-icon">💬</div>
+          <div class="hm-task-info">
+            <p class="hm-task-label">암송</p>
+            <p class="hm-task-desc">주간 암송 구절</p>
+          </div>
+          <button class="hm-check-btn" id="hmCheckMemorize" onclick="tabGo('s-verse')">○</button>
+        </div>
+
+        <!-- 기도 (하루 1회 체크) -->
+        <div class="hm-task" id="hmTaskPrayer">
+          <div class="hm-task-icon">🙏</div>
+          <div class="hm-task-info">
+            <p class="hm-task-label">기도</p>
+            <p class="hm-task-desc">하루 1회</p>
+          </div>
+          <button class="hm-check-btn" id="hmCheckPrayer" onclick="toggleDailyTask('prayer')">○</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 이번 주 암송 구절 카드 -->
+    <div class="hm-verse-card" id="hmVerseCard">
+      <p class="hm-verse-label">📜 이번 주 암송 구절</p>
+      <p class="hm-verse-text" id="hmVerseText">구절을 불러오는 중...</p>
+      <p class="hm-verse-ref" id="hmVerseRef"></p>
+    </div>
+
+    <!-- 가족방 카드 -->
+    <div class="hm-card">
+      <div class="hm-family-header">
+        <h2 id="familyRoomTitle">👨‍👩‍👧 우리 가족방</h2>
+        <button class="hm-logout-btn" onclick="memberLogout()">로그아웃</button>
+      </div>
       <p class="muted" id="familyProfile">가족방을 등록해주세요</p>
-      <p class="muted" id="familyProgress">이번 주 달성률</p>
-      <div class="bar"><span id="familyBar"></span></div>
-      <div id="memberList"></div>
+      <p class="muted" id="familyProgress" style="margin-top:8px">이번 주 달성률</p>
+      <div class="bar" style="margin-top:6px"><span id="familyBar"></span></div>
+      <div id="memberList" style="margin-top:8px"></div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
+
+    <!-- 등록 버튼 -->
+    <div style="display:flex;gap:8px;margin:8px 0">
       <button class="btn" style="flex:1;margin:0" onclick="openFamilyRegister('leader')">👑 대표 등록</button>
       <button class="btn ghost" style="flex:1;margin:0" onclick="openFamilyRegister('member')">🙋 가족 등록</button>
     </div>
-    <div class="verse">
-      <div class="ref" id="famVerseRef">요한복음 3:16</div>
-      <div class="verse-text" id="famVerseText" style="font-size:var(--fs)"></div>
-    </div>
-    <button class="btn" onclick="go('s-verse')">📖 이번 주 구절 보기</button>
     <button class="btn ghost" id="inviteLinkBtn" onclick="copyInviteLink()" style="display:none">📎 초대 링크 복사</button>
+
+    <!-- JS 호환용 숨김 요소 -->
+    <p id="weekLabel" style="display:none"></p>
+    <p id="familyToday" style="display:none"></p>
+    <div style="display:none"><span id="famVerseRef"></span><span id="famVerseText"></span></div>
   </section>
 
   <!-- S3c: 초대장 -->
