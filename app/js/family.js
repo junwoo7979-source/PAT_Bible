@@ -242,26 +242,37 @@ function showInvitePage(data){
 async function joinFamilyFromInvite(){
   const data = window._inviteData;
   if(!data){ toast('초대 정보를 찾을 수 없습니다'); return; }
-  const pw = document.getElementById('invitePasswordInput').value.trim();
+  const myName = (document.getElementById('inviteNameInput')?.value || '').trim();
+  const pw     = document.getElementById('invitePasswordInput').value.trim();
+  if(!myName){ toast('내 이름을 입력해주세요'); return; }
   if(!pw){ toast('비밀번호를 입력해주세요'); return; }
 
   // 서버에서 비밀번호 검증 (평문 로컬 비교 제거)
   if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
     const found = await PAT_DB.findFamilyByPassword(DB.church.code, pw, data.familyId);
     if(!found){ toast('비밀번호가 올바르지 않습니다'); return; }
-    if(found.id) localStorage.setItem('pat_family_id', found.id);
+    const familyId = found.id || data.familyId || '';
+    if(familyId) localStorage.setItem('pat_family_id', familyId);
+    // 버그 수정: memberName 포함, members에 내 이름 추가
+    const existingMembers = Array.isArray(found.members) ? found.members : [];
+    const members = existingMembers.includes(myName) ? existingMembers : [...existingMembers, myName];
     localStorage.setItem('pat_family_profile', JSON.stringify({
-      roomName: found.roomName || data.roomName,
-      leaderName: found.leaderName || data.leaderName,
-      parish: found.parish || data.parish,
-      district: found.district || data.district,
+      roomName:     found.roomName     || data.roomName,
+      leaderName:   found.leaderName   || data.leaderName,
+      parish:       found.parish       || data.parish,
+      district:     found.district     || data.district,
       familyPassword: pw,
+      memberName:   myName,   // 버그 수정: 내 이름 저장
+      members,
     }));
+    // 버그 수정: Firebase에 멤버로 등록
+    if(familyId) await PAT_DB.joinFamily(DB.church.code, familyId, myName);
   } else {
     // 오프라인 fallback: 로컬 정보로만 저장
     localStorage.setItem('pat_family_profile', JSON.stringify({
       roomName:data.roomName, leaderName:data.leaderName,
-      parish:data.parish, district:data.district, familyPassword:pw,
+      parish:data.parish, district:data.district,
+      familyPassword:pw, memberName:myName, members:[myName],
     }));
   }
   window._inviteData = null;
