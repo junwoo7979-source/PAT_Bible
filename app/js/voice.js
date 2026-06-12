@@ -231,26 +231,29 @@ function startVoiceRecognition(SR, isRecovery=false){
     }
     return current+' '+next;
   };
-  // 구절의 모든 서브구(2어절 이상)가 인식 텍스트에 중복 등장하면 첫 번째만 남기고 제거
-  // collapseRepeatedVersePrefix(prefix만)보다 넓음 — 중간 구절 반복(Android 현상)도 처리
-  const collapseRepeatedVerseSubphrases=(text)=>{
-    let cleaned=(text||'').trim();
-    if(!DB||!DB.verse||!DB.verse.text) return cleaned;
-    const words=DB.verse.text.split(/\s+/).filter(Boolean);
-    // 긴 구절부터 처리해야 짧은 구절이 일부만 제거되는 오탐 방지
-    for(let size=Math.min(words.length,12);size>=2;size--){
-      for(let start=0;start<=words.length-size;start++){
-        const phrase=words.slice(start,start+size).join(' ');
-        const firstIdx=cleaned.indexOf(phrase);
-        if(firstIdx<0) continue;
-        let idx=cleaned.indexOf(phrase,firstIdx+phrase.length);
-        while(idx>0){
-          cleaned=(cleaned.slice(0,idx).trimEnd()+' '+cleaned.slice(idx+phrase.length).trimStart()).trim();
-          idx=cleaned.indexOf(phrase,firstIdx+phrase.length);
+  // isFinal 세그먼트 연결 후 중복 n-gram 제거
+  // 구절 텍스트와 무관하게 인식 결과 내 반복 어절을 감지·제거
+  // → Android Chrome이 '생각함으로'를 '생각하므로'로 인식해도 반복 패턴을 정확히 잡음
+  const collapseRepeatedNgrams=(text)=>{
+    const words=(text||'').trim().split(/\s+/).filter(Boolean);
+    if(words.length<4) return words.join(' ');
+    let changed=true;
+    while(changed){
+      changed=false;
+      outer: for(let size=Math.min(words.length,8);size>=2;size--){
+        for(let i=0;i<=words.length-size;i++){
+          const ph=words.slice(i,i+size).join(' ');
+          for(let j=i+1;j<=words.length-size;j++){
+            if(words.slice(j,j+size).join(' ')===ph){
+              words.splice(j,size);
+              changed=true;
+              break outer;
+            }
+          }
         }
       }
     }
-    return cleaned;
+    return words.join(' ');
   };
   const recover=(msg)=>{
     console.log('[VOICE-LOG] recover mobile:'+isMobileBrowser()+' stopReq:'+voiceStopRequested+' count:'+voiceRecoveryCount+'/'+VOICE_RECOVERY_LIMIT+' msg:'+(msg||''));
@@ -308,7 +311,7 @@ function startVoiceRecognition(SR, isRecovery=false){
       for(let i=0;i<e.results.length;i++){
         if(e.results[i].isFinal) isFinalParts.push(e.results[i][0].transcript.trim());
       }
-      finalText=collapseRepeatedVerseSubphrases(isFinalParts.join(' ').trim());
+      finalText=collapseRepeatedNgrams(isFinalParts.join(' ').trim());
       const last=e.results[e.results.length-1];
       const interimText=last.isFinal?'':last[0].transcript.trim();
       latestText=(interimText?mergeSpeechText(finalText,interimText):finalText).trim();
