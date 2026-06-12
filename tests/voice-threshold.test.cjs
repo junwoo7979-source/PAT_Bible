@@ -43,20 +43,21 @@ const context = {
 vm.runInNewContext(script, context);
 
 const verse = '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라';
-const almostPerfect = verse.slice(0, -1);
+// 80% 분량 — 유사도 약 79% → 90% 기준 미달
+const belowThreshold = verse.slice(0, Math.floor(verse.length * 0.8));
 
 context.startMemorize();
-context.evalVoice(almostPerfect);
+context.evalVoice(belowThreshold);
 assert.equal(getElement('voiceNext').disabled, true);
-assert.match(getElement('simLabel').innerHTML, /통과 기준 100%/);
+assert.match(getElement('simLabel').innerHTML, /통과 기준 90%/);
 
 context.evalVoice(verse);
 assert.equal(getElement('voiceNext').disabled, false);
 
 context.toggleLenient();
 context.renderVoice();
-context.evalVoice(almostPerfect);
+context.evalVoice(belowThreshold);
 assert.equal(getElement('voiceNext').disabled, true);
-assert.match(getElement('simLabel').innerHTML, /통과 기준 100%/);
+assert.match(getElement('simLabel').innerHTML, /통과 기준 90%/);
 
-console.log('voice threshold requires 100 percent: PASS');
+console.log('voice threshold requires 90 percent: PASS');
