@@ -76,18 +76,29 @@ async function registerVerse(){
   saveVerses(vs);
   DB.verse = { ref, weekOf:week||'(주차 미지정)', text };
 
-  document.getElementById('inRef').value  = '';
-  document.getElementById('inText').value = '';
+  // 목록 먼저 갱신 (추가된 구절이 보이도록)
   renderVerseList();
   renderPreview();
+
+  // 입력 필드 비우기
+  document.getElementById('inRef').value  = '';
+  document.getElementById('inText').value = '';
+
+  // 스크롤: 목록이 보이는 영역으로 이동
+  const verseListEl = document.getElementById('verseList');
+  if (verseListEl) {
+    verseListEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 
   // Firebase에 저장 시도
   if(window.PAT_DB && PAT_DB.ready()){
     const ok = await PAT_DB.saveVerse(DB.church.code, { ref, weekOf:week||'(주차 미지정)', text });
     if(ok) {
-      toast('✓ 구절 등록 완료 — 전 성도에게 실시간 전송됩니다 ☁️');
+      toast('✅ 구절 저장됨! 📖 등록된 구절 목록에서 확인하세요');
+      console.log('[PAT] Firebase 저장 성공:', { ref, text: text.substring(0, 30) });
     } else {
-      toast('⚠️ 로컬 저장 완료 (클라우드 동기화 실패 — 관리자 토큰 확인)');
+      toast('⚠️ 로컬 저장만 완료 (클라우드 동기화 실패 — 관리자 토큰 확인)');
+      console.error('[PAT] Firebase 저장 실패');
     }
   } else {
     toast('✓ 구절 등록 완료 (로컬 모드)');
