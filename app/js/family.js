@@ -38,6 +38,7 @@ function renderFamilyProfile(){
   } else {
     document.getElementById('familyProfile').textContent = '가족방을 등록해주세요';
   }
+  // ★ 가족방 정보가 업데이트되면 등록된 가족방 카드도 즉시 반영
   renderRegisteredFamilyRoom();
 }
 function renderRegisteredFamilyRoom(){
@@ -447,8 +448,11 @@ async function syncFamilyProgressFromCloud(profile){
 
   // ★ stale spread 제거 — 최신 profile(freshProfile)로 저장
   const mergedNames = merged.map(m=>m.name).filter(Boolean);
-  localStorage.setItem('pat_family_profile', JSON.stringify({ ...freshProfile, members: mergedNames }));
+  const updated = { ...freshProfile, members: mergedNames };
+  localStorage.setItem('pat_family_profile', JSON.stringify(updated));
   renderRegisteredFamilyRoom();
+  // ★ roomName이 변경되었으면 메인 화면의 가족방 제목도 업데이트
+  renderFamilyProfile();
 }
 function startFamilyProgressPolling(profile){
   const familyId = localStorage.getItem('pat_family_id')||'';
@@ -457,10 +461,10 @@ function startFamilyProgressPolling(profile){
   if(familyProgressPollKey === pollKey && familyProgressPollTimer) return;
   if(familyProgressPollTimer) clearInterval(familyProgressPollTimer);
   familyProgressPollKey  = pollKey;
-  // ★ 10초마다 Firebase에서 가족방 정보(members) + 진행 상황 모두 다시 로드
+  // ★ 10초마다 Firebase에서 가족방 정보(members, roomName) + 진행 상황 모두 다시 로드
   familyProgressPollTimer = setInterval(async ()=>{
     let freshProfile = loadFamilyProfile();
-    // 먼저 Firebase에서 최신 가족방 members 로드 (토큰 없이 직접 조회)
+    // 먼저 Firebase에서 최신 가족방 정보 로드 (roomName, members 등)
     if(window.PAT_DB && PAT_DB.ready() && PAT_DB.getFamilyMembers){
       try {
         const fbMembers = await PAT_DB.getFamilyMembers(DB.church.code, familyId);
@@ -471,6 +475,23 @@ function startFamilyProgressPolling(profile){
           const merged = [...new Set([...localMembers, ...fbMemberNames])];
           if(JSON.stringify(merged) !== JSON.stringify(localMembers)){
             freshProfile = { ...freshProfile, members: merged };
+            localStorage.setItem('pat_family_profile', JSON.stringify(freshProfile));
+          }
+        }
+      } catch(e) {}
+    }
+    // ★ Firebase에서 roomName, leaderName, parish, district 등 가족방 메타데이터 동기화
+    if(window.PAT_DB && PAT_DB.ready() && PAT_DB.getFamilyInfo){
+      try {
+        const fbInfo = await PAT_DB.getFamilyInfo(DB.church.code, familyId);
+        if(fbInfo){
+          const updated = {};
+          if(fbInfo.roomName && fbInfo.roomName !== freshProfile.roomName) updated.roomName = fbInfo.roomName;
+          if(fbInfo.leaderName && fbInfo.leaderName !== freshProfile.leaderName) updated.leaderName = fbInfo.leaderName;
+          if(fbInfo.parish && fbInfo.parish !== freshProfile.parish) updated.parish = fbInfo.parish;
+          if(fbInfo.district && fbInfo.district !== freshProfile.district) updated.district = fbInfo.district;
+          if(Object.keys(updated).length > 0){
+            freshProfile = { ...freshProfile, ...updated };
             localStorage.setItem('pat_family_profile', JSON.stringify(freshProfile));
           }
         }

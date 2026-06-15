@@ -248,6 +248,20 @@ window.PAT_DB = (() => {
     } catch (e) { return []; }
   }
 
+  async function getFamilyInfo(churchCode, familyId) {
+    if (!ready() || !familyId) return null;
+    try {
+      const data = await apiGet('getFamilyProgress', { churchCode, familyId });
+      return {
+        roomName: data.roomName || '',
+        leaderName: data.leaderName || '',
+        parish: data.parish || '',
+        district: data.district || '',
+        members: data.members || [],
+      };
+    } catch (e) { return null; }
+  }
+
   function subscribeFamily(churchCode, familyId, callback) {
     if (!ready() || !familyId) return;
     const poll = async () => {
@@ -344,7 +358,7 @@ window.PAT_DB = (() => {
   return {
     init, ready, getDeviceId,
     saveVerse, getLatestVerse, subscribeVerse,
-    saveFamily, findFamilyByPassword, joinFamily, getFamilyMembers, subscribeFamily,
+    saveFamily, findFamilyByPassword, joinFamily, getFamilyMembers, getFamilyInfo, subscribeFamily,
     saveRecord, hasRecord,
     getDashboardStats, getFamilyStats, getFamilyProgress,
     resetFamilyPassword,
