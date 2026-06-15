@@ -460,15 +460,15 @@ function startFamilyProgressPolling(profile){
   // ★ 10초마다 Firebase에서 가족방 정보(members) + 진행 상황 모두 다시 로드
   familyProgressPollTimer = setInterval(async ()=>{
     let freshProfile = loadFamilyProfile();
-    // 먼저 Firebase에서 최신 가족방 정보(members 포함) 로드
-    if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
+    // 먼저 Firebase에서 최신 가족방 members 로드 (토큰 없이 직접 조회)
+    if(window.PAT_DB && PAT_DB.ready() && PAT_DB.getFamilyMembers){
       try {
-        const found = await PAT_DB.findFamilyByPassword(DB.church.code, freshProfile.familyPassword, familyId);
-        if(found && found.members && Array.isArray(found.members)){
-          // Firebase members가 다르면 로컬에 병합
+        const fbMembers = await PAT_DB.getFamilyMembers(DB.church.code, familyId);
+        if(fbMembers && Array.isArray(fbMembers)){
+          // Firebase members(displayName)를 로컬 members와 병합
           const localMembers = freshProfile.members || [];
-          const fbMembers = found.members || [];
-          const merged = [...new Set([...localMembers, ...fbMembers])];
+          const fbMemberNames = fbMembers.map(m=>m.displayName||m.name||'').filter(Boolean);
+          const merged = [...new Set([...localMembers, ...fbMemberNames])];
           if(JSON.stringify(merged) !== JSON.stringify(localMembers)){
             freshProfile = { ...freshProfile, members: merged };
             localStorage.setItem('pat_family_profile', JSON.stringify(freshProfile));
