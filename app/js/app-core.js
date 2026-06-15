@@ -131,13 +131,25 @@ function adminLogout(){
   localStorage.removeItem('pat_admin_pw');
   localStorage.removeItem('pat_admin_token');
   setAdminLoggedIn(false);
-  go('s-login');
+  // 로그아웃 후 뒤로가기에서 이전 페이지로 돌아가지 않도록 replaceState 사용
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
+  const target = document.getElementById('s-login');
+  if(target) target.classList.add('active');
+  const tabbar = document.getElementById('tabbar');
+  if(tabbar) tabbar.style.display = 'none';
+  history.replaceState({ screen: 's-login' }, '', _screenUrl('s-login'));
   toast('로그아웃되었습니다');
 }
 function memberLogout(){
   const code = document.getElementById('churchCode');
   if(code) code.value = '';
-  go('s-login');
+  // 로그아웃 후 뒤로가기에서 이전 페이지로 돌아가지 않도록 replaceState 사용
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
+  const target = document.getElementById('s-login');
+  if(target) target.classList.add('active');
+  const tabbar = document.getElementById('tabbar');
+  if(tabbar) tabbar.style.display = 'none';
+  history.replaceState({ screen: 's-login' }, '', _screenUrl('s-login'));
   toast('로그아웃되었습니다');
 }
 function syncAdminVerseFields(){
