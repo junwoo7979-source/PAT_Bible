@@ -143,6 +143,14 @@ function adminLogout(){
 function memberLogout(){
   const code = document.getElementById('churchCode');
   if(code) code.value = '';
+  // ★ 가족방 정보 완전 삭제 (로그아웃 시 초기화)
+  localStorage.removeItem('pat_family_profile');
+  localStorage.removeItem('pat_family_id');
+  localStorage.removeItem('pat_device_id');
+  // 폴링 중지
+  if(window.familyProgressPollTimer) clearInterval(window.familyProgressPollTimer);
+  window.familyProgressPollTimer = null;
+  window.familyProgressPollKey = '';
   // 로그아웃 후 뒤로가기에서 이전 페이지로 돌아가지 않도록 replaceState 사용
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
   const target = document.getElementById('s-login');
