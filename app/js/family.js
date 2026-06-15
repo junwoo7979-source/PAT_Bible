@@ -211,7 +211,8 @@ function saveFamilyProfile(){
         if(familyId) PAT_DB.joinFamily(DB.church.code, familyId, leaderName);
       });
   }
-  renderFamilyProfile();
+  // ★ 가족 구성원 목록도 즉시 업데이트 (memberList 화면 반영)
+  renderFamily();
   go('s-family');
   toast('✓ 가족방 정보가 저장되었습니다');
 }
