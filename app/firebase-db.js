@@ -102,8 +102,31 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] getLatestVerse:', e.message); return null; }
   }
 
+  async function getConfig(churchCode) {
+    if (!ready()) return null;
+    try {
+      const data = await apiGet('getConfig', { churchCode });
+      return data.config || null;
+    } catch (e) { console.warn('[PAT_DB] getConfig:', e.message); return null; }
+  }
+
+  async function saveConfig(churchCode, appTitle, verse) {
+    if (!ready()) return false;
+    try {
+      console.log('[PAT_DB] saveConfig 요청 시작:', { churchCode });
+      await apiPost('saveConfig', { churchCode, appTitle, verse });
+      console.log('[PAT_DB] saveConfig 저장 성공');
+      return true;
+    } catch (e) {
+      console.error('[PAT_DB] saveConfig 실패:', e.message);
+      return false;
+    }
+  }
+
   let _polling = null;
+  let _configPolling = null;
   let _lastVerseHash = null;
+  let _lastConfigHash = null;
 
   function subscribeVerse(churchCode, callback) {
     if (!ready()) return;
@@ -134,6 +157,40 @@ window.PAT_DB = (() => {
       if (verse) {
         _lastVerseHash = getVerseHash(verse);
         callback(verse);
+      }
+    });
+  }
+
+  function subscribeConfig(churchCode, callback) {
+    if (!ready()) return;
+    if (_configPolling) clearInterval(_configPolling);
+
+    // 설정을 hash로 비교
+    function getConfigHash(config) {
+      if (!config) return null;
+      const verseHash = config.verse ? config.verse.ref + '|' + config.verse.text : '';
+      return config.appTitle + '|' + verseHash;
+    }
+
+    _configPolling = setInterval(async () => {
+      try {
+        const config = await getConfig(churchCode);
+        const hash = getConfigHash(config);
+        if (hash && hash !== _lastConfigHash) {
+          _lastConfigHash = hash;
+          callback(config);
+          console.log('[PAT_DB] 설정 업데이트 감지됨:', config.appTitle);
+        }
+      } catch (e) {
+        console.error('[PAT_DB] subscribeConfig polling error:', e.message);
+      }
+    }, 5000);
+
+    // 초기값 로드
+    getConfig(churchCode).then(config => {
+      if (config) {
+        _lastConfigHash = getConfigHash(config);
+        callback(config);
       }
     });
   }
@@ -281,6 +338,7 @@ window.PAT_DB = (() => {
     saveRecord, hasRecord,
     getDashboardStats, getFamilyStats, getFamilyProgress,
     resetFamilyPassword,
+    getConfig, saveConfig, subscribeConfig,
     unsubscribeAll,
   };
 })();

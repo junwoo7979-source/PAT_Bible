@@ -90,11 +90,13 @@ async function registerVerse(){
     verseListEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  // Firebase에 저장 시도
+  // Firebase에 저장 시도 (최신 설정 함수 사용)
   if(window.PAT_DB && PAT_DB.ready()){
-    const ok = await PAT_DB.saveVerse(DB.church.code, { ref, weekOf:week||'(주차 미지정)', text });
+    const appTitle = localStorage.getItem('pat_app_title') || DB.church.name;
+    const verse = { ref, weekOf:week||'(주차 미지정)', text };
+    const ok = await PAT_DB.saveConfig(DB.church.code, appTitle, verse);
     if(ok) {
-      toast('✅ 구절 저장됨! 📖 등록된 구절 목록에서 확인하세요');
+      toast('✅ 구절 저장됨! 📖 모든 기기에 동기화됩니다');
       console.log('[PAT] Firebase 저장 성공:', { ref, text: text.substring(0, 30) });
     } else {
       toast('⚠️ 로컬 저장만 완료 (클라우드 동기화 실패 — 관리자 토큰 확인)');

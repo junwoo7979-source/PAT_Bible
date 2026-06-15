@@ -87,7 +87,7 @@ git diff --check
 - 음성 암송은 일반/관대 모드 모두 유사도 `100%`일 때만 통과한다.
 - 음성 인식 결과가 원문과 다르면 초록/빨강/점선 표시로 다른 위치를 보여준다.
 
-<!-- START_TTAPP_RULES:1.0.2 -->
+<!-- START_TTAPP_RULES:1.0.3 -->
 <!-- ⚠️ DO NOT EDIT THIS BLOCK - AUTOMATICALLY MANAGED BY TTAPP -->
 # CLAUDE.md (ttapp rules)
 <!-- ⚠️ DO NOT REMOVE OR MODIFY this section. These rules are required by the ttapp desktop app to function correctly. If accidentally removed, the app will automatically restore them. -->
@@ -338,5 +338,15 @@ mcp__ttapp__tbot_project_schedule_add
 ⚠️ **scheduledAt rule**: ALWAYS run `date +"%Y-%m-%dT%H:%M:%S"` first. The system context only has the date, not the time — never guess or estimate the current time.
 
 **Rule**: Every time you use a phrase like "I'll let you know when it's done" or "I'll check later" (or equivalent in the user's language), you MUST follow it with `mcp__ttapp__tbot_project_schedule_add`. Never say it without actually scheduling.
+
+## Async / Background Tools — DO NOT USE in ttapp
+Because the session (PTY) is terminated as soon as the task completes, any tool that works by "run in the background → notify / re-invoke me later when it finishes" will NEVER deliver its result. The session is already gone when the callback fires, and the background process is killed with it.
+
+Forbidden in ttapp:
+- ❌ `ScheduleWakeup` — the wake-up never fires.
+- ❌ `Workflow` — runs in the background and reports on completion; that notification never arrives.
+- ❌ `Agent` / `Bash` with `run_in_background: true` — the result comes back via a later notification ttapp never sees.
+
+✅ Instead: use FOREGROUND synchronous `Agent` calls and `await` the result in this same session, or — for work that must outlive this session — start it with nohup AND register a real follow-up with `mcp__ttapp__tbot_project_schedule_add`.
 
 <!-- END_TTAPP_RULES -->

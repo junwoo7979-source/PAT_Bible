@@ -6,7 +6,7 @@ window.FIREBASE_CONFIG = {
   projectId: 'pat-bible-app',
   apiBase: 'https://us-central1-pat-bible-app.cloudfunctions.net',
   clientToken: '',
-  adminToken: '',
+  adminToken: 'a52a248be175b3f27ef469044cf984913ba5407d8e2e46558d9a0cd24ee7d14b',
 };
 
 window.FIREBASE_READY = true;

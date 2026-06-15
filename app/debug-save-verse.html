@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Firebase SaveVerse 디버그</title>
+<style>
+  body { font-family: monospace; background: #1a1a2e; color: #e8e8e8; padding: 20px; }
+  .log { background: #16213e; border: 1px solid #2a3a5e; padding: 15px; margin: 10px 0;
+         border-radius: 8px; max-height: 500px; overflow-y: auto; font-size: 12px; line-height: 1.5; }
+  .success { color: #16c784; }
+  .error { color: #ff5d5d; }
+  .info { color: #8b93a7; }
+  button { padding: 12px 20px; background: #16c784; color: white; border: none; border-radius: 8px;
+           cursor: pointer; margin: 5px; font-size: 14px; }
+  button:hover { background: #0fa066; }
+  input { padding: 10px; margin: 5px; border-radius: 8px; border: 1px solid #2a3a5e;
+          background: #16213e; color: #e8e8e8; width: 300px; }
+  h2 { margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h1>🔧 Firebase SaveVerse 직접 테스트</h1>
+
+<div class="log" id="log"></div>
+
+<h2>테스트 입력:</h2>
+<label>교회 코드: <input type="text" id="churchCode" value="11111"></label><br>
+<label>참고: <input type="text" id="ref" value="로마서 1:16"></label><br>
+<label>본문: <input type="text" id="text" value="내가 복음을 부끄러워하지 아니하노라"></label><br>
+<label>주차: <input type="text" id="weekOf" value="2026년 6월 3주차"></label><br><br>
+
+<button onclick="testSaveVerse()">🚀 saveVerse 호출</button>
+<button onclick="testGetVerse()">📖 getVerse 호출</button>
+<button onclick="testCheckToken()">🔐 Token 확인</button>
+<button onclick="clearLog()">Clear Log</button>
+
+<script src="firebase-config.js"></script>
+<script src="firebase-db.js"></script>
+<script src="js/app-core.js"></script>
+
+<script>
+const logEl = document.getElementById('log');
+
+function log(msg, type = 'info') {
+  const ts = new Date().toLocaleTimeString();
+  const color = type === 'success' ? '#16c784' : type === 'error' ? '#ff5d5d' : '#8b93a7';
+  const html = `<div style="color:${color}; margin-bottom:8px;">[${ts}] ${msg}</div>`;
+  logEl.innerHTML += html;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function clearLog() {
+  logEl.innerHTML = '';
+}
+
+function testCheckToken() {
+  clearLog();
+  log('=== Token 상태 확인 ===', 'info');
+
+  log(`window.FIREBASE_CONFIG 존재: ${!!window.FIREBASE_CONFIG}`, 'info');
+  log(`adminToken: ${window.FIREBASE_CONFIG?.adminToken ? '있음 (' + window.FIREBASE_CONFIG.adminToken.substring(0, 20) + '...)' : '없음'}`,
+      window.FIREBASE_CONFIG?.adminToken ? 'success' : 'error');
+
+  log(`localStorage pat_admin_token: ${localStorage.getItem('pat_admin_token') ? '있음' : '없음'}`, 'info');
+
+  log(`Firebase CONFIG:`, 'info');
+  log(`  projectId: ${window.FIREBASE_CONFIG?.projectId}`, 'info');
+  log(`  apiBase: ${window.FIREBASE_CONFIG?.apiBase}`, 'info');
+  log(`  FIREBASE_READY: ${window.FIREBASE_READY}`, window.FIREBASE_READY ? 'success' : 'error');
+}
+
+async function testSaveVerse() {
+  clearLog();
+  log('=== saveVerse 직접 테스트 ===', 'info');
+
+  const churchCode = document.getElementById('churchCode').value;
+  const ref = document.getElementById('ref').value;
+  const text = document.getElementById('text').value;
+  const weekOf = document.getElementById('weekOf').value;
+
+  log(`교회: ${churchCode}`, 'info');
+  log(`참고: ${ref}`, 'info');
+  log(`본문: ${text.substring(0, 30)}...`, 'info');
+  log(`주차: ${weekOf}`, 'info');
+
+  log('', 'info');
+  log('1️⃣ Firebase 상태 확인...', 'info');
+
+  if (!window.PAT_DB) {
+    log('❌ PAT_DB 로드 안 됨', 'error');
+    return;
+  }
+  log('✅ PAT_DB 준비됨', 'success');
+
+  if (!PAT_DB.ready()) {
+    log('❌ Firebase 미연결 (FIREBASE_READY=false)', 'error');
+    return;
+  }
+  log('✅ Firebase 연결됨', 'success');
+
+  log('', 'info');
+  log('2️⃣ Admin Token 확인...', 'info');
+  const adminToken = window.FIREBASE_CONFIG?.adminToken;
+  if (!adminToken) {
+    log('❌ Admin Token 없음', 'error');
+    return;
+  }
+  log('✅ Admin Token: ' + adminToken.substring(0, 30) + '...', 'success');
+
+  log('', 'info');
+  log('3️⃣ saveVerse 호출 중...', 'info');
+
+  try {
+    const result = await PAT_DB.saveVerse(churchCode, { ref, text, weekOf });
+    log('응답: ' + JSON.stringify(result), 'info');
+
+    if (result) {
+      log('✅ Firebase 저장 성공!', 'success');
+    } else {
+      log('❌ saveVerse 반환값: false', 'error');
+    }
+  } catch (e) {
+    log('❌ 에러 발생: ' + e.message, 'error');
+  }
+
+  log('', 'info');
+  log('4️⃣ 5초 후 getVerse로 확인...', 'info');
+
+  await new Promise(r => setTimeout(r, 5000));
+
+  try {
+    const verse = await PAT_DB.getLatestVerse ? await PAT_DB.getLatestVerse(churchCode) : null;
+    if (verse) {
+      log('✅ 저장된 구절: ' + verse.ref, 'success');
+      log(`   본문: ${verse.text.substring(0, 40)}...`, 'success');
+    } else {
+      log('⚠️  저장된 구절 없음 (5초 폴링 필요)', 'error');
+    }
+  } catch (e) {
+    log('❌ getVerse 에러: ' + e.message, 'error');
+  }
+}
+
+async function testGetVerse() {
+  clearLog();
+  log('=== getVerse 직접 테스트 ===', 'info');
+
+  const churchCode = document.getElementById('churchCode').value;
+  log(`교회: ${churchCode}`, 'info');
+  log('조회 중...', 'info');
+
+  try {
+    // firebase-db.js의 getLatestVerse 함수가 없으므로 직접 API 호출
+    const url = `https://us-central1-pat-bible-app.cloudfunctions.net/getVerse?churchCode=${churchCode}`;
+    log(`URL: ${url}`, 'info');
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    log(`상태: ${response.status}`, response.ok ? 'success' : 'error');
+    log(`응답: ${JSON.stringify(data)}`, 'info');
+
+    if (data.verse) {
+      log(`✅ 저장된 구절: ${data.verse.ref}`, 'success');
+    } else {
+      log('⚠️  저장된 구절 없음', 'error');
+    }
+  } catch (e) {
+    log('❌ 에러: ' + e.message, 'error');
+  }
+}
+
+window.addEventListener('load', () => {
+  log('📍 페이지 로드 완료', 'info');
+  testCheckToken();
+});
+</script>
+
+</body>
+</html>

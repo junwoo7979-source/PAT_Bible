@@ -44,19 +44,38 @@ function applyStoredData(){
     go('s-admin', true, false);
   }
 }
-function initFirebase(){
+async function initFirebase(){
   if(!window.PAT_DB) return;
   const ok = PAT_DB.init();
   if(!ok){ console.log('[PAT] 로컬 모드'); return; }
   console.log('[PAT] Firebase 모드 활성화');
-  PAT_DB.subscribeVerse(DB.church.code, verse => {
-    DB.verse = { ref:verse.ref, text:verse.text, weekOf:verse.weekOf };
+
+  // 1️⃣ Firebase에서 설정(구절, 앱제목) 로드
+  const config = await PAT_DB.getConfig(DB.church.code);
+  if(config && config.verse) {
+    DB.verse = config.verse;
+    console.log('[PAT] Firebase 구절 로드됨:', DB.verse.ref);
+  }
+  if(config && config.appTitle) {
+    localStorage.setItem('pat_app_title', config.appTitle);
+    applyAppTitle();
+  }
+
+  // 2️⃣ 설정 폴링 구독 (구절 + 앱제목)
+  PAT_DB.subscribeConfig(DB.church.code, config => {
+    if(config.verse) {
+      DB.verse = { ref:config.verse.ref, text:config.verse.text, weekOf:config.verse.weekOf };
+    }
+    if(config.appTitle) {
+      localStorage.setItem('pat_app_title', config.appTitle);
+      applyAppTitle();
+    }
     const activeId = document.querySelector('.screen.active')?.id;
     if(activeId==='s-family') renderFamily();
     else if(activeId==='s-verse') renderVerse();
-    else if(activeId==='s-admin') renderAdmin();  // 관리자 화면도 갱신
-    toast('📖 이번 주 구절이 업데이트됐습니다');
-    console.log('[PAT] 구절 업데이트 감지:', verse.ref);
+    else if(activeId==='s-admin') renderAdmin();
+    toast('📖 설정이 업데이트됐습니다');
+    console.log('[PAT] 설정 업데이트 감지:', config);
   });
 }
 
@@ -106,6 +125,39 @@ function renderAdmin(){
   updateWeekFromDate();
   renderVerseList();
   renderPreview();
+}
+
+// ── 관리자: 설정 저장 (구절 + 앱제목을 Firebase에 저장) ──
+async function saveAdminConfig(){
+  const appTitle = document.getElementById('inAppTitle')?.value.trim() || DB.church.name;
+  const ref = document.getElementById('inRef')?.value.trim();
+  const text = document.getElementById('inText')?.value.trim();
+  const weekOf = document.getElementById('inWeek')?.value.trim();
+
+  if(!ref || !text){
+    toast('구절 정보(참고·본문)를 입력해주세요');
+    return;
+  }
+
+  const verse = { ref, text, weekOf };
+
+  // localStorage 저장 (로컬 백업)
+  localStorage.setItem('pat_app_title', appTitle);
+  DB.verse = verse;
+  saveVerses([verse]);
+
+  // Firebase 저장
+  if(window.PAT_DB && PAT_DB.ready()){
+    const ok = await PAT_DB.saveConfig(DB.church.code, appTitle, verse);
+    if(ok){
+      toast('✅ 설정이 저장되고 모든 기기에 동기화됩니다');
+      console.log('[PAT] 설정 저장 완료:', { appTitle, ref });
+    } else {
+      toast('❌ Firebase 저장 실패 (Admin Token 확인)');
+    }
+  } else {
+    toast('✅ 로컬 저장 완료 (Firebase 미연결)');
+  }
 }
 
 // ── 화면 전환 ─────────────────────────────────────────────

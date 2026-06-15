@@ -45,6 +45,53 @@ exports.ping = onRequest({ cors: true, region: 'us-central1' }, (req, res) => {
   res.json({ status: 'ok', message: 'PAT Bible API connected', timestamp: new Date().toISOString() });
 });
 
+// ── 교회 설정 조회 (구절, 앱제목 등) ──
+exports.getConfig = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  try {
+    const { churchCode } = req.query;
+    if (!assertChurchCode(churchCode, res)) return;
+    const doc = await db.doc(`churches/${churchCode}/config/current`).get();
+    if (!doc.exists) {
+      res.json({ config: null });
+      return;
+    }
+    const data = doc.data();
+    res.json({
+      config: {
+        appTitle: data.appTitle || '',
+        verse: data.verse || null,
+      }
+    });
+  } catch (e) {
+    errRes(res, e);
+  }
+});
+
+// ── 교회 설정 저장 (Admin만) ──
+exports.saveConfig = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  console.log('[PAT] saveConfig 요청 시작');
+  if (!requireAdminWrite(req, res)) {
+    console.error('[PAT] Admin 토큰 검증 실패');
+    return;
+  }
+  try {
+    const { churchCode, appTitle, verse } = req.body;
+    if (!assertChurchCode(churchCode, res)) return;
+    await db.doc(`churches/${churchCode}/config/current`).set({
+      appTitle: appTitle || '',
+      verse: verse || null,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    console.log('[PAT] saveConfig 저장 성공');
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[PAT] saveConfig 에러:', e.message);
+    errRes(res, e);
+  }
+});
+
 exports.getVerse = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
   if (!begin(req, res)) return;
   try {
