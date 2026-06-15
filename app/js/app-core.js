@@ -105,6 +105,8 @@ function adminLogin(){
   if(id !== ADMIN.id || pw !== ADMIN.pw){ toast('아이디 또는 비밀번호가 올바르지 않습니다'); return; }
   localStorage.setItem('pat_admin_id', id);
   localStorage.setItem('pat_admin_pw', pw);
+  // Firebase Admin Token 저장 (Functions 인증용)
+  localStorage.setItem('pat_admin_token', 'fbde1052ecb6da2b9720c096ba8ea047a9327207399802d358dc308299e0d7ac');
   document.getElementById('adminPw').value = '';
   setAdminLoggedIn(true);
   renderAdmin();
@@ -114,6 +116,7 @@ function adminLogin(){
 function adminLogout(){
   localStorage.removeItem('pat_admin_id');
   localStorage.removeItem('pat_admin_pw');
+  localStorage.removeItem('pat_admin_token');
   setAdminLoggedIn(false);
   go('s-login');
   toast('로그아웃되었습니다');
