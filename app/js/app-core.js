@@ -246,12 +246,15 @@ function go(id, resetScroll=true, animate=true){
 function tabGo(id){ go(id); }
 
 // 브라우저/모바일 뒤로가기 처리
+let _preventBack = false;
 if(typeof window !== 'undefined' && window.history){
   window.addEventListener('popstate', e => {
-    // 현재 보이는 화면이 로그인 화면이면 뒤로가기 완전 차단
+    // 현재 보이는 화면이 로그인 화면이면 뒤로가기 완전 차단 (forward로 취소)
     const currentActive = document.querySelector('.screen.active');
     if(currentActive && (currentActive.id === 's-login' || currentActive.id === 's-adminlogin')){
-      history.pushState({ screen: currentActive.id }, '', _screenUrl(currentActive.id));
+      _preventBack = true;
+      history.forward();
+      setTimeout(() => { _preventBack = false; }, 100);
       return;
     }
 
