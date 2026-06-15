@@ -47,9 +47,11 @@ window.PAT_DB = (() => {
     const url = `${API}/${path}`;
     for (let i = 0; i <= retries; i++) {
       try {
+        const headers = authHeaders(path);
+        headers['Content-Type'] = 'application/json; charset=utf-8';
         const r = await fetch(url, {
           method: 'POST',
-          headers: authHeaders(path),
+          headers: headers,
           body: JSON.stringify(body),
         });
         if (!r.ok) throw new Error(`API ${path} ${r.status}`);

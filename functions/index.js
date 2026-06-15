@@ -98,6 +98,7 @@ exports.saveConfig = onRequest({ cors: true, region: 'us-central1' }, async (req
   }
   try {
     const { churchCode, appTitle, verse } = req.body;
+    console.log('[PAT] saveConfig 수신:', { churchCode, appTitle, verseRef: verse?.ref, verseText: verse?.text?.substring(0, 20) });
     if (!assertChurchCode(churchCode, res)) return;
     await db.doc(`churches/${churchCode}/config/current`).set({
       appTitle: appTitle || '',
