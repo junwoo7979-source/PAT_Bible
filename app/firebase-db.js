@@ -277,6 +277,7 @@ window.PAT_DB = (() => {
         churchCode, deviceId, familyId,
         parish: profile?.parish || '', district: profile?.district || '',
         leaderName: profile?.leaderName || '',
+        memberName: profile?.memberName || '',  // ← 추가: 개인 이름 저장
         verseRef: record.ref,
         voiceScore1: record.voiceScore1 || 0, voiceScore2: record.voiceScore2 || 0,
         typeScore1: record.typeScore1 || 0, typeScore2: record.typeScore2 || 0,
