@@ -251,8 +251,19 @@ if(typeof window !== 'undefined' && window.history){
     // state 우선, 없으면 해시에서 추출 (모바일 폴백)
     const hash = location.hash.replace('#','');
     const screen = e.state?.screen
-      || (hash && document.getElementById(hash) ? hash : null)
-      || 's-family';
+      || (hash && document.getElementById(hash) ? hash : null);
+
+    // 로그인 화면에서 뒤로가기하려는 시도 → 로그인 화면 유지
+    if(!screen || !isAdminLoggedIn()){
+      history.replaceState({ screen: 's-login' }, '', _screenUrl('s-login'));
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
+      const loginScreen = document.getElementById('s-login');
+      if(loginScreen) loginScreen.classList.add('active');
+      const tabbar = document.getElementById('tabbar');
+      if(tabbar) tabbar.style.display = 'none';
+      return;
+    }
+
     _poppingState = true;
     go(screen, true, false);
     _poppingState = false;
