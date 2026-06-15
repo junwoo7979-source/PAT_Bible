@@ -459,7 +459,7 @@ function startFamilyProgressPolling(profile){
   familyProgressPollKey  = pollKey;
   // ★ 10초마다 Firebase에서 가족방 정보(members) + 진행 상황 모두 다시 로드
   familyProgressPollTimer = setInterval(async ()=>{
-    const freshProfile = loadFamilyProfile();
+    let freshProfile = loadFamilyProfile();
     // 먼저 Firebase에서 최신 가족방 정보(members 포함) 로드
     if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
       try {
@@ -470,13 +470,15 @@ function startFamilyProgressPolling(profile){
           const fbMembers = found.members || [];
           const merged = [...new Set([...localMembers, ...fbMembers])];
           if(JSON.stringify(merged) !== JSON.stringify(localMembers)){
-            freshProfile.members = merged;
+            freshProfile = { ...freshProfile, members: merged };
             localStorage.setItem('pat_family_profile', JSON.stringify(freshProfile));
           }
         }
       } catch(e) {}
     }
-    // 그 다음 진행 상황 동기화
+    // ★ 저장 후 최신 profile 다시 로드 (변경사항 반영)
+    freshProfile = loadFamilyProfile();
+    // 그 다음 진행 상황 동기화 (최신 members 포함)
     await syncFamilyProgressFromCloud(freshProfile);
   }, 10000);
 }
