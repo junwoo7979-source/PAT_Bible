@@ -25,7 +25,13 @@ function saveVerses(v){ localStorage.setItem('pat_verses', JSON.stringify(v)); }
 // ── 앱 제목 / 교회명 ──────────────────────────────────────
 const APP_TITLE_DEFAULT = 'PAT Bible';
 function applyAppTitle(){
-  const title = localStorage.getItem('pat_app_title') || APP_TITLE_DEFAULT;
+  let title = localStorage.getItem('pat_app_title') || APP_TITLE_DEFAULT;
+  // 깨진 데이터(대체 문자 U+FFFD '�') 제거
+  if(title && title.includes('�')) {
+    console.warn('[PAT] 깨진 appTitle 발견, 초기화:', title);
+    localStorage.removeItem('pat_app_title');
+    title = APP_TITLE_DEFAULT;
+  }
   document.getElementById('loginAppTitle').textContent = title;
   return title;
 }
