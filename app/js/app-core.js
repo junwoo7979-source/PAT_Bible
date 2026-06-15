@@ -52,8 +52,13 @@ async function initFirebase(){
 
   // 1️⃣ Firebase에서 설정(구절, 앱제목) 로드
   const config = await PAT_DB.getConfig(DB.church.code);
-  if(config && config.verse) {
-    DB.verse = config.verse;
+  let cloudVerse = config && config.verse ? config.verse : null;
+  if(!cloudVerse && PAT_DB.getLatestVerse) {
+    cloudVerse = await PAT_DB.getLatestVerse(DB.church.code);
+  }
+  if(cloudVerse) {
+    DB.verse = cloudVerse;
+    saveVerses([cloudVerse]);
     console.log('[PAT] Firebase 구절 로드됨:', DB.verse.ref);
   }
   if(config && config.appTitle) {

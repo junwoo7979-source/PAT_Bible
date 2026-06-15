@@ -53,7 +53,19 @@ exports.getConfig = onRequest({ cors: true, region: 'us-central1' }, async (req,
     if (!assertChurchCode(churchCode, res)) return;
     const doc = await db.doc(`churches/${churchCode}/config/current`).get();
     if (!doc.exists) {
-      res.json({ config: null });
+      const verseSnap = await db.collection(`churches/${churchCode}/verses`)
+        .orderBy('createdAt', 'desc').limit(1).get();
+      if (verseSnap.empty) {
+        res.json({ config: null });
+        return;
+      }
+      const verseDoc = verseSnap.docs[0];
+      res.json({
+        config: {
+          appTitle: '',
+          verse: { id: verseDoc.id, ...verseDoc.data() },
+        }
+      });
       return;
     }
     const data = doc.data();
