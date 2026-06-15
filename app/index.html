@@ -506,7 +506,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
   <!-- S4: 구절 보기 -->
   <section class="screen" id="s-verse">
-    <button class="back" onclick="go('s-family')">‹ 가족방</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <button class="back" style="margin:0" onclick="go('s-family')">‹ 가족방</button>
+      <button class="back" style="margin:0;background:var(--danger);color:white;font-size:calc(var(--fs) - 2px);padding:8px 12px" onclick="memberLogout()">로그아웃</button>
+    </div>
     <div id="verseCompletedProgress" style="display:none">
       <div class="steps" id="stepsVerse"></div>
       <p class="center" id="verseCompletedLabel" style="color:var(--accent);font-weight:700">완료!</p>
