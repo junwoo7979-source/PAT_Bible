@@ -606,7 +606,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
   <!-- S7b: 대시보드 -->
   <section class="screen" id="s-dashboard">
-    <h1>성취도</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h1 style="margin:0">성취도</h1>
+      <button class="back" style="margin:0;background:var(--danger);color:white;font-size:calc(var(--fs) - 2px);padding:8px 12px" onclick="memberLogout()">로그아웃</button>
+    </div>
     <p class="muted">개인 · 가족 · 교구 · 교회</p>
     <div class="row" style="margin-top:16px">
       <div class="stat"><b id="dMyCount">0</b><small>내 완료(주)</small></div>
@@ -652,7 +655,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
   <!-- S-prayer: 기도 -->
   <section class="screen" id="s-prayer">
-    <h1>🙏 기도</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h1 style="margin:0">🙏 기도</h1>
+      <button class="back" style="margin:0;background:var(--danger);color:white;font-size:calc(var(--fs) - 2px);padding:8px 12px" onclick="memberLogout()">로그아웃</button>
+    </div>
     <p class="muted" id="prayerDateLabel"></p>
 
     <!-- 오늘 기도 상태 -->
