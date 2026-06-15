@@ -65,24 +65,33 @@ function saveAppTitle(){
 }
 
 // ── 구절 등록 / 목록 / 적용 ──────────────────────────────
-function registerVerse(){
+async function registerVerse(){
   const ref  = document.getElementById('inRef').value.trim();
   const week = document.getElementById('inWeek').value.trim();
   const text = document.getElementById('inText').value.trim();
   if(!ref||!text){ toast('출처와 본문을 입력하세요'); return; }
+
   const vs = loadVerses();
   vs.unshift({ ref, weekOf:week||'(주차 미지정)', text, createdAt:new Date().toISOString() });
   saveVerses(vs);
   DB.verse = { ref, weekOf:week||'(주차 미지정)', text };
-  if(window.PAT_DB && PAT_DB.ready()){
-    PAT_DB.saveVerse(DB.church.code, { ref, weekOf:week||'(주차 미지정)', text })
-      .then(ok=>{ if(ok) toast('☁️ 구절이 전 성도에게 실시간 전송됩니다'); });
-  }
+
   document.getElementById('inRef').value  = '';
   document.getElementById('inText').value = '';
   renderVerseList();
   renderPreview();
-  toast('✓ 구절 등록 완료 — 전 성도에게 동기화되었습니다');
+
+  // Firebase에 저장 시도
+  if(window.PAT_DB && PAT_DB.ready()){
+    const ok = await PAT_DB.saveVerse(DB.church.code, { ref, weekOf:week||'(주차 미지정)', text });
+    if(ok) {
+      toast('✓ 구절 등록 완료 — 전 성도에게 실시간 전송됩니다 ☁️');
+    } else {
+      toast('⚠️ 로컬 저장 완료 (클라우드 동기화 실패 — 관리자 토큰 확인)');
+    }
+  } else {
+    toast('✓ 구절 등록 완료 (로컬 모드)');
+  }
 }
 function renderVerseList(){
   const vs = loadVerses();

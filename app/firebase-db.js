@@ -95,22 +95,38 @@ window.PAT_DB = (() => {
   }
 
   let _polling = null;
-  let _lastVerseId = null;
+  let _lastVerseHash = null;
 
   function subscribeVerse(churchCode, callback) {
     if (!ready()) return;
     if (_polling) clearInterval(_polling);
+
+    // 구절 내용을 hash로 비교 (ID 대신 내용 기준)
+    function getVerseHash(verse) {
+      if (!verse) return null;
+      return verse.ref + '|' + verse.text + '|' + verse.weekOf;
+    }
+
     _polling = setInterval(async () => {
       try {
         const verse = await getLatestVerse(churchCode);
-        if (verse && verse.id !== _lastVerseId) {
-          _lastVerseId = verse.id;
-          if (_lastVerseId) callback(verse);
+        const hash = getVerseHash(verse);
+        if (hash && hash !== _lastVerseHash) {
+          _lastVerseHash = hash;
+          callback(verse);
+          console.log('[PAT_DB] 구절 업데이트 감지됨:', verse.ref);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('[PAT_DB] subscribeVerse polling error:', e.message);
+      }
     }, 5000);
+
+    // 초기값 로드
     getLatestVerse(churchCode).then(verse => {
-      if (verse) { _lastVerseId = verse.id; callback(verse); }
+      if (verse) {
+        _lastVerseHash = getVerseHash(verse);
+        callback(verse);
+      }
     });
   }
 
