@@ -168,7 +168,7 @@ window.PAT_DB = (() => {
     // 설정을 hash로 비교
     function getConfigHash(config) {
       if (!config) return null;
-      const verseHash = config.verse ? config.verse.ref + '|' + config.verse.text : '';
+      const verseHash = config.verse ? config.verse.ref + '|' + config.verse.text + '|' + config.verse.weekOf : '';
       return config.appTitle + '|' + verseHash;
     }
 
