@@ -70,7 +70,7 @@ window.PAT_DB = (() => {
     const clientToken = CONFIG.clientToken || storedToken('pat_client_token');
     const adminToken = CONFIG.adminToken || storedToken('pat_admin_token');
     if (clientToken) headers['x-pat-client-token'] = clientToken;
-    if (path === 'saveVerse' && adminToken) headers['x-pat-admin-token'] = adminToken;
+    if ((path === 'saveVerse' || path === 'saveConfig') && adminToken) headers['x-pat-admin-token'] = adminToken;
     return headers;
   }
 

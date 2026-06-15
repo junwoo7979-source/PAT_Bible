@@ -4,6 +4,7 @@ const crypto = require('crypto');
 
 function passwordPepper(override) {
   if (override) return override;
+  if (process.env.PAT_PASSWORD_PEPPER) return process.env.PAT_PASSWORD_PEPPER;
 
   // functions.config()에서 pepper 읽기
   try {

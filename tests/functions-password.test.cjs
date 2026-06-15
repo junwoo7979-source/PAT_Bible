@@ -16,6 +16,10 @@ assert.equal(hashFamilyPassword('11111', '22222', 'pepper'), hash);
 assert.equal(verifyFamilyPassword('11111', '22222', hash, 'pepper'), true);
 assert.equal(verifyFamilyPassword('11111', 'wrong', hash, 'pepper'), false);
 
+process.env.PAT_PASSWORD_PEPPER = 'env-pepper';
+assert.equal(hashFamilyPassword('11111', '22222'), hashFamilyPassword('11111', '22222', 'env-pepper'));
+delete process.env.PAT_PASSWORD_PEPPER;
+
 const sanitized = sanitizeFamilyDataForSave('11111', {
   roomName: '믿음 가족방',
   familyPassword: '22222',

@@ -78,6 +78,18 @@ assert.equal(validChurchCode('x'.repeat(31)), false);
 }
 
 {
+  process.env.PAT_ADMIN_TOKEN = 'env-secret';
+  const res = mockRes();
+  const ok = assertToken({ headers: { 'x-pat-admin-token': 'env-secret' } }, res, {
+    envName: 'PAT_ADMIN_TOKEN',
+    headerName: 'x-pat-admin-token',
+  });
+  delete process.env.PAT_ADMIN_TOKEN;
+  assert.equal(ok, true);
+  assert.equal(res.statusCode, 200);
+}
+
+{
   const res = mockRes();
   const ok = assertToken({ headers: {} }, res, {
     envName: 'PAT_ADMIN_TOKEN',

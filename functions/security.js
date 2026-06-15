@@ -48,12 +48,12 @@ function assertToken(req, res, options) {
   const functions = require('firebase-functions');
 
   // functions.config()에서 token 읽기 (Firebase Runtime Config 방식)
-  let expected = options.expected || '';
+  let expected = options.expected || process.env[options.envName] || '';
 
   try {
-    if (options.envName === 'PAT_ADMIN_TOKEN') {
+    if (!expected && options.envName === 'PAT_ADMIN_TOKEN') {
       expected = functions.config().pat?.admin_token || '';
-    } else if (options.envName === 'PAT_CLIENT_TOKEN') {
+    } else if (!expected && options.envName === 'PAT_CLIENT_TOKEN') {
       expected = functions.config().pat?.client_token || '';
     }
   } catch (e) {
