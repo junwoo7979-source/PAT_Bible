@@ -293,7 +293,30 @@ if(typeof document !== 'undefined' && typeof document.addEventListener === 'func
 
 // ── SW 업데이트 감지 — 새 버전 배포 시 배너 표시 ───────────
 if(typeof navigator !== 'undefined' && navigator.serviceWorker){
+  // 방법 1: controllerchange (초기 활성화)
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    showSWUpdateBanner();
+  });
+
+  // 방법 2: updates (활성 상태에서 업데이트 감지) — 모바일 대응
+  navigator.serviceWorker.ready.then(registration => {
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // 이미 controller가 있고 새 SW가 installed → 업데이트 가능
+          showSWUpdateBanner();
+        }
+      });
+    });
+
+    // 5초마다 업데이트 체크 (모바일 앱에서 포그라운드 진입 시)
+    setInterval(() => {
+      registration.update().catch(() => {});
+    }, 5000);
+  });
+
+  function showSWUpdateBanner() {
     // 이미 배너가 있으면 중복 표시 방지
     if(document.getElementById('swUpdateBanner')) return;
     const banner = document.createElement('div');
@@ -306,7 +329,8 @@ if(typeof navigator !== 'undefined' && navigator.serviceWorker){
       + 'border:none;padding:4px 14px;border-radius:4px;cursor:pointer;font-weight:bold;">'
       + '새로고침</button>';
     document.body.appendChild(banner);
-  });
+    console.log('[PAT] SW 업데이트 배너 표시');
+  }
 }
 
 // ── DOM 이벤트 (body 내 스크립트이므로 DOM 준비 완료) ─────
