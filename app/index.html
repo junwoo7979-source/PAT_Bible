@@ -404,7 +404,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <div class="hm-card">
       <div class="hm-family-header">
         <h2 id="familyRoomTitle">👨‍👩‍👧 우리 가족방</h2>
-        <button class="hm-logout-btn" onclick="memberLogout()">로그아웃</button>
+        <div style="display:flex;gap:6px">
+          <button class="hm-logout-btn" style="font-size:calc(var(--fs) - 2px);padding:6px 10px" onclick="location.reload()" title="Firebase에서 최신 데이터 새로고침">🔄</button>
+          <button class="hm-logout-btn" onclick="memberLogout()">로그아웃</button>
+        </div>
       </div>
       <p class="muted" id="familyProfile">가족방을 등록해주세요</p>
       <p class="muted" id="familyProgress" style="margin-top:8px">이번 주 달성률</p>
