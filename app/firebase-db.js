@@ -79,11 +79,19 @@ window.PAT_DB = (() => {
   // ════════════════════════════════════════════════════════
 
   async function saveVerse(churchCode, verse) {
-    if (!ready()) return false;
+    if (!ready()) {
+      console.error('[PAT_DB] Firebase not ready');
+      return false;
+    }
     try {
-      await apiPost('saveVerse', { churchCode, ref: verse.ref, text: verse.text, weekOf: verse.weekOf });
+      console.log('[PAT_DB] saveVerse 요청 시작:', { churchCode, ref: verse.ref });
+      const result = await apiPost('saveVerse', { churchCode, ref: verse.ref, text: verse.text, weekOf: verse.weekOf });
+      console.log('[PAT_DB] saveVerse 저장 성공:', result);
       return true;
-    } catch (e) { console.warn('[PAT_DB] saveVerse:', e.message); return false; }
+    } catch (e) {
+      console.error('[PAT_DB] saveVerse 실패:', e.message, e.status);
+      return false;
+    }
   }
 
   async function getLatestVerse(churchCode) {

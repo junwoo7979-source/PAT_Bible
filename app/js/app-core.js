@@ -37,6 +37,12 @@ function applyStoredData(){
   if(vs.length){ DB.verse = { ref:vs[0].ref, weekOf:vs[0].weekOf, text:vs[0].text }; }
   checkInviteParam();
   initFirebase();
+
+  // 관리자 로그인 상태 복원
+  if(isAdminLoggedIn()){
+    renderAdmin();
+    go('s-admin', true, false);
+  }
 }
 function initFirebase(){
   if(!window.PAT_DB) return;
@@ -48,21 +54,42 @@ function initFirebase(){
     const activeId = document.querySelector('.screen.active')?.id;
     if(activeId==='s-family') renderFamily();
     else if(activeId==='s-verse') renderVerse();
+    else if(activeId==='s-admin') renderAdmin();  // 관리자 화면도 갱신
     toast('📖 이번 주 구절이 업데이트됐습니다');
+    console.log('[PAT] 구절 업데이트 감지:', verse.ref);
   });
 }
 
 // ── 관리자 ────────────────────────────────────────────────
 const ADMIN = { id:'admin', pw:'1234' };
+
+function isAdminLoggedIn() {
+  return localStorage.getItem('pat_admin_logged_in') === 'true';
+}
+
+function setAdminLoggedIn(logged) {
+  if (logged) {
+    localStorage.setItem('pat_admin_logged_in', 'true');
+  } else {
+    localStorage.removeItem('pat_admin_logged_in');
+  }
+}
+
 function adminLogin(){
   const id = document.getElementById('adminId').value.trim();
   const pw = document.getElementById('adminPw').value.trim();
   if(id !== ADMIN.id || pw !== ADMIN.pw){ toast('아이디 또는 비밀번호가 올바르지 않습니다'); return; }
   document.getElementById('adminPw').value = '';
+  setAdminLoggedIn(true);
   renderAdmin();
   go('s-admin');
+  toast('✓ 관리자로 로그인되었습니다');
 }
-function adminLogout(){ go('s-login'); toast('로그아웃되었습니다'); }
+function adminLogout(){
+  setAdminLoggedIn(false);
+  go('s-login');
+  toast('로그아웃되었습니다');
+}
 function memberLogout(){
   const code = document.getElementById('churchCode');
   if(code) code.value = '';
