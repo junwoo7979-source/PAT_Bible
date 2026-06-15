@@ -498,23 +498,9 @@ function renderFamily(){
     if(!DB.members.find(m=>m.me)) DB.members[0].me = true;
   }
   const me = DB.members.find(m=>m.me);
-  // ★ Firebase members에 등록됨 = "완료(✓)" 상태
-  // (미션 완료 여부와 무관하게, 가족방에 입장했으면 완료)
-  if(me && familyId && window.PAT_DB && PAT_DB.ready()){
-    // Firebase members 목록 확인
-    if(window.PAT_DB.getFamilyMembers){
-      window.PAT_DB.getFamilyMembers(DB.church.code, familyId).then(members=>{
-        const memberNames = members.map(m=>m.displayName||m.name||'').filter(Boolean);
-        if(memberNames.includes(me.name)){
-          me.done = true; // Firebase에 등록됨 = 입장 완료
-        }
-      }).catch(()=>{
-        // 폴링 완료 대기
-      });
-    }
-  }
-  // 부가: 미션 기록도 확인 (추가 체크)
-  if(recs.length>0 && me && !me.done) me.done = true;
+  // ★ 동기화: syncFamilyProgressFromCloud()에서
+  // Firebase members의 done 상태를 받아서 반영함
+  // (done=true = 가족방에 입장했다는 뜻)
   renderFamilyMemberList(DB.members);
   const syncPromise = syncFamilyProgressFromCloud(profile);
   startFamilyProgressPolling(profile);

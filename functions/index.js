@@ -253,13 +253,9 @@ exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, asy
     if (!familyId) { res.status(400).json({ error: 'familyId required' }); return; }
     const memberSnap = await db.collection(`churches/${churchCode}/families/${familyId}/members`).get();
     const members = memberSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const doneIds = new Set();
-    if (verseRef) {
-      const recSnap = await db.collection(`churches/${churchCode}/records`)
-        .where('familyId', '==', familyId).where('verseRef', '==', verseRef).get();
-      recSnap.docs.forEach(d => doneIds.add(d.data().deviceId));
-    }
-    res.json({ members: members.map(m => ({ ...m, done: doneIds.has(m.deviceId) })) });
+    // ★ members에 있으면 "입장 완료(done=true)" 기본값으로 설정
+    // (가족방에 입장했다는 뜻 = 가족 등록이 완료됨)
+    res.json({ members: members.map(m => ({ ...m, done: true })) });
   } catch (e) { errRes(res, e); }
 });
 
