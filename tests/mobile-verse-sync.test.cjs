@@ -38,6 +38,36 @@ assert.match(
 );
 
 assert.match(
+  appCoreSource,
+  /function applyCloudConfig\(config\)/,
+  'client must centralize cloud config application so mobile screens stay in sync',
+);
+
+assert.match(
+  appCoreSource,
+  /saveVerses\(\[DB\.verse\]\)/,
+  'cloud config updates must refresh local pat_verses backup used by mobile screens',
+);
+
+assert.match(
+  appCoreSource,
+  /function syncAdminVerseFields\(\)/,
+  'admin inputs must be refreshed when a cloud verse update is applied on mobile',
+);
+
+assert.match(
+  appCoreSource,
+  /document\.getElementById\('inRef'\)\.value\s*=\s*DB\.verse\.ref/,
+  'admin verse reference input must receive the latest cloud verse',
+);
+
+assert.match(
+  appCoreSource,
+  /document\.getElementById\('inText'\)\.value\s*=\s*DB\.verse\.text/,
+  'admin verse text input must receive the latest cloud verse',
+);
+
+assert.match(
   functionsSource,
   /collection\(`churches\/\$\{churchCode\}\/verses`\)[\s\S]*orderBy\('createdAt', 'desc'\)[\s\S]*config:\s*\{\s*appTitle:/,
   'getConfig endpoint must fall back to latest legacy verse for already-installed mobile apps',

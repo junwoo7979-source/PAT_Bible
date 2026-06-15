@@ -29,6 +29,17 @@ function applyAppTitle(){
   document.getElementById('loginAppTitle').textContent = title;
   return title;
 }
+function applyCloudConfig(config){
+  if(!config) return;
+  if(config.verse) {
+    DB.verse = { ref:config.verse.ref, text:config.verse.text, weekOf:config.verse.weekOf };
+    saveVerses([DB.verse]);
+  }
+  if(Object.prototype.hasOwnProperty.call(config, 'appTitle')) {
+    localStorage.setItem('pat_app_title', config.appTitle || '');
+    applyAppTitle();
+  }
+}
 function applyStoredData(){
   applyAppTitle();
   const cn = localStorage.getItem('pat_church_name');
@@ -57,24 +68,13 @@ async function initFirebase(){
     cloudVerse = await PAT_DB.getLatestVerse(DB.church.code);
   }
   if(cloudVerse) {
-    DB.verse = cloudVerse;
-    saveVerses([cloudVerse]);
+    applyCloudConfig({ appTitle: config ? config.appTitle : undefined, verse: cloudVerse });
     console.log('[PAT] Firebase 구절 로드됨:', DB.verse.ref);
-  }
-  if(config && config.appTitle) {
-    localStorage.setItem('pat_app_title', config.appTitle);
-    applyAppTitle();
   }
 
   // 2️⃣ 설정 폴링 구독 (구절 + 앱제목)
   PAT_DB.subscribeConfig(DB.church.code, config => {
-    if(config.verse) {
-      DB.verse = { ref:config.verse.ref, text:config.verse.text, weekOf:config.verse.weekOf };
-    }
-    if(config.appTitle) {
-      localStorage.setItem('pat_app_title', config.appTitle);
-      applyAppTitle();
-    }
+    applyCloudConfig(config);
     const activeId = document.querySelector('.screen.active')?.id;
     if(activeId==='s-family') renderFamily();
     else if(activeId==='s-verse') renderVerse();
@@ -124,14 +124,20 @@ function memberLogout(){
   go('s-login');
   toast('로그아웃되었습니다');
 }
+function syncAdminVerseFields(){
+  document.getElementById('inRef').value = DB.verse.ref || '';
+  document.getElementById('inText').value = DB.verse.text || '';
+  document.getElementById('inWeek').value = DB.verse.weekOf || '';
+}
 function renderAdmin(){
   document.getElementById('adminChurchLabel').textContent = '관리 교회: '+DB.church.name;
   document.getElementById('inAppTitle').value = applyAppTitle();
   document.getElementById('inChurchName').value = DB.church.name;
   if(!document.getElementById('inDate').value){
     document.getElementById('inDate').value = new Date().toISOString().slice(0,10);
+    updateWeekFromDate();
   }
-  updateWeekFromDate();
+  syncAdminVerseFields();
   renderVerseList();
   renderPreview();
 }
