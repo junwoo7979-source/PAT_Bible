@@ -268,12 +268,12 @@ exports.saveRecord = onRequest({ cors: true, region: 'us-central1' }, async (req
   // ⚠️ 토큰 검증 제거 — 미션 기록은 인증된 구성원이 저장
   try {
     const { churchCode, verseRef, deviceId, familyId, parish, district,
-            leaderName, voiceScore1, voiceScore2, typeScore1, typeScore2, badge } = req.body;
+            leaderName, memberName, voiceScore1, voiceScore2, typeScore1, typeScore2, badge } = req.body;
     if (!assertChurchCode(churchCode, res)) return;
     if (!verseRef) { res.status(400).json({ error: 'verseRef required' }); return; }
     const ref = await db.collection(`churches/${churchCode}/records`).add({
       verseRef, deviceId, familyId, parish, district,
-      leaderName, voiceScore1, voiceScore2, typeScore1, typeScore2, badge,
+      leaderName, memberName, voiceScore1, voiceScore2, typeScore1, typeScore2, badge,
       createdAt: FieldValue.serverTimestamp(),
     });
     res.json({ id: ref.id });

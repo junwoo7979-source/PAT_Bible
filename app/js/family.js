@@ -110,6 +110,8 @@ async function joinFamilyManual(){
     if(window.PAT_DB && PAT_DB.ready()){
       const familyId = localStorage.getItem('pat_family_id')||'';
       if(familyId) await PAT_DB.joinFamily(DB.church.code, familyId, name);
+      // ★ Firebase 동기화 즉시 실행 — 다른 멤버들의 정보를 받아오기
+      await syncFamilyProgressFromCloud(loadFamilyProfile());
     }
   } else {
     if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
@@ -277,6 +279,8 @@ async function joinFamilyFromInvite(){
       members,
     }));
     if(familyId) await PAT_DB.joinFamily(DB.church.code, familyId, myName);
+    // ★ Firebase 동기화 즉시 실행 — 다른 멤버들의 정보를 받아오기
+    await syncFamilyProgressFromCloud(loadFamilyProfile());
   } else {
     // 오프라인 fallback: 로컬 정보로만 저장
     localStorage.setItem('pat_family_profile', JSON.stringify({
