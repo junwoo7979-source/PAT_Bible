@@ -45,30 +45,34 @@ function headerValue(req, name) {
 }
 
 function assertToken(req, res, options) {
-  let expected = options.expected || process.env[options.envName] || '';
+  const functions = require('firebase-functions');
 
-  // 환경변수가 없으면 functions.config()에서 로드 시도
-  if (!expected && options.envName) {
-    try {
-      const functions = require('firebase-functions');
-      if (options.envName === 'PAT_ADMIN_TOKEN') {
-        expected = functions.config().pat?.admin_token || '';
-      } else if (options.envName === 'PAT_CLIENT_TOKEN') {
-        expected = functions.config().pat?.client_token || '';
-      }
-    } catch (e) {
-      console.error('[PAT] functions.config() 로드 실패:', e.message);
+  // functions.config()에서 token 읽기 (Firebase Runtime Config 방식)
+  let expected = options.expected || '';
+
+  try {
+    if (options.envName === 'PAT_ADMIN_TOKEN') {
+      expected = functions.config().pat?.admin_token || '';
+    } else if (options.envName === 'PAT_CLIENT_TOKEN') {
+      expected = functions.config().pat?.client_token || '';
     }
+  } catch (e) {
+    console.error('[PAT] 토큰 로드 실패:', e.message);
   }
 
   if (!expected) {
-    res.status(503).json({ error: `Server token not configured: ${options.envName}` });
-    console.error('[PAT] Token 미설정:', options.envName);
+    res.status(503).json({ error: 'Server token not configured' });
+    console.error('[PAT] 토큰 미설정:', options.envName);
     return false;
   }
 
-  if (headerValue(req, options.headerName) === expected) return true;
+  const clientToken = headerValue(req, options.headerName);
+  if (clientToken === expected) return true;
 
+  console.warn('[PAT] 토큰 불일치:', {
+    expected: expected.substring(0, 20) + '...',
+    received: clientToken.substring(0, 20) + '...'
+  });
   res.status(401).json({ error: 'Unauthorized' });
   return false;
 }
