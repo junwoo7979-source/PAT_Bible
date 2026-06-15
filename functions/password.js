@@ -4,10 +4,23 @@ const crypto = require('crypto');
 
 function passwordPepper(override) {
   if (override) return override;
-  const env = process.env.PAT_PASSWORD_PEPPER;
+
+  let env = process.env.PAT_PASSWORD_PEPPER;
+
+  // process.env에 없으면 functions.config()에서 로드
   if (!env) {
-    console.warn('[PAT] PAT_PASSWORD_PEPPER 환경변수 미설정 — dev-pepper 사용 중. 운영 배포 전 반드시 설정하세요.');
+    try {
+      const functions = require('firebase-functions');
+      env = functions.config().pat?.pepper || '';
+    } catch (e) {
+      console.error('[PAT] functions.config() 로드 실패:', e.message);
+    }
   }
+
+  if (!env) {
+    console.warn('[PAT] PAT_PASSWORD_PEPPER 미설정 — dev-pepper 사용 중. 운영 배포 전 반드시 설정하세요!');
+  }
+
   return env || 'pat-bible-dev-pepper';
 }
 

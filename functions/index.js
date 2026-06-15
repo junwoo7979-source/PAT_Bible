@@ -60,16 +60,32 @@ exports.getVerse = onRequest({ cors: true, region: 'us-central1' }, async (req, 
 
 exports.saveVerse = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
   if (!begin(req, res)) return;
-  if (!requireAdminWrite(req, res)) return;
+  console.log('[PAT] saveVerse 요청 시작');
+  if (!requireAdminWrite(req, res)) {
+    console.error('[PAT] Admin 토큰 검증 실패');
+    return;
+  }
   try {
     const { churchCode, ref, text, weekOf } = req.body;
-    if (!assertChurchCode(churchCode, res)) return;
-    if (!ref || !text) { res.status(400).json({ error: 'ref, text required' }); return; }
+    console.log('[PAT] saveVerse 파라미터:', { churchCode, ref });
+    if (!assertChurchCode(churchCode, res)) {
+      console.error('[PAT] churchCode 검증 실패:', churchCode);
+      return;
+    }
+    if (!ref || !text) {
+      console.error('[PAT] ref 또는 text 없음');
+      res.status(400).json({ error: 'ref, text required' });
+      return;
+    }
     const docRef = await db.collection(`churches/${churchCode}/verses`).add({
       ref, text, weekOf: weekOf || '', createdAt: FieldValue.serverTimestamp(),
     });
+    console.log('[PAT] saveVerse 저장 성공:', docRef.id);
     res.json({ id: docRef.id });
-  } catch (e) { errRes(res, e); }
+  } catch (e) {
+    console.error('[PAT] saveVerse 에러:', e.message);
+    errRes(res, e);
+  }
 });
 
 exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
