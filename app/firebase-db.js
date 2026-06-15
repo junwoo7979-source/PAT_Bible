@@ -69,8 +69,15 @@ window.PAT_DB = (() => {
     const headers = { 'Content-Type': 'application/json' };
     const clientToken = CONFIG.clientToken || storedToken('pat_client_token');
     const adminToken = CONFIG.adminToken || storedToken('pat_admin_token');
+    const adminId = storedToken('pat_admin_id');
+    const adminPassword = storedToken('pat_admin_pw');
+    const adminWrite = path === 'saveVerse' || path === 'saveConfig';
     if (clientToken) headers['x-pat-client-token'] = clientToken;
-    if ((path === 'saveVerse' || path === 'saveConfig') && adminToken) headers['x-pat-admin-token'] = adminToken;
+    if (adminWrite && adminToken) headers['x-pat-admin-token'] = adminToken;
+    if (adminWrite && !adminToken && adminId && adminPassword) {
+      headers['x-pat-admin-id'] = adminId;
+      headers['x-pat-admin-password'] = adminPassword;
+    }
     return headers;
   }
 

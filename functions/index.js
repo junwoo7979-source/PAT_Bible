@@ -37,6 +37,14 @@ function requireAdminWrite(req, res) {
   return assertToken(req, res, {
     envName: 'PAT_ADMIN_TOKEN',
     headerName: 'x-pat-admin-token',
+    credentialHeaders: {
+      id: 'x-pat-admin-id',
+      password: 'x-pat-admin-password',
+    },
+    credentialEnv: {
+      id: 'PAT_ADMIN_ID',
+      password: 'PAT_ADMIN_PASSWORD',
+    },
   });
 }
 

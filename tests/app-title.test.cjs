@@ -55,4 +55,13 @@ storage.set('pat_app_title', '우리교회 암송');
 context.applyStoredData();
 assert.equal(getElement('loginAppTitle').textContent, '우리교회 암송');
 
+getElement('adminId').value = 'admin';
+getElement('adminPw').value = '1234';
+context.adminLogin();
+assert.equal(storage.get('pat_admin_id'), 'admin');
+assert.equal(storage.get('pat_admin_pw'), '1234');
+context.adminLogout();
+assert.equal(storage.get('pat_admin_id'), undefined);
+assert.equal(storage.get('pat_admin_pw'), undefined);
+
 console.log('app title persistence: PASS');

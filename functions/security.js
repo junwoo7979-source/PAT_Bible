@@ -16,7 +16,7 @@ function applyCors(req, res, options = {}) {
   const allowedOrigins = options.allowedOrigins || envList('PAT_ALLOWED_ORIGINS');
 
   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, x-pat-client-token, x-pat-admin-token');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, x-pat-client-token, x-pat-admin-token, x-pat-admin-id, x-pat-admin-password');
   res.set('Vary', 'Origin');
 
   if (!origin) {
@@ -40,6 +40,7 @@ function assertChurchCode(churchCode, res) {
 }
 
 function headerValue(req, name) {
+  if (!name) return '';
   const headers = req.headers || {};
   return headers[name] || headers[name.toLowerCase()] || headers[name.toUpperCase()] || '';
 }
@@ -47,7 +48,6 @@ function headerValue(req, name) {
 function assertToken(req, res, options) {
   const functions = require('firebase-functions');
 
-  // functions.config()에서 token 읽기 (Firebase Runtime Config 방식)
   let expected = options.expected || process.env[options.envName] || '';
 
   try {
@@ -57,21 +57,31 @@ function assertToken(req, res, options) {
       expected = functions.config().pat?.client_token || '';
     }
   } catch (e) {
-    console.error('[PAT] 토큰 로드 실패:', e.message);
+    console.error('[PAT] token load failed:', e.message);
+  }
+
+  const clientToken = headerValue(req, options.headerName);
+  if (expected && clientToken === expected) return true;
+
+  const credentialHeaders = options.credentialHeaders || {};
+  const credentialEnv = options.credentialEnv || {};
+  const expectedId = process.env[credentialEnv.id] || '';
+  const expectedPassword = process.env[credentialEnv.password] || '';
+  const clientId = headerValue(req, credentialHeaders.id);
+  const clientPassword = headerValue(req, credentialHeaders.password);
+  if (expectedId && expectedPassword && clientId === expectedId && clientPassword === expectedPassword) {
+    return true;
   }
 
   if (!expected) {
     res.status(503).json({ error: 'Server token not configured' });
-    console.error('[PAT] 토큰 미설정:', options.envName);
+    console.error('[PAT] token not configured:', options.envName);
     return false;
   }
 
-  const clientToken = headerValue(req, options.headerName);
-  if (clientToken === expected) return true;
-
-  console.warn('[PAT] 토큰 불일치:', {
+  console.warn('[PAT] token mismatch:', {
     expected: expected.substring(0, 20) + '...',
-    received: clientToken.substring(0, 20) + '...'
+    received: clientToken.substring(0, 20) + '...',
   });
   res.status(401).json({ error: 'Unauthorized' });
   return false;

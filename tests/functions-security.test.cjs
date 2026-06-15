@@ -34,6 +34,8 @@ assert.equal(validChurchCode('x'.repeat(31)), false);
   assert.equal(ok, true);
   assert.equal(res.headers['Access-Control-Allow-Origin'], 'https://pat.example.com');
   assert.match(res.headers.Vary, /Origin/);
+  assert.match(res.headers['Access-Control-Allow-Headers'], /x-pat-admin-id/);
+  assert.match(res.headers['Access-Control-Allow-Headers'], /x-pat-admin-password/);
 }
 
 {
@@ -85,6 +87,28 @@ assert.equal(validChurchCode('x'.repeat(31)), false);
     headerName: 'x-pat-admin-token',
   });
   delete process.env.PAT_ADMIN_TOKEN;
+  assert.equal(ok, true);
+  assert.equal(res.statusCode, 200);
+}
+
+{
+  process.env.PAT_ADMIN_ID = 'admin';
+  process.env.PAT_ADMIN_PASSWORD = '1234';
+  const res = mockRes();
+  const ok = assertToken({ headers: { 'x-pat-admin-id': 'admin', 'x-pat-admin-password': '1234' } }, res, {
+    envName: 'PAT_ADMIN_TOKEN',
+    headerName: 'x-pat-admin-token',
+    credentialHeaders: {
+      id: 'x-pat-admin-id',
+      password: 'x-pat-admin-password',
+    },
+    credentialEnv: {
+      id: 'PAT_ADMIN_ID',
+      password: 'PAT_ADMIN_PASSWORD',
+    },
+  });
+  delete process.env.PAT_ADMIN_ID;
+  delete process.env.PAT_ADMIN_PASSWORD;
   assert.equal(ok, true);
   assert.equal(res.statusCode, 200);
 }

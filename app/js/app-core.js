@@ -103,6 +103,8 @@ function adminLogin(){
   const id = document.getElementById('adminId').value.trim();
   const pw = document.getElementById('adminPw').value.trim();
   if(id !== ADMIN.id || pw !== ADMIN.pw){ toast('아이디 또는 비밀번호가 올바르지 않습니다'); return; }
+  localStorage.setItem('pat_admin_id', id);
+  localStorage.setItem('pat_admin_pw', pw);
   document.getElementById('adminPw').value = '';
   setAdminLoggedIn(true);
   renderAdmin();
@@ -110,6 +112,8 @@ function adminLogin(){
   toast('✓ 관리자로 로그인되었습니다');
 }
 function adminLogout(){
+  localStorage.removeItem('pat_admin_id');
+  localStorage.removeItem('pat_admin_pw');
   setAdminLoggedIn(false);
   go('s-login');
   toast('로그아웃되었습니다');
