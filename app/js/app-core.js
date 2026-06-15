@@ -248,13 +248,20 @@ function tabGo(id){ go(id); }
 // 브라우저/모바일 뒤로가기 처리
 if(typeof window !== 'undefined' && window.history){
   window.addEventListener('popstate', e => {
+    // 현재 보이는 화면이 로그인 화면이면 뒤로가기 완전 차단
+    const currentActive = document.querySelector('.screen.active');
+    if(currentActive && (currentActive.id === 's-login' || currentActive.id === 's-adminlogin')){
+      history.pushState({ screen: currentActive.id }, '', _screenUrl(currentActive.id));
+      return;
+    }
+
     // state 우선, 없으면 해시에서 추출 (모바일 폴백)
     const hash = location.hash.replace('#','');
     const screen = e.state?.screen
       || (hash && document.getElementById(hash) ? hash : null);
 
-    // 로그인 화면에서 뒤로가기하려는 시도 → 로그인 화면 유지
-    if(!screen || !isAdminLoggedIn()){
+    // 로그인 화면으로 가려는 시도 → 로그인 화면 유지
+    if(!screen || (screen === 's-login' || screen === 's-adminlogin')){
       history.replaceState({ screen: 's-login' }, '', _screenUrl('s-login'));
       document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
       const loginScreen = document.getElementById('s-login');
