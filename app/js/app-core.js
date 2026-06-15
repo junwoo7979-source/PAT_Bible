@@ -36,8 +36,15 @@ function applyCloudConfig(config){
     saveVerses([DB.verse]);
   }
   if(Object.prototype.hasOwnProperty.call(config, 'appTitle')) {
-    localStorage.setItem('pat_app_title', config.appTitle || '');
-    applyAppTitle();
+    const title = (config.appTitle || '').trim();
+    // 깨진 문자(대체 문자 U+FFFD) 확인
+    if(title && !title.includes('�')) {
+      localStorage.setItem('pat_app_title', title);
+      applyAppTitle();
+      console.log('[PAT] Cloud appTitle 적용:', title);
+    } else if(title) {
+      console.warn('[PAT] 깨진 appTitle 무시:', title);
+    }
   }
 }
 function applyStoredData(){
