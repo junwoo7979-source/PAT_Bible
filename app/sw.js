@@ -66,9 +66,13 @@ self.addEventListener('fetch', event => {
   }
 
   // 아이콘 파일: 네트워크 우선 (캐시 무시)
+  // 아이콘 요청에 자동으로 캐시버스팅 쿼리 추가 (manifest 변경 없이 아이콘만 업데이트)
   if (url.pathname.startsWith('/icons/')) {
+    const iconUrl = new URL(event.request.url);
+    // 기존 쿼리 제거 후 최신 버전 추가
+    iconUrl.search = '?v=' + CACHE_NAME.split('-').pop();
     event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
+      fetch(iconUrl, { cache: 'no-store' })
         .catch(() => caches.match(event.request))
     );
     return;
