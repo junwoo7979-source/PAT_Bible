@@ -63,6 +63,21 @@ function applyStoredData(){
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
+  // ── TWA 환경 진단 ──
+  const lsTest = localStorage.getItem('pat_family_profile');
+  const lsKeys = [];
+  try {
+    for(let i=0; i<localStorage.length; i++) {
+      lsKeys.push(localStorage.key(i));
+    }
+  } catch(e) {}
+  console.log('[PAT-STARTUP] localStorage 상태:', {
+    familyProfile: lsTest ? '있음' : '없음',
+    keys: lsKeys,
+    admin: localStorage.getItem('pat_admin_id') ? '있음' : '없음',
+    church: localStorage.getItem('pat_church_name') || 'N/A'
+  });
+
   applyAppTitle();
   const cn = localStorage.getItem('pat_church_name');
   if(cn) DB.church.name = cn;
@@ -86,7 +101,7 @@ function applyStoredData(){
   }
 
   go(initialScreen, true, false);
-  console.log('[PAT] 초기 화면 진입:', initialScreen);
+  console.log('[PAT-STARTUP] 초기 화면 진입:', initialScreen);
 
   initFirebase();
 }
