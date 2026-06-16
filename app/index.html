@@ -722,22 +722,16 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 // 서비스 워커 등록
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js?v=42&t='+Date.now()).then(reg=>{
-      // 앱 시작 시 즉시 업데이트 확인
-      reg.update().catch(()=>{});
-
+    navigator.serviceWorker.register('sw.js?v=42').then(reg=>{
       reg.onupdatefound=()=>{
         const newWorker=reg.installing;
         newWorker.onstatechange=()=>{
           if(newWorker.state==='installed'&&navigator.serviceWorker.controller){
-            console.log('[PAT] Service Worker 업데이트 감지, 강제 새로고침');
             window.location.reload();
           }
         };
       };
-    }).catch((err)=>{
-      console.error('[PAT] Service Worker 등록 실패:', err);
-    });
+    }).catch(()=>{});
   });
 }
 </script>
