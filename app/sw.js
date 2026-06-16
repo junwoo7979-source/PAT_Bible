@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pat-bible-app-v25';
+const CACHE_NAME = 'pat-bible-app-v26';
 const APP_SHELL = [
   './',
   './index.html',
@@ -14,8 +14,7 @@ const APP_SHELL = [
   './js/reset-pw.js',
   './manifest.json',
   './icons/pat-icon-192.png',
-  './icons/pat-icon-512.png',
-  './icons/pat-icon.svg'
+  './icons/pat-icon-512.png'
 ];
 
 self.addEventListener('install', event => {
