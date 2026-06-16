@@ -28,6 +28,11 @@ assert.match(sw, /'\.\/js\/family\.js'/);
 assert.match(sw, /'\.\/js\/voice\.js'/);
 assert.match(sw, /'\.\/js\/voice-ui\.js'/);
 assert.match(sw, /'\.\/js\/memorize\.js'/);
+assert.doesNotMatch(
+  html,
+  /window\.location\.reload\(\)/,
+  'service worker updates must not force reload on app start'
+);
 
 assert.ok(fs.existsSync('app/icons/pat-icon-192.png'), '192 PNG icon file must exist');
 assert.ok(fs.existsSync('app/icons/pat-icon-512.png'), '512 PNG icon file must exist');
