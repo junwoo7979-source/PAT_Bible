@@ -1,0 +1,31 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5b21b6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 배경 -->
+  <rect width="256" height="256" rx="60" fill="url(#grad4)"/>
+
+  <!-- 노트북 -->
+  <rect x="50" y="40" width="156" height="176" rx="10" fill="#ffffff" opacity="0.2" stroke="#ffffff" stroke-width="3"/>
+
+  <!-- 펜 -->
+  <g transform="translate(75, 70)">
+    <rect x="0" y="0" width="10" height="80" fill="#fbbf24" rx="5"/>
+    <circle cx="5" cy="-5" r="7" fill="#f59e0b"/>
+  </g>
+
+  <!-- 말씀 라인들 -->
+  <line x1="100" y1="100" x2="190" y2="100" stroke="#ffffff" stroke-width="3" opacity="0.8"/>
+  <line x1="100" y1="125" x2="185" y2="125" stroke="#ffffff" stroke-width="3" opacity="0.7"/>
+  <line x1="100" y1="150" x2="180" y2="150" stroke="#ffffff" stroke-width="3" opacity="0.6"/>
+  <line x1="100" y1="175" x2="175" y2="175" stroke="#ffffff" stroke-width="3" opacity="0.5"/>
+
+  <!-- 체크마크 -->
+  <g transform="translate(160, 195)">
+    <path d="M -15 0 L -5 12 L 18 -12" stroke="#10b981" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -1,0 +1,26 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#db2777;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#be185d;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 배경 -->
+  <rect width="256" height="256" rx="60" fill="url(#grad5)"/>
+
+  <!-- 부모 -->
+  <circle cx="70" cy="60" r="20" fill="#ffffff"/>
+  <path d="M 50 85 Q 50 105 70 105 Q 90 105 90 85 L 90 145 Q 90 155 80 155 L 60 155 Q 50 155 50 145 Z" fill="#ffffff"/>
+
+  <circle cx="130" cy="45" r="18" fill="#fbbf24"/>
+  <path d="M 112 70 Q 112 88 130 88 Q 148 88 148 70 L 148 145 Q 148 155 138 155 L 122 155 Q 112 155 112 145 Z" fill="#fbbf24"/>
+
+  <!-- 자녀 -->
+  <circle cx="190" cy="65" r="18" fill="#fbbf24"/>
+  <path d="M 172 90 Q 172 110 190 110 Q 208 110 208 90 L 208 145 Q 208 155 198 155 L 182 155 Q 172 155 172 145 Z" fill="#fbbf24"/>
+
+  <!-- 손 연결 -->
+  <line x1="90" y1="105" x2="112" y2="88" stroke="#ffffff" stroke-width="4" opacity="0.8" stroke-linecap="round"/>
+  <line x1="148" y1="88" x2="172" y2="105" stroke="#ffffff" stroke-width="4" opacity="0.8" stroke-linecap="round"/>
+</svg>

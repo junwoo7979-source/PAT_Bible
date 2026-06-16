@@ -1,0 +1,27 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0c4a6e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 배경 -->
+  <rect width="256" height="256" rx="60" fill="url(#grad6)"/>
+
+  <!-- 중앙 십자가 -->
+  <rect x="118" y="30" width="20" height="130" fill="#fbbf24" rx="10"/>
+  <rect x="30" y="95" width="196" height="20" fill="#fbbf24" rx="10"/>
+
+  <!-- 주변 말씀 원들 -->
+  <circle cx="50" cy="60" r="24" fill="#3b82f6" stroke="#fbbf24" stroke-width="3"/>
+  <circle cx="206" cy="60" r="24" fill="#3b82f6" stroke="#fbbf24" stroke-width="3"/>
+  <circle cx="50" cy="196" r="24" fill="#3b82f6" stroke="#fbbf24" stroke-width="3"/>
+  <circle cx="206" cy="196" r="24" fill="#3b82f6" stroke="#fbbf24" stroke-width="3"/>
+
+  <!-- 말씀 심볼 (작은 라인들) -->
+  <line x1="44" y1="52" x2="56" y2="68" stroke="#fbbf24" stroke-width="2" opacity="0.8"/>
+  <line x1="200" y1="52" x2="212" y2="68" stroke="#fbbf24" stroke-width="2" opacity="0.8"/>
+  <line x1="44" y1="204" x2="56" y2="188" stroke="#fbbf24" stroke-width="2" opacity="0.8"/>
+  <line x1="200" y1="204" x2="212" y2="188" stroke="#fbbf24" stroke-width="2" opacity="0.8"/>
+</svg>
