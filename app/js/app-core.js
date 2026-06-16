@@ -129,7 +129,11 @@ function applyStoredData(){
   }
 
   console.log('[PAT-STARTUP] 초기 화면 진입:', initialScreen, `(${reason})`);
-  go(initialScreen, true, false);
+
+  // 로그인 화면이 이미 active이므로, 다른 화면으로 이동할 때만 go() 호출
+  if(initialScreen !== 's-login'){
+    go(initialScreen, true, false);
+  }
 
   initFirebase();
 }
@@ -305,11 +309,11 @@ function _screenUrl(id){
   return location.pathname + location.search + '#' + id;
 }
 
-function go(id, resetScroll=true, animate=true){
+function go(id, resetScroll=true, animate=false){
+  // animate는 항상 false (애니메이션 완전 제거)
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
   const target = document.getElementById(id);
   if(!target) return;
-  if(!animate) target.classList.add('no-motion');
   target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
   const noTab = ['s-login','s-adminlogin','s-admin','s-family-register','s-invite','s-reset-pw'];

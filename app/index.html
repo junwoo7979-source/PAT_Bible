@@ -34,10 +34,9 @@
 body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);
   color:var(--text);font-size:var(--fs);line-height:var(--lh);transition:background .3s,color .3s;}
 .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
-.screen{flex:1;padding:24px 20px 90px;display:none;animation:fade .25s;}
+.screen{flex:1;padding:24px 20px 90px;display:none;}
 .screen.active{display:flex;flex-direction:column;}
-.screen.no-motion{animation:none;}
-@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.screen.no-motion{}
 h1{font-size:var(--fs-xl);line-height:var(--lh-title);margin-bottom:6px;}
 h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 .muted{color:var(--muted);font-size:calc(var(--fs) - 2px);}
@@ -216,7 +215,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <div class="app">
 
   <!-- S1: 로그인/교회입장 -->
-  <section class="screen" id="s-login">
+  <section class="screen active" id="s-login">
     <img src="icons/pat-logo.png" class="logo-img" alt="PAT Bible 로고">
     <h1 class="center" id="loginAppTitle" style="font-size:var(--fs-lg);margin-bottom:4px">PAT Bible</h1>
     <p class="center" style="line-height:1.8;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--text)">말씀과 기도로 가족의 신앙을 세워가요.<br>매일 작은 실천이 큰 변화를 만듭니다</p>
