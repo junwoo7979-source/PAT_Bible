@@ -54,6 +54,8 @@ function applyCloudConfig(config){
   }
 }
 function applyStoredData(){
+  console.log('[PAT-STARTUP] applyStoredData 시작');
+
   // ?reset=1 파라미터로 localStorage 초기화
   const params = new URLSearchParams(window.location.search);
   if(params.has('reset')){
@@ -63,19 +65,38 @@ function applyStoredData(){
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
-  // ── TWA 환경 진단 ──
-  const lsTest = localStorage.getItem('pat_family_profile');
-  const lsKeys = [];
+  // ── localStorage 접근 가능 여부 확인 ──
+  let lsAvailable = false;
   try {
-    for(let i=0; i<localStorage.length; i++) {
-      lsKeys.push(localStorage.key(i));
-    }
-  } catch(e) {}
+    localStorage.setItem('_pat_test', '1');
+    localStorage.removeItem('_pat_test');
+    lsAvailable = true;
+  } catch(e) {
+    console.error('[PAT] localStorage 접근 불가:', e.message);
+  }
+
+  if(!lsAvailable){
+    console.warn('[PAT] localStorage 미사용 가능 — 로컬 모드로 진행');
+    go('s-login', true, false);
+    initFirebase();
+    return;
+  }
+
+  // ── localStorage 상태 진단 ──
+  const familyProfileRaw = localStorage.getItem('pat_family_profile');
+  const adminId = localStorage.getItem('pat_admin_id');
+  const adminPw = localStorage.getItem('pat_admin_pw');
+  const churchName = localStorage.getItem('pat_church_name');
+  const lsKeys = [];
+  for(let i=0; i<localStorage.length; i++) {
+    lsKeys.push(localStorage.key(i));
+  }
+
   console.log('[PAT-STARTUP] localStorage 상태:', {
-    familyProfile: lsTest ? '있음' : '없음',
-    keys: lsKeys,
-    admin: localStorage.getItem('pat_admin_id') ? '있음' : '없음',
-    church: localStorage.getItem('pat_church_name') || 'N/A'
+    hasFamily: !!familyProfileRaw,
+    hasAdmin: !!(adminId && adminPw),
+    church: churchName || 'N/A',
+    keys: lsKeys.slice(0, 5) // 처음 5개만 로그
   });
 
   applyAppTitle();
@@ -85,23 +106,30 @@ function applyStoredData(){
   if(vs.length){ DB.verse = { ref:vs[0].ref, weekOf:vs[0].weekOf, text:vs[0].text }; }
   checkInviteParam();
 
-  // 저장된 상태 복원
+  // ─── 저장된 상태 복원 ───
   let initialScreen = 's-login';
+  let reason = '초기 상태';
 
   // 1️⃣ 저장된 가족방이 있으면 가족방으로 이동
   const savedFamily = loadFamilyProfile();
   if(savedFamily && savedFamily.familyId){
-    console.log('[PAT] 저장된 가족방 복원:', savedFamily.familyId);
+    console.log('[PAT-STARTUP] 가족방 발견:', {
+      familyId: savedFamily.familyId,
+      roomName: savedFamily.roomName,
+      members: savedFamily.members ? savedFamily.members.length : 0
+    });
     initialScreen = 's-family';
+    reason = '저장된 가족방 복원';
   }
   // 2️⃣ 저장된 관리자 정보가 있으면 관리자 화면으로 이동
-  else if(localStorage.getItem('pat_admin_id') && localStorage.getItem('pat_admin_pw')){
-    console.log('[PAT] 저장된 관리자 계정 복원');
+  else if(adminId && adminPw){
+    console.log('[PAT-STARTUP] 관리자 계정 발견:', adminId);
     initialScreen = 's-admin';
+    reason = '저장된 관리자 계정 복원';
   }
 
+  console.log('[PAT-STARTUP] 초기 화면 진입:', initialScreen, `(${reason})`);
   go(initialScreen, true, false);
-  console.log('[PAT-STARTUP] 초기 화면 진입:', initialScreen);
 
   initFirebase();
 }

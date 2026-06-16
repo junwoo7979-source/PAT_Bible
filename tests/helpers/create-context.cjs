@@ -39,6 +39,22 @@ function createTestContext(customElements = {}, customStorage = {}) {
       setItem(key, value) { storage.set(key, value); },
       removeItem(key) { storage.delete(key); },
       clear() { storage.clear(); },
+      get length() { return storage.size; },
+      key(index) {
+        const keys = Array.from(storage.keys());
+        return keys[index] ?? null;
+      },
+    },
+    sessionStorage: {
+      getItem(key) { return storage.get(key) ?? null; },
+      setItem(key, value) { storage.set(key, value); },
+      removeItem(key) { storage.delete(key); },
+      clear() { storage.clear(); },
+      get length() { return storage.size; },
+      key(index) {
+        const keys = Array.from(storage.keys());
+        return keys[index] ?? null;
+      },
     },
     document: {
       documentElement: { getAttribute() { return 'dark'; }, setAttribute() {} },

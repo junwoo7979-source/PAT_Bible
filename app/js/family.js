@@ -2,8 +2,42 @@
 // 가족방 등록/조회, 초대 링크, 클라우드 동기화
 
 // ── 프로필 헬퍼 ───────────────────────────────────────────
+function setFamilyStorage(key, value){
+  // localStorage에 저장 시도
+  try{
+    localStorage.setItem(key, value);
+    console.log('[PAT-LS] localStorage 저장 성공:', key.slice(0, 20) + '...');
+  }catch(e) {
+    console.warn('[PAT-LS] localStorage 저장 실패, sessionStorage 사용:', e.message);
+    // localStorage 실패 시 sessionStorage에 백업
+    try{
+      sessionStorage.setItem(key, value);
+      console.log('[PAT-LS] sessionStorage 저장 성공:', key.slice(0, 20) + '...');
+    }catch(e2) {
+      console.error('[PAT-LS] 모든 스토리지 저장 실패');
+    }
+  }
+}
+
 function loadFamilyProfile(){
-  try{ return JSON.parse(localStorage.getItem('pat_family_profile')||'null'); }catch(e){ return null; }
+  // localStorage 시도
+  try{
+    const val = localStorage.getItem('pat_family_profile');
+    if(val) return JSON.parse(val);
+  }catch(e) {
+    console.warn('[PAT-LS] localStorage 접근 실패:', e.message);
+  }
+
+  // sessionStorage 백업 시도
+  try{
+    const val = sessionStorage.getItem('pat_family_profile');
+    if(val) {
+      console.log('[PAT-LS] sessionStorage에서 가족방 복원');
+      return JSON.parse(val);
+    }
+  }catch(e) {}
+
+  return null;
 }
 function familyRoomName(profile){
   if(!profile) return '';
@@ -50,7 +84,7 @@ async function refreshFamilyProfileByPassword(profile, password){
       members: members.length ? members : familyMemberNames({ ...profile, ...found }),
     };
     localStorage.setItem('pat_family_id', found.id);
-    localStorage.setItem('pat_family_profile', JSON.stringify(nextProfile));
+    setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
     return nextProfile;
   }catch(e){
     console.warn('[PAT] family reconnect failed:', e.message);
@@ -126,7 +160,7 @@ function deleteFamilyMember(encodedName){
   if(!profile || !Array.isArray(profile.members)) return;
   const members     = profile.members.filter(member => member !== name);
   const nextProfile = { ...profile, members };
-  localStorage.setItem('pat_family_profile', JSON.stringify(nextProfile));
+  setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
   if(window.PAT_DB && PAT_DB.ready()){ PAT_DB.saveFamily(DB.church.code, nextProfile); }
   renderRegisteredFamilyRoom();
   renderFamilyProfile();
@@ -143,7 +177,7 @@ async function joinFamilyManual(){
     if(pw !== existing.familyPassword){ toast('비밀번호가 올바르지 않습니다'); return; }
     const members = existing.members || [];
     if(!members.includes(name)) members.push(name);
-    localStorage.setItem('pat_family_profile', JSON.stringify({ ...existing, memberName:name, members }));
+    setFamilyStorage('pat_family_profile', JSON.stringify({ ...existing, memberName:name, members }));
     if(window.PAT_DB && PAT_DB.ready()){
       const familyId = localStorage.getItem('pat_family_id')||'';
       if(familyId) await PAT_DB.joinFamily(DB.church.code, familyId, name);
@@ -157,7 +191,7 @@ async function joinFamilyManual(){
         const members = Array.isArray(found.members) ? found.members.slice() : [];
         if(!members.includes(name)) members.push(name);
         localStorage.setItem('pat_family_id', found.id);
-        localStorage.setItem('pat_family_profile', JSON.stringify({
+        setFamilyStorage('pat_family_profile', JSON.stringify({
           roomName:found.roomName||familyNameFromMember(name),
           leaderName:found.leaderName||'',
           parish:found.parish||'',
@@ -176,7 +210,7 @@ async function joinFamilyManual(){
     }
     const joined = { roomName:familyNameFromMember(name), leaderName:'', parish:'', district:'',
       familyPassword:pw, memberName:name, isLeader:false, members:[name] };
-    localStorage.setItem('pat_family_profile', JSON.stringify(joined));
+    setFamilyStorage('pat_family_profile', JSON.stringify(joined));
     if(window.PAT_DB && PAT_DB.ready()){
       const familyId = localStorage.getItem('pat_family_id')||'';
       if(familyId) await PAT_DB.joinFamily(DB.church.code, familyId, name);
@@ -242,7 +276,7 @@ function saveFamilyProfile(){
   if(!members.includes(leaderName)) members.unshift(leaderName);
   // memberName: 대표자 기기에선 대표자가 "나"
   const profileData = { roomName, leaderName, parish, district, familyPassword, members, memberName: leaderName };
-  localStorage.setItem('pat_family_profile', JSON.stringify(profileData));
+  setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
   // ★ localStorage에 저장된 값을 메모리에도 캐시 (다른 폴링이 읽을 수 있도록)
   window._lastSavedFamilyProfile = profileData;
   if(window.PAT_DB && PAT_DB.ready()){
@@ -310,7 +344,7 @@ async function joinFamilyFromInvite(){
     if(familyId) localStorage.setItem('pat_family_id', familyId);
     const existingMembers = Array.isArray(found.members) ? found.members : [];
     const members = existingMembers.includes(myName) ? existingMembers : [...existingMembers, myName];
-    localStorage.setItem('pat_family_profile', JSON.stringify({
+    setFamilyStorage('pat_family_profile', JSON.stringify({
       roomName:     found.roomName     || data.roomName,
       leaderName:   found.leaderName   || data.leaderName,
       parish:       found.parish       || data.parish,
@@ -324,7 +358,7 @@ async function joinFamilyFromInvite(){
     await syncFamilyProgressFromCloud(loadFamilyProfile());
   } else {
     // 오프라인 fallback: 로컬 정보로만 저장
-    localStorage.setItem('pat_family_profile', JSON.stringify({
+    setFamilyStorage('pat_family_profile', JSON.stringify({
       roomName:data.roomName, leaderName:data.leaderName,
       parish:data.parish, district:data.district,
       familyPassword:pw, memberName:myName, members:[myName],
@@ -482,7 +516,7 @@ async function syncFamilyProgressFromCloud(profile){
   // ★ stale spread 제거 — 최신 profile(freshProfile)로 저장
   const mergedNames = merged.map(m=>m.name).filter(Boolean);
   const updated = { ...freshProfile, members: mergedNames };
-  localStorage.setItem('pat_family_profile', JSON.stringify(updated));
+  setFamilyStorage('pat_family_profile', JSON.stringify(updated));
   renderRegisteredFamilyRoom();
   // ★ roomName이 변경되었으면 메인 화면의 가족방 제목도 업데이트
   renderFamilyProfile();
@@ -532,7 +566,7 @@ function startFamilyProgressPolling(profile){
       // 3. 변경사항이 있으면 한 번에 저장
       if(Object.keys(shouldUpdate).length > 0){
         freshProfile = { ...freshProfile, ...shouldUpdate };
-        localStorage.setItem('pat_family_profile', JSON.stringify(freshProfile));
+        setFamilyStorage('pat_family_profile', JSON.stringify(freshProfile));
         // ★ 화면 즉시 업데이트
         renderFamilyProfile();
         renderRegisteredFamilyRoom();

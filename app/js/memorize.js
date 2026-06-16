@@ -233,10 +233,28 @@ function resetData(){
 }
 
 // ── 페이지 진입 초기화 (모든 모듈 로드 완료 후 실행) ────────
-if(typeof document !== 'undefined' && typeof document.getElementById === 'function'){
+function initApp(){
+  console.log('[PAT-INIT] initApp 실행 중, readyState:', document.readyState);
+
+  if(typeof document === 'undefined' || typeof document.getElementById !== 'function'){
+    console.log('[PAT-INIT] DOM 미준비');
+    return;
+  }
+
   applyStoredData();
   const _code = document.getElementById('churchCode');
   if(_code) _code.value = '';
   const _tb = document.getElementById('tabbar');
   if(_tb && _tb.style) _tb.style.display = 'none';
+
+  console.log('[PAT-INIT] 초기화 완료');
+}
+
+// DOM 준비 상태 확인
+if(document.readyState === 'loading'){
+  // 아직 로드 중 → load 이벤트 대기
+  document.addEventListener('DOMContentLoaded', initApp, { once: true });
+} else {
+  // 이미 로드됨 → 바로 실행
+  initApp();
 }
