@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pat-bible-app-v37';
+const CACHE_NAME = 'pat-bible-app-v38';
 const APP_SHELL = [
   './',
   './index.html',
@@ -48,6 +48,20 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (url.origin !== location.origin) {
     event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
+
+  // index.html: 항상 최신 버전 (네트워크 우선)
+  if (url.pathname === '/' || url.pathname.endsWith('/index.html')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
     return;
   }
 
