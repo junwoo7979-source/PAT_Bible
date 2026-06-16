@@ -323,6 +323,16 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <label class="lbl">교회 이름</label>
       <input class="field" id="inChurchName" placeholder="교회 이름">
       <button class="btn ghost" onclick="saveChurchName()">교회 이름 저장</button>
+      <label class="lbl" style="margin-top:12px">교회 로고</label>
+      <p class="muted" style="margin:4px 0 8px;font-size:calc(var(--fs) - 3px)">SVG 파일 (권장) • 최대 500KB</p>
+      <div style="display:flex;gap:8px">
+        <input type="file" id="churchLogoFile" class="field" style="flex:1;padding:12px;cursor:pointer" accept=".svg" onchange="handleLogoUpload(event)">
+        <button class="btn ghost" style="width:auto;padding:12px 16px" onclick="removeChurchLogo()">삭제</button>
+      </div>
+      <div id="logoPreview" style="margin-top:12px;padding:12px;background:var(--bg);border-radius:var(--radius);text-align:center;display:none">
+        <p class="muted" style="margin-bottom:8px">로고 미리보기:</p>
+        <img id="logoPreviewImg" style="max-width:100px;max-height:100px;margin:0 auto">
+      </div>
     </div>
 
     <!-- 등록된 구절 목록 -->

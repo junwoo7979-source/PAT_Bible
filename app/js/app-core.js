@@ -176,6 +176,24 @@ function renderAdmin(){
   syncAdminVerseFields();
   renderVerseList();
   renderPreview();
+  loadChurchLogoPreview();
+}
+
+// ── 저장된 교회 로고 미리보기 로드 ──
+function loadChurchLogoPreview(){
+  const key = `pat_church_logo_${DB.church.code}`;
+  const svgContent = localStorage.getItem(key);
+  const preview = document.getElementById('logoPreview');
+  const previewImg = document.getElementById('logoPreviewImg');
+
+  if(svgContent){
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    previewImg.src = url;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
 }
 
 // ── 관리자: 설정 저장 (구절 + 앱제목을 Firebase에 저장) ──

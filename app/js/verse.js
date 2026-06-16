@@ -64,6 +64,72 @@ function saveAppTitle(){
   toast('✓ 앱 상단 제목이 저장되었습니다');
 }
 
+// ── 교회 로고 업로드 ──────────────────────────────────────
+function handleLogoUpload(event){
+  const file = event.target.files?.[0];
+  if(!file){ return; }
+
+  // SVG 확장자 확인
+  if(!file.name.toLowerCase().endsWith('.svg')){
+    toast('❌ SVG 파일만 업로드 가능합니다');
+    document.getElementById('churchLogoFile').value = '';
+    return;
+  }
+
+  // 파일 크기 확인 (최대 500KB)
+  const maxSize = 500 * 1024; // 500KB
+  if(file.size > maxSize){
+    toast(`❌ 파일 크기가 너무 큽니다 (${(file.size/1024).toFixed(0)}KB / 최대 500KB)`);
+    document.getElementById('churchLogoFile').value = '';
+    return;
+  }
+
+  // SVG 파일 읽기
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const svgContent = e.target?.result;
+    if(typeof svgContent !== 'string'){
+      toast('❌ 파일 읽기 실패');
+      return;
+    }
+
+    // SVG 유효성 확인
+    if(!svgContent.includes('<svg')){
+      toast('❌ 유효한 SVG 파일이 아닙니다');
+      document.getElementById('churchLogoFile').value = '';
+      return;
+    }
+
+    // localStorage에 저장 (churchCode 기반)
+    const key = `pat_church_logo_${DB.church.code}`;
+    try {
+      localStorage.setItem(key, svgContent);
+
+      // 미리보기 표시
+      const preview = document.getElementById('logoPreview');
+      const previewImg = document.getElementById('logoPreviewImg');
+      const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      previewImg.src = url;
+      preview.style.display = 'block';
+
+      toast('✓ 교회 로고가 저장되었습니다');
+    } catch(err){
+      toast('❌ 저장 실패: localStorage 용량 초과');
+      console.error('Logo save error:', err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function removeChurchLogo(){
+  const key = `pat_church_logo_${DB.church.code}`;
+  localStorage.removeItem(key);
+  document.getElementById('churchLogoFile').value = '';
+  document.getElementById('logoPreview').style.display = 'none';
+  toast('✓ 교회 로고가 삭제되었습니다');
+}
+
 // ── 구절 등록 / 목록 / 적용 ──────────────────────────────
 async function registerVerse(){
   const ref  = document.getElementById('inRef').value.trim();
