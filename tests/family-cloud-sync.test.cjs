@@ -10,6 +10,15 @@ function createContext(fakeDb) {
   const elements = new Map();
   const storage = new Map();
   const intervals = [];
+  const db = {
+    init() { return true; },
+    ready() { return true; },
+    getConfig() { return Promise.resolve(null); },
+    getLatestVerse() { return Promise.resolve(null); },
+    subscribeConfig() {},
+    subscribeVerse() {},
+    ...fakeDb,
+  };
 
   function getElement(id) {
     if (!elements.has(id)) {
@@ -40,9 +49,9 @@ function createContext(fakeDb) {
       getElementById: getElement,
       querySelectorAll() { return []; },
     },
-    window: { scrollTo() {}, addEventListener() {}, PAT_DB: fakeDb },
+    window: { scrollTo() {}, addEventListener() {}, PAT_DB: db },
     navigator: {},
-    PAT_DB: fakeDb,
+    PAT_DB: db,
     setTimeout() { return 1; },
     clearTimeout() {},
     setInterval(fn, ms) { intervals.push({ fn, ms }); return intervals.length; },
@@ -135,6 +144,11 @@ function createContext(fakeDb) {
         { displayName: '아들1', deviceId: 'son-device', done: true },
       ]);
     },
+    getFamilyInfo(churchCode, familyId) {
+      assert.equal(churchCode, '11111');
+      assert.equal(familyId, 'family-1');
+      return Promise.resolve(foundFamily);
+    },
   };
   const progressCase = createContext(progressDb);
   progressCase.storage.set('pat_family_id', 'family-1');
@@ -150,6 +164,47 @@ function createContext(fakeDb) {
   assert.equal(progressCase.intervals[0].ms, 10000);
   await progressCase.intervals[0].fn();
   assert.equal(progressCalls, 2);
+
+  const updatedFamilyInfo = {
+    roomName: '사랑 가족방',
+    leaderName: '김민수',
+    parish: '동부교구',
+    district: '3구역',
+    members: ['김민수', '예운'],
+  };
+  const updateDb = {
+    init() { return true; },
+    ready() { return true; },
+    subscribeVerse() {},
+    getFamilyInfo(churchCode, familyId) {
+      assert.equal(churchCode, '11111');
+      assert.equal(familyId, 'family-1');
+      return Promise.resolve(updatedFamilyInfo);
+    },
+    getFamilyProgress() {
+      return Promise.resolve([
+        { displayName: '김민수', done: true },
+        { displayName: '예운', done: false },
+      ]);
+    },
+  };
+  const updateCase = createContext(updateDb);
+  updateCase.storage.set('pat_family_id', 'family-1');
+  updateCase.storage.set('pat_family_profile', JSON.stringify({
+    roomName: '믿음 가족방',
+    leaderName: '김민수',
+    parish: '동부교구',
+    district: '3구역',
+    familyPassword: '22222',
+    memberName: '김민수',
+    members: ['김민수', '삭제될이름'],
+  }));
+  updateCase.context.renderFamily();
+  await updateCase.intervals[0].fn();
+  const updatedProfile = JSON.parse(updateCase.storage.get('pat_family_profile'));
+  assert.equal(updatedProfile.roomName, '사랑 가족방');
+  assert.deepEqual(updatedProfile.members, ['김민수', '예운']);
+  assert.doesNotMatch(updateCase.getElement('registeredFamilyMembers').innerHTML, /삭제될이름/);
 
   console.log('family cloud sync: PASS');
 })();

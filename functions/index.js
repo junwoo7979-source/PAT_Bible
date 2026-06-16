@@ -254,8 +254,21 @@ exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, asy
     // ★ 가족방 정보 조회 (roomName, leaderName, parish, district 등)
     const familyDoc = await db.doc(`churches/${churchCode}/families/${familyId}`).get();
     const familyData = familyDoc.exists ? familyDoc.data() : {};
+    const declaredMembers = Array.isArray(familyData.members)
+      ? familyData.members
+          .map(member => (typeof member === 'string' ? member : (member && (member.displayName || member.name)) || ''))
+          .map(name => String(name).trim())
+          .filter(Boolean)
+      : [];
     const memberSnap = await db.collection(`churches/${churchCode}/families/${familyId}/members`).get();
-    const members = memberSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const memberMap = new Map();
+    declaredMembers.forEach(name => memberMap.set(name, { displayName: name, name }));
+    memberSnap.docs.forEach(doc => {
+      const member = { id: doc.id, ...doc.data() };
+      const name = (member.displayName || member.name || '').trim();
+      if(name) memberMap.set(name, member);
+    });
+    const members = Array.from(memberMap.values());
     // ★ members에 있으면 "입장 완료(done=true)" 기본값으로 설정
     // (가족방에 입장했다는 뜻 = 가족 등록이 완료됨)
     res.json({

@@ -21,6 +21,18 @@ function familyMemberNames(profile){
   if(fallback && !names.includes(fallback)) names.unshift(fallback);
   return names;
 }
+function normalizeFamilyMemberNames(members){
+  if(!Array.isArray(members)) return [];
+  const names = [];
+  members.forEach(member => {
+    const name = typeof member === 'string'
+      ? member
+      : (member && (member.displayName || member.name)) || '';
+    const trimmed = String(name).trim();
+    if(trimmed && !names.includes(trimmed)) names.push(trimmed);
+  });
+  return names;
+}
 
 // ── 가족방 프로필 렌더링 ──────────────────────────────────
 function renderFamilyProfile(){
@@ -424,21 +436,15 @@ async function syncFamilyProgressFromCloud(profile){
   const freshProfile = loadFamilyProfile() || profile;
   const myName = freshProfile.memberName || freshProfile.leaderName || '';
 
-  // Firebase는 완료 여부만 가져옴 — 로컬 멤버 목록이 "누가 있는지" 기준
+  // Firebase는 완료 여부를 가져오고, 구성원 목록이 있으면 대표가 저장한 목록을 기준으로 삼음
   const doneMap = {};
   cloudMembers.forEach(m => {
     const n = m.displayName || m.name || '';
     if(n) doneMap[n] = !!m.done;
   });
 
-  // 로컬 멤버 기준으로 표시 (Firebase에 등록 안 된 멤버도 유지)
-  const localNames = familyMemberNames(freshProfile);
-
-  // Firebase에만 있는 멤버(다른 기기에서 joinFamily한 사람)도 추가
-  cloudMembers.forEach(m => {
-    const n = m.displayName || m.name || '';
-    if(n && !localNames.includes(n)) localNames.push(n);
-  });
+  const cloudNames = normalizeFamilyMemberNames(cloudMembers);
+  const localNames = cloudNames.length ? cloudNames.slice() : familyMemberNames(freshProfile);
 
   const merged = localNames.map(name => ({
     name,
@@ -490,13 +496,12 @@ function startFamilyProgressPolling(profile){
         shouldUpdate.district = fbInfo.district;
       }
 
-      // 2. members 동기화 (다른 기기에서 입장한 구성원 추가)
-      if(fbInfo.members && Array.isArray(fbInfo.members)){
+      // 2. members 동기화 (대표가 저장한 최신 구성원 목록으로 교체)
+      if(Array.isArray(fbInfo.members)){
         const localMembers = freshProfile.members || [];
-        const fbMemberNames = fbInfo.members.map(m=>m.displayName||m.name||'').filter(Boolean);
-        const merged = [...new Set([...localMembers, ...fbMemberNames])];
-        if(JSON.stringify(merged) !== JSON.stringify(localMembers)){
-          shouldUpdate.members = merged;
+        const fbMemberNames = normalizeFamilyMemberNames(fbInfo.members);
+        if(fbMemberNames.length && JSON.stringify(fbMemberNames) !== JSON.stringify(localMembers)){
+          shouldUpdate.members = fbMemberNames;
         }
       }
 
