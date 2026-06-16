@@ -216,6 +216,11 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
   <!-- S1: 로그인/교회입장 -->
   <section class="screen active" id="s-login">
+    <!-- 홈화면 추가 버튼 (PWA) -->
+    <button class="install-btn" id="installBtn" style="display:none;margin-bottom:12px;width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-weight:700;cursor:pointer;font-family:inherit;font-size:var(--fs)" onclick="installApp()">
+      📱 홈화면에 추가하기
+    </button>
+
     <img src="icons/pat-logo.png" class="logo-img" alt="PAT Bible 로고">
     <h1 class="center" id="loginAppTitle" style="font-size:var(--fs-lg);margin-bottom:4px">PAT Bible</h1>
     <p class="center" style="line-height:1.8;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--text)">말씀과 기도로 가족의 신앙을 세워가요.<br>매일 작은 실천이 큰 변화를 만듭니다</p>

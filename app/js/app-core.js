@@ -495,6 +495,56 @@ if(typeof navigator !== 'undefined' && navigator.serviceWorker){
   }
 }
 
+// ── PWA 설치 프롬프트 ──────────────────────────────────────
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  console.log('[PAT-PWA] 설치 프롬프트 대기 중');
+
+  // 설치 버튼 표시
+  const installBtn = document.getElementById('installBtn');
+  if(installBtn) {
+    installBtn.style.display = 'block';
+    console.log('[PAT-PWA] 설치 버튼 표시됨');
+  }
+});
+
+function installApp(){
+  console.log('[PAT-PWA] installApp 호출');
+  if(!deferredPrompt){
+    console.log('[PAT-PWA] deferredPrompt 없음 - 이미 설치됨 또는 지원 안 됨');
+    toast('이 브라우저에서는 설치가 지원되지 않습니다');
+    return;
+  }
+
+  // 설치 프롬프트 표시
+  deferredPrompt.prompt();
+
+  // 사용자 선택 대기
+  deferredPrompt.userChoice.then(choiceResult => {
+    if(choiceResult.outcome === 'accepted'){
+      console.log('[PAT-PWA] 사용자가 설치를 수락함');
+      toast('🎉 홈화면에 추가되었습니다!');
+    } else {
+      console.log('[PAT-PWA] 사용자가 설치를 거절함');
+    }
+    deferredPrompt = null;
+
+    // 버튼 숨기기
+    const installBtn = document.getElementById('installBtn');
+    if(installBtn) installBtn.style.display = 'none';
+  });
+}
+
+// 앱이 이미 설치되었으면 버튼 숨기기
+window.addEventListener('appinstalled', () => {
+  console.log('[PAT-PWA] 앱이 설치됨');
+  const installBtn = document.getElementById('installBtn');
+  if(installBtn) installBtn.style.display = 'none';
+  deferredPrompt = null;
+});
+
 // ── DOM 이벤트 (body 내 스크립트이므로 DOM 준비 완료) ─────
 document.getElementById('churchCode').addEventListener('keyup',e=>{ if(e.key==='Enter') enterChurch(); });
 document.getElementById('adminPw').addEventListener('keyup',e=>{ if(e.key==='Enter') adminLogin(); });
