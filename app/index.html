@@ -20,27 +20,27 @@
 <script src="firebase-db.js"></script>
 <style>
 :root{
-  --bg:#1a1a2e; --surface:#16213e; --accent:#16c784; --accent-d:#0fa066;
-  --text:#e8e8e8; --muted:#8b93a7; --line:#2a3a5e; --danger:#ff5d5d;
-  --fs:16px; --fs-lg:20px; --fs-xl:26px; --radius:14px;
+  --bg:#0f1419; --surface:#1a2332; --accent:#00d4aa; --accent-d:#00a887;
+  --text:#f0f3f6; --muted:#8b92a1; --line:#2a3847; --danger:#ff6b6b;
+  --fs:16px; --fs-lg:20px; --fs-xl:26px; --radius:14px; --lh:1.8; --lh-title:1.4;
 }
 [data-theme="cream"]{
-  --bg:#faf7f0; --surface:#ffffff; --accent:#16c784; --accent-d:#0fa066;
-  --text:#2d2d2d; --muted:#7a7a7a; --line:#e5e0d5; --danger:#e23d3d;
+  --bg:#fafbfc; --surface:#ffffff; --accent:#0891b2; --accent-d:#0369a1;
+  --text:#1a202c; --muted:#6b7280; --line:#e5e7eb; --danger:#ef4444;
 }
 [data-fontsize="large"]{ --fs:20px; --fs-lg:25px; --fs-xl:32px; }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);
-  color:var(--text);font-size:var(--fs);line-height:1.6;transition:background .3s,color .3s;}
+  color:var(--text);font-size:var(--fs);line-height:var(--lh);transition:background .3s,color .3s;}
 .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
 .screen{flex:1;padding:24px 20px 90px;display:none;animation:fade .25s;}
 .screen.active{display:flex;flex-direction:column;}
 .screen.no-motion{animation:none;}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-h1{font-size:var(--fs-xl);margin-bottom:6px;}
-h2{font-size:var(--fs-lg);margin-bottom:4px;}
+h1{font-size:var(--fs-xl);line-height:var(--lh-title);margin-bottom:6px;}
+h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 .muted{color:var(--muted);font-size:calc(var(--fs) - 2px);}
-.logo{font-size:46px;text-align:center;margin:40px 0 8px;}
+.logo{font-size:32px;text-align:center;margin:20px 0 8px;}
 .center{text-align:center;}
 .spacer{flex:1;}
 .field{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
@@ -63,7 +63,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
 .verse{background:var(--surface);border-left:4px solid var(--accent);border-radius:10px;padding:20px;margin:14px 0;}
 .ref{color:var(--accent);font-weight:700;font-size:calc(var(--fs) - 1px);margin-bottom:10px;}
-.verse-text{font-size:var(--fs-lg);line-height:1.8;}
+.verse-text{font-size:var(--fs-lg);line-height:2.0;}
 .verse-blurred .verse-text{filter:blur(9px);transition:filter .25s;cursor:pointer;user-select:none;-webkit-user-select:none;}
 .verse-blurred .verse-text:active{filter:blur(0);}
 .row{display:flex;gap:12px;}
