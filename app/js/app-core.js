@@ -70,10 +70,23 @@ function applyStoredData(){
   if(vs.length){ DB.verse = { ref:vs[0].ref, weekOf:vs[0].weekOf, text:vs[0].text }; }
   checkInviteParam();
 
-  // 항상 로그인 화면부터 시작 (모바일/웹 동일)
-  // 사용자가 교회 코드 입력 후 진입 시 상태 저장
-  go('s-login', true, false);
-  console.log('[PAT] 항상 로그인 화면부터 시작');
+  // 저장된 상태 복원
+  let initialScreen = 's-login';
+
+  // 1️⃣ 저장된 가족방이 있으면 가족방으로 이동
+  const savedFamily = loadFamilyProfile();
+  if(savedFamily && savedFamily.familyId){
+    console.log('[PAT] 저장된 가족방 복원:', savedFamily.familyId);
+    initialScreen = 's-family';
+  }
+  // 2️⃣ 저장된 관리자 정보가 있으면 관리자 화면으로 이동
+  else if(localStorage.getItem('pat_admin_id') && localStorage.getItem('pat_admin_pw')){
+    console.log('[PAT] 저장된 관리자 계정 복원');
+    initialScreen = 's-admin';
+  }
+
+  go(initialScreen, true, false);
+  console.log('[PAT] 초기 화면 진입:', initialScreen);
 
   initFirebase();
 }
