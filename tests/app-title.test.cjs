@@ -25,17 +25,28 @@ function getElement(id) {
 const context = {
   console,
   Date,
+  URLSearchParams,
   localStorage: {
     getItem(key) { return storage.get(key) ?? null; },
     setItem(key, value) { storage.set(key, value); },
     removeItem(key) { storage.delete(key); },
+    clear() { storage.clear(); },
   },
   document: {
     documentElement: { getAttribute() { return 'dark'; }, setAttribute() {} },
     getElementById: getElement,
     querySelectorAll() { return []; },
   },
-  window: { scrollTo() {}, addEventListener() {} },
+  window: {
+    scrollTo() {},
+    addEventListener() {},
+    location: { search: '', pathname: '/app/', href: 'http://localhost:8000/app/' },
+  },
+  history: {
+    replaceState() {},
+    pushState() {}
+  },
+  location: { search: '', pathname: '/app/', href: 'http://localhost:8000/app/' },
   navigator: {},
   setTimeout() { return 1; },
   clearTimeout() {},

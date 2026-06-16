@@ -4,41 +4,11 @@ const vm = require('node:vm');
 
 const html = fs.readFileSync('app/index.html', 'utf8');
 const { loadAppScript } = require('./helpers/load-scripts.cjs');
+const { createTestContext } = require('./helpers/create-context.cjs');
 const script = loadAppScript();
-const elements = new Map();
 
-function getElement(id) {
-  if (!elements.has(id)) {
-    elements.set(id, {
-      id,
-      value: '',
-      textContent: '',
-      innerHTML: '',
-      disabled: false,
-      dataset: {},
-      style: {},
-      classList: { add() {}, remove() {}, toggle() {} },
-      addEventListener() {},
-      focus() {},
-    });
-  }
-  return elements.get(id);
-}
-
-const context = {
-  console,
-  Date,
-  location: { protocol: 'http:', hostname: 'localhost' },
-  localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
-  document: {
-    documentElement: { getAttribute() { return 'dark'; }, setAttribute() {} },
-    getElementById: getElement,
-    querySelectorAll() { return []; },
-  },
-  window: { scrollTo() {}, isSecureContext: true },
-  setTimeout() { return 1; },
-  clearTimeout() {},
-};
+const context = createTestContext();
+const { getElement } = context;
 
 vm.runInNewContext(script, context);
 

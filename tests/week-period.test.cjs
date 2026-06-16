@@ -24,16 +24,29 @@ function getElement(id) {
 const context = {
   console,
   Date,
+  URLSearchParams,
   localStorage: {
     getItem() { return null; },
     setItem() {},
+    removeItem() {},
+    clear() {},
   },
   document: {
     documentElement: { getAttribute() { return 'dark'; }, setAttribute() {} },
     getElementById: getElement,
     querySelectorAll() { return []; },
   },
-  window: { scrollTo() {} },
+  window: {
+    scrollTo() {},
+    addEventListener() {},
+    location: { search: '', pathname: '/app/', href: 'http://localhost:8000/app/' },
+  },
+  history: {
+    replaceState() {},
+    pushState() {}
+  },
+  location: { search: '', pathname: '/app/', href: 'http://localhost:8000/app/' },
+  navigator: {},
   setTimeout() { return 1; },
   clearTimeout() {},
 };

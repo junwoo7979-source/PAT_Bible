@@ -4,28 +4,13 @@ const vm = require('node:vm');
 
 const html = fs.readFileSync('app/index.html', 'utf8');
 const { loadAppScript } = require('./helpers/load-scripts.cjs');
+const { createTestContext } = require('./helpers/create-context.cjs');
 const script = loadAppScript();
-const elements = new Map();
 
-function getElement(id) {
-  if (!elements.has(id)) {
-    elements.set(id, {
-      id,
-      value: '',
-      textContent: '',
-      innerHTML: '',
-      disabled: false,
-      dataset: {},
-      style: {},
-      classList: { add() {}, remove() {}, toggle() {} },
-      addEventListener() {},
-      focus() {},
-    });
-  }
-  return elements.get(id);
-}
+const baseContext = createTestContext();
+const { getElement } = baseContext;
 
-const storage = new Map();
+const storage = baseContext.localStorage;
 const recognitions = [];
 let micPermissionRequests = 0;
 let micPermissionQueries = 0;
@@ -107,22 +92,7 @@ class FakeSpeechRecognition {
 }
 
 const context = {
-  console,
-  Date,
-  location: { protocol: 'http:', hostname: 'localhost' },
-  localStorage: {
-    getItem(key) { return storage.get(key) ?? null; },
-    setItem(key, value) { storage.set(key, value); },
-    removeItem(key) { storage.delete(key); },
-  },
-  document: {
-    documentElement: {
-      getAttribute() { return 'dark'; },
-      setAttribute() {},
-    },
-    getElementById: getElement,
-    querySelectorAll() { return []; },
-  },
+  ...baseContext,
   Date: { now() { return now; } },
   setTimeout(fn, delay) {
     const timer = { fn, at: now + delay, cleared: false };
@@ -132,33 +102,31 @@ const context = {
   clearTimeout(timer) {
     if (timer) timer.cleared = true;
   },
-};
-
-context.navigator = {
-  permissions: {
-    async query(options) {
-      assert.equal(options.name, 'microphone');
-      micPermissionQueries++;
-      return { state: 'prompt' };
+  navigator: {
+    permissions: {
+      async query(options) {
+        assert.equal(options.name, 'microphone');
+        micPermissionQueries++;
+        return { state: 'prompt' };
+      },
+    },
+    mediaDevices: {
+      async getUserMedia(options) {
+        assert.equal(options.audio, true);
+        micPermissionRequests++;
+        return {
+          getTracks() {
+            return [{ stop() {}, readyState: 'live' }];
+          },
+        };
+      },
     },
   },
-  mediaDevices: {
-    async getUserMedia(options) {
-      assert.equal(options.audio, true);
-      micPermissionRequests++;
-      return {
-        getTracks() {
-          return [{ stop() {}, readyState: 'live' }];
-        },
-      };
-    },
+  window: {
+    ...baseContext.window,
+    SpeechRecognition: FakeSpeechRecognition,
+    scrollTo() {},
   },
-};
-
-context.window = {
-  SpeechRecognition: FakeSpeechRecognition,
-  navigator: context.navigator,
-  scrollTo() {},
 };
 
 vm.runInNewContext(script, context);

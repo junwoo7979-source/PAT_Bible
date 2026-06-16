@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.patbible.app",
+      "sha256_cert_fingerprints": [
+        "F4:2B:12:83:B9:3E:DA:9F:78:18:AE:7B:7D:AA:66:20:71:1B:0C:8D:5E:50:76:BB:3A:D0:3C:FA:91:27:D9:DD"
+      ]
+    }
+  }
+]
