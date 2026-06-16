@@ -721,30 +721,16 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 // 서비스 워커 등록
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js?v=35&t='+Date.now()).then(reg=>{
-      console.log('[PAT App] SW registered, version: v35');
-
-      // 앱 시작 시 즉시 업데이트 확인
-      reg.update().catch(()=>{});
-
-      // 주기적으로 업데이트 확인 (3초마다)
-      setInterval(()=>{
-        reg.update().catch(()=>{});
-      },3000);
-
+    navigator.serviceWorker.register('sw.js?v=35').then(reg=>{
       reg.onupdatefound=()=>{
         const newWorker=reg.installing;
         newWorker.onstatechange=()=>{
           if(newWorker.state==='installed'&&navigator.serviceWorker.controller){
-            console.log('[PAT App] New SW installed, reloading immediately...');
-            // 즉시 강제 새로고침 (캐시 무시)
-            window.location.href=window.location.href+'?nocache='+Date.now();
+            window.location.reload();
           }
         };
       };
-    }).catch((err)=>{
-      console.error('[PAT App] SW registration failed:', err);
-    });
+    }).catch(()=>{});
   });
 }
 </script>
