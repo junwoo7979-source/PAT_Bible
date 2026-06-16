@@ -709,7 +709,18 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 // memorize.js 로드 시 applyStoredData()·churchCode·tabbar 초기화 완료
 // 서비스 워커 등록
 if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js?v=29').then(reg=>{
+      reg.onupdatefound=()=>{
+        const newWorker=reg.installing;
+        newWorker.onstatechange=()=>{
+          if(newWorker.state==='installed'&&navigator.serviceWorker.controller){
+            window.location.reload();
+          }
+        };
+      };
+    }).catch(()=>{});
+  });
 }
 </script>
 </body>
