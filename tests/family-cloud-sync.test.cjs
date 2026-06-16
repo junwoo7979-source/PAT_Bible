@@ -39,6 +39,7 @@ function createContext(fakeDb) {
   const context = {
     console,
     Date,
+    URLSearchParams,
     localStorage: {
       getItem(key) { return storage.get(key) ?? null; },
       setItem(key, value) { storage.set(key, value); },
@@ -49,7 +50,8 @@ function createContext(fakeDb) {
       getElementById: getElement,
       querySelectorAll() { return []; },
     },
-    window: { scrollTo() {}, addEventListener() {}, PAT_DB: db },
+    window: { scrollTo() {}, addEventListener() {}, PAT_DB: db, location: { search: '' } },
+    location: { search: '', origin: 'https://example.test', pathname: '/app/index.html' },
     navigator: {},
     PAT_DB: db,
     setTimeout() { return 1; },
@@ -205,6 +207,64 @@ function createContext(fakeDb) {
   assert.equal(updatedProfile.roomName, '사랑 가족방');
   assert.deepEqual(updatedProfile.members, ['김민수', '예운']);
   assert.doesNotMatch(updateCase.getElement('registeredFamilyMembers').innerHTML, /삭제될이름/);
+
+  const latestFamily = {
+    id: 'family-new',
+    roomName: '예은데 말씀 방',
+    leaderName: '권호택',
+    parish: '1교구',
+    district: '134구역',
+    familyPassword: '22222',
+    members: ['권아빠', '엄마', '예은 파파', '예은 맘', '권호택'],
+  };
+  const reconnectDb = {
+    init() { return true; },
+    ready() { return true; },
+    findFamilyByPassword(churchCode, password) {
+      assert.equal(churchCode, '11111');
+      assert.equal(password, '22222');
+      return Promise.resolve(latestFamily);
+    },
+    getFamilyProgress() {
+      return Promise.resolve(latestFamily.members.map(name => ({ displayName: name, done: true })));
+    },
+  };
+  const reconnectCase = createContext(reconnectDb);
+  reconnectCase.storage.set('pat_family_id', 'family-old');
+  reconnectCase.storage.set('pat_family_profile', JSON.stringify({
+    roomName: '예은네',
+    leaderName: '권호택',
+    parish: '1교구',
+    district: '134구역',
+    familyPassword: '22222',
+    memberName: '권호택',
+    members: ['권호택', '엄마현', '현'],
+  }));
+  reconnectCase.getElement('churchCode').value = '22222';
+  await reconnectCase.context.enterChurch();
+  const reconnectedProfile = JSON.parse(reconnectCase.storage.get('pat_family_profile'));
+  assert.equal(reconnectCase.storage.get('pat_family_id'), 'family-new');
+  assert.equal(reconnectedProfile.roomName, '예은데 말씀 방');
+  assert.deepEqual(reconnectedProfile.members, latestFamily.members);
+  assert.match(reconnectCase.getElement('familyRoomTitle').textContent, /예은데 말씀 방/);
+  assert.match(reconnectCase.getElement('memberList').innerHTML, /예은&nbsp;파파/);
+
+  const alreadyOpenCase = createContext(reconnectDb);
+  alreadyOpenCase.storage.set('pat_family_id', 'family-old');
+  alreadyOpenCase.storage.set('pat_family_profile', JSON.stringify({
+    roomName: '예은네',
+    leaderName: '권호택',
+    parish: '1교구',
+    district: '134구역',
+    familyPassword: '22222',
+    memberName: '권호택',
+    members: ['권호택', '엄마현', '현'],
+  }));
+  await alreadyOpenCase.context.renderFamily();
+  const alreadyOpenProfile = JSON.parse(alreadyOpenCase.storage.get('pat_family_profile'));
+  assert.equal(alreadyOpenCase.storage.get('pat_family_id'), 'family-new');
+  assert.equal(alreadyOpenProfile.roomName, '예은데 말씀 방');
+  assert.deepEqual(alreadyOpenProfile.members, latestFamily.members);
 
   console.log('family cloud sync: PASS');
 })();

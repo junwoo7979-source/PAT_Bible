@@ -6,8 +6,8 @@ const manifest = JSON.parse(fs.readFileSync('app/manifest.json', 'utf8'));
 const sw = fs.readFileSync('app/sw.js', 'utf8');
 
 const icons = manifest.icons || [];
-const icon192 = icons.find(icon => icon.src === 'icons/pat-icon-192.png');
-const icon512 = icons.find(icon => icon.src === 'icons/pat-icon-512.png');
+const icon192 = icons.find(icon => icon.src && icon.src.split('?')[0] === 'icons/pat-icon-192.png');
+const icon512 = icons.find(icon => icon.src && icon.src.split('?')[0] === 'icons/pat-icon-512.png');
 
 assert.ok(icon192, 'manifest must register a 192x192 PNG icon');
 assert.equal(icon192.sizes, '192x192');

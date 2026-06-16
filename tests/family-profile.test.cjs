@@ -27,6 +27,7 @@ function getElement(id) {
 const context = {
   console,
   Date,
+  URLSearchParams,
   localStorage: {
     getItem(key) { return storage.get(key) ?? null; },
     setItem(key, value) { storage.set(key, value); },
@@ -37,7 +38,8 @@ const context = {
     getElementById: getElement,
     querySelectorAll() { return []; },
   },
-  window: { scrollTo() {}, addEventListener() {} },
+  window: { scrollTo() {}, addEventListener() {}, location: { search: '' } },
+  location: { search: '', origin: 'https://example.test', pathname: '/app/index.html' },
   navigator: {},
   setTimeout() { return 1; },
   clearTimeout() {},

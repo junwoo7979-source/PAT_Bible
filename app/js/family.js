@@ -33,6 +33,30 @@ function normalizeFamilyMemberNames(members){
   });
   return names;
 }
+async function refreshFamilyProfileByPassword(profile, password){
+  if(!profile || !password || !window.PAT_DB || !PAT_DB.ready() || !PAT_DB.findFamilyByPassword) return profile;
+  try{
+    const found = await PAT_DB.findFamilyByPassword(DB.church.code, password);
+    if(!found || !found.id) return profile;
+    const members = normalizeFamilyMemberNames(found.members);
+    const nextProfile = {
+      ...profile,
+      roomName: found.roomName || profile.roomName || '',
+      leaderName: found.leaderName || profile.leaderName || '',
+      parish: found.parish || profile.parish || '',
+      district: found.district || profile.district || '',
+      familyPassword: password,
+      memberName: profile.memberName || profile.leaderName || found.leaderName || '',
+      members: members.length ? members : familyMemberNames({ ...profile, ...found }),
+    };
+    localStorage.setItem('pat_family_id', found.id);
+    localStorage.setItem('pat_family_profile', JSON.stringify(nextProfile));
+    return nextProfile;
+  }catch(e){
+    console.warn('[PAT] family reconnect failed:', e.message);
+    return profile;
+  }
+}
 
 // ── 가족방 프로필 렌더링 ──────────────────────────────────
 function renderFamilyProfile(){
@@ -541,7 +565,27 @@ function renderFamily(){
   // Firebase members의 done 상태를 받아서 반영함
   // (done=true = 가족방에 입장했다는 뜻)
   renderFamilyMemberList(DB.members);
-  const syncPromise = syncFamilyProgressFromCloud(profile);
+  const syncPromise = (profile?.familyPassword
+    ? refreshFamilyProfileByPassword(profile, profile.familyPassword)
+    : Promise.resolve(profile)
+  ).then(freshProfile => {
+    if(freshProfile && freshProfile !== profile){
+      const names = familyMemberNames(freshProfile);
+      const currentName = (freshProfile.memberName || freshProfile.leaderName || '').trim();
+      if(names.length){
+        DB.members = names.map((name,i)=>({
+          name,
+          me: currentName ? name === currentName : i===0,
+          done: false
+        }));
+        if(!DB.members.find(m=>m.me)) DB.members[0].me = true;
+        renderFamilyMemberList(DB.members);
+      }
+      renderFamilyProfile();
+      renderRegisteredFamilyRoom();
+    }
+    return syncFamilyProgressFromCloud(freshProfile || profile);
+  });
   startFamilyProgressPolling(profile);
   renderFamilyProfile();
   const invBtn = document.getElementById('inviteLinkBtn');

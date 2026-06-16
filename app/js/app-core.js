@@ -318,7 +318,7 @@ if(typeof window !== 'undefined' && window.history){
 }
 
 // ── 교회 입장 ─────────────────────────────────────────────
-function enterChurch(){
+async function enterChurch(){
   const code = document.getElementById('churchCode').value.trim();
   const profile = loadFamilyProfile();
   const famPw = profile?.familyPassword;
@@ -329,6 +329,9 @@ function enterChurch(){
     if(code !== DB.church.code && !(famPw && code === famPw)){
       toast('교회 코드가 올바르지 않습니다'); return;
     }
+  }
+  if(famPw && code === famPw && typeof refreshFamilyProfileByPassword === 'function'){
+    await refreshFamilyProfileByPassword(profile, famPw);
   }
   document.getElementById('churchName').textContent = memberHomeTitle();
   renderMemberDateLabels();
