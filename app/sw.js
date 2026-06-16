@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pat-bible-app-v35';
+const CACHE_NAME = 'pat-bible-app-v36';
 const APP_SHELL = [
   './',
   './index.html',
@@ -50,6 +50,17 @@ self.addEventListener('fetch', event => {
     event.respondWith(fetch(event.request, { cache: 'no-store' }));
     return;
   }
+
+  // 아이콘 파일: 네트워크 우선 (캐시 무시)
+  if (url.pathname.startsWith('/icons/')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // 기타 파일: 캐시 우선
   event.respondWith(
     fetch(event.request)
       .then(response => {
