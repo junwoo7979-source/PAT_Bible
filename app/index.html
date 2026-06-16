@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v41-always-login-20260616">
+<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v42-cache-bust-20260616">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -722,16 +722,22 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 // 서비스 워커 등록
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js?v=35').then(reg=>{
+    navigator.serviceWorker.register('sw.js?v=42&t='+Date.now()).then(reg=>{
+      // 앱 시작 시 즉시 업데이트 확인
+      reg.update().catch(()=>{});
+
       reg.onupdatefound=()=>{
         const newWorker=reg.installing;
         newWorker.onstatechange=()=>{
           if(newWorker.state==='installed'&&navigator.serviceWorker.controller){
+            console.log('[PAT] Service Worker 업데이트 감지, 강제 새로고침');
             window.location.reload();
           }
         };
       };
-    }).catch(()=>{});
+    }).catch((err)=>{
+      console.error('[PAT] Service Worker 등록 실패:', err);
+    });
   });
 }
 </script>
