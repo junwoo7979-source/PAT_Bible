@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pat-bible-app-v38';
+const CACHE_NAME = 'pat-bible-app-v39';
 const APP_SHELL = [
   './',
   './index.html',
@@ -51,8 +51,8 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // index.html: 항상 최신 버전 (네트워크 우선)
-  if (url.pathname === '/' || url.pathname.endsWith('/index.html')) {
+  // index.html & manifest.json: 항상 최신 버전 (네트워크 우선)
+  if (url.pathname === '/' || url.pathname.endsWith('/index.html') || url.pathname.endsWith('/manifest.json')) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' })
         .then(response => {
