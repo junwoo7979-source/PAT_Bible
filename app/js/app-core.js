@@ -54,6 +54,15 @@ function applyCloudConfig(config){
   }
 }
 function applyStoredData(){
+  // ?reset=1 파라미터로 localStorage 초기화
+  const params = new URLSearchParams(window.location.search);
+  if(params.has('reset')){
+    console.log('[PAT] localStorage 초기화 요청');
+    localStorage.clear();
+    // 쿼리 제거 (히스토리에 남지 않도록)
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
   applyAppTitle();
   const cn = localStorage.getItem('pat_church_name');
   if(cn) DB.church.name = cn;
