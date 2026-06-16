@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v33-soften-design-20260616">
+<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v34-icon-cache-fix-20260616">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -721,11 +721,17 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 // 서비스 워커 등록
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js?v=29').then(reg=>{
+    navigator.serviceWorker.register('sw.js?v=34').then(reg=>{
+      // 주기적으로 업데이트 확인 (5초마다)
+      setInterval(()=>{
+        reg.update().catch(()=>{});
+      },5000);
+
       reg.onupdatefound=()=>{
         const newWorker=reg.installing;
         newWorker.onstatechange=()=>{
           if(newWorker.state==='installed'&&navigator.serviceWorker.controller){
+            console.log('[PAT] New Service Worker ready, reloading...');
             window.location.reload();
           }
         };

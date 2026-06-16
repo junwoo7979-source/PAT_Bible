@@ -1,7 +1,7 @@
 {
   "name": "PAT Bible",
   "short_name": "PAT Bible",
-  "description": "교회, 가족, 개인 성경 암송 웹앱 [v33-soften-design]",
+  "description": "교회, 가족, 개인 성경 암송 웹앱 [v34-icon-cache-fix]",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
