@@ -1,16 +1,16 @@
 ﻿<!DOCTYPE html>
-<html lang="ko" data-theme="dark" data-fontsize="normal" data-version="v30-design-update-20260616">
+<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v31-bright-design-20260616">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="theme-color" content="#1a2332">
+<meta name="theme-color" content="#f0f3f6">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="PAT Bible">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="light">
 <title>PAT Bible — 성경 암송</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/pat-icon-192.png">
@@ -21,8 +21,8 @@
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
-  --bg:#0f1419; --surface:#1a2332; --accent:#00d4aa; --accent-d:#00a887;
-  --text:#f0f3f6; --muted:#8b92a1; --line:#2a3847; --danger:#ff6b6b;
+  --bg:#f0f3f6; --surface:#ffffff; --accent:#00a854; --accent-d:#008f45;
+  --text:#0f1419; --muted:#5f6b7c; --line:#e5e7eb; --danger:#ef4444;
   --fs:16px; --fs-lg:20px; --fs-xl:26px; --radius:14px; --lh:1.8; --lh-title:1.4;
 }
 [data-theme="cream"]{
@@ -149,11 +149,11 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 /* ===== 홈 화면 리디자인 (church-bible-challenge 스타일) ===== */
 .hm-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
 .hm-menu-wrap{position:relative;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-.hm-menu-btn{background:rgba(128,128,128,.15);border:none;cursor:pointer;
+.hm-menu-btn{background:rgba(15,20,25,.08);border:none;cursor:pointer;
   width:36px;height:36px;border-radius:10px;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:4px;padding:0;flex-shrink:0;}
-.hm-menu-btn:active,.hm-menu-btn:focus{background:rgba(128,128,128,.3);outline:none;}
-.hm-menu-dot{width:5px;height:5px;border-radius:50%;background:#444;display:block;}
+.hm-menu-btn:active,.hm-menu-btn:focus{background:rgba(15,20,25,.15);outline:none;}
+.hm-menu-dot{width:5px;height:5px;border-radius:50%;background:#0f1419;display:block;}
 .hm-dropdown{position:absolute;right:0;top:28px;background:var(--surface);
   border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.14);
   min-width:168px;z-index:200;overflow:hidden;animation:fadeIn .15s ease;}
