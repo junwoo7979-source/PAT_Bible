@@ -70,22 +70,10 @@ function applyStoredData(){
   if(vs.length){ DB.verse = { ref:vs[0].ref, weekOf:vs[0].weekOf, text:vs[0].text }; }
   checkInviteParam();
 
-  // 관리자 로그인 상태 복원 (Firebase 로드 전에 즉시 적용)
-  if(isAdminLoggedIn()){
-    renderAdmin();
-    go('s-admin', true, false);
-    console.log('[PAT] 관리자 상태 즉시 복원');
-  }
-  // 가족방 진입 상태 복원
-  else if(localStorage.getItem('pat_family_id')){
-    go('s-family', true, false);
-    console.log('[PAT] 가족방 상태 즉시 복원');
-  }
-  // 로그인 화면 표시 (기본)
-  else {
-    go('s-login', true, false);
-    console.log('[PAT] 로그인 화면 표시');
-  }
+  // 항상 로그인 화면부터 시작 (모바일/웹 동일)
+  // 사용자가 교회 코드 입력 후 진입 시 상태 저장
+  go('s-login', true, false);
+  console.log('[PAT] 항상 로그인 화면부터 시작');
 
   initFirebase();
 }
