@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v34-icon-cache-fix-20260616">
+<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v35-mobile-cache-bust-20260616">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="PAT Bible">
 <meta name="apple-mobile-web-app-status-bar-style" content="light">
 <title>PAT Bible — 성경 암송</title>
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json?t=20260616">
 <link rel="apple-touch-icon" href="icons/pat-icon-192.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231a2332'/%3E%3Cpath d='M18 14h28a4 4 0 0 1 4 4v34H20a6 6 0 0 1-6-6V18a4 4 0 0 1 4-4z' fill='%2300d4aa'/%3E%3Cpath d='M22 22h20M22 30h20M22 38h14' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- Cloud Firestore REST API 연동 -->
@@ -721,22 +721,30 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 // 서비스 워커 등록
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js?v=34').then(reg=>{
-      // 주기적으로 업데이트 확인 (5초마다)
+    navigator.serviceWorker.register('sw.js?v=35&t='+Date.now()).then(reg=>{
+      console.log('[PAT App] SW registered, version: v35');
+
+      // 앱 시작 시 즉시 업데이트 확인
+      reg.update().catch(()=>{});
+
+      // 주기적으로 업데이트 확인 (3초마다)
       setInterval(()=>{
         reg.update().catch(()=>{});
-      },5000);
+      },3000);
 
       reg.onupdatefound=()=>{
         const newWorker=reg.installing;
         newWorker.onstatechange=()=>{
           if(newWorker.state==='installed'&&navigator.serviceWorker.controller){
-            console.log('[PAT] New Service Worker ready, reloading...');
-            window.location.reload();
+            console.log('[PAT App] New SW installed, reloading immediately...');
+            // 즉시 강제 새로고침 (캐시 무시)
+            window.location.href=window.location.href+'?nocache='+Date.now();
           }
         };
       };
-    }).catch(()=>{});
+    }).catch((err)=>{
+      console.error('[PAT App] SW registration failed:', err);
+    });
   });
 }
 </script>

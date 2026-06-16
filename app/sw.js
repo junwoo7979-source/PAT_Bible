@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pat-bible-app-v34';
+const CACHE_NAME = 'pat-bible-app-v35';
 const APP_SHELL = [
   './',
   './index.html',
@@ -26,15 +26,18 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys
-        .filter(key => key !== CACHE_NAME)
-        .map(key => {
-          console.log('[PAT SW] Deleting old cache:', key);
-          return caches.delete(key);
-        })
-      ))
+      .then(keys => {
+        console.log('[PAT SW v35] Found caches:', keys);
+        return Promise.all(keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => {
+            console.log('[PAT SW v35] Deleting old cache:', key);
+            return caches.delete(key);
+          })
+        );
+      })
       .then(() => {
-        console.log('[PAT SW] Old caches cleaned, claiming clients');
+        console.log('[PAT SW v35] All old caches deleted, claiming clients');
         return self.clients.claim();
       })
   );
