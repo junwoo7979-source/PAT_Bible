@@ -503,7 +503,6 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- 등록 버튼 -->
     <div style="display:flex;gap:8px;margin:8px 0">
       <button class="btn" style="flex:1;margin:0" onclick="openFamilyRegister('leader')">👑 대표 등록</button>
-      <button class="btn ghost" style="flex:1;margin:0" onclick="openFamilyRegister('member')">🙋 가족 등록</button>
     </div>
     <button class="btn ghost" id="inviteLinkBtn" onclick="copyInviteLink()" style="display:none">📎 초대 링크 복사</button>
     <button class="btn ghost" onclick="goResetPwFromFamily()" style="margin-top:8px;color:var(--muted);border-color:var(--line)">🔑 비밀번호 재설정</button>
@@ -538,11 +537,6 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
   <section class="screen" id="s-family-register">
     <button class="back" onclick="go('s-family')">‹ 가족방</button>
     <h1>가족방 등록</h1>
-    <!-- 탭 -->
-    <div class="reg-tabs" style="display:flex;gap:8px;margin:12px 0 0">
-      <button class="reg-tab active" id="tabLeader" onclick="switchRegTab('leader')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--accent);color:#fff">👑 대표 등록</button>
-      <button class="reg-tab" id="tabMember" onclick="switchRegTab('member')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--surface);color:var(--text)">🙋 가족 등록</button>
-    </div>
 
     <!-- 대표 등록 폼 -->
     <div id="panelLeader">
@@ -573,24 +567,6 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <button class="btn" onclick="saveFamilyProfile()">가족방 등록 저장</button>
     </div>
 
-    <!-- 가족 등록 폼 -->
-    <div id="panelMember" style="display:none">
-      <p class="muted" style="margin:10px 0 4px">내 이름과 대표에게 받은 비밀번호를 입력하세요</p>
-      <div class="card" id="registeredFamilyRoomCard" style="margin-top:8px">
-        <p class="muted" style="margin:0 0 6px">등록된 가족방</p>
-        <h2 id="registeredFamilyRoomName" style="margin:0"></h2>
-        <p class="muted" id="registeredFamilyRoomMeta" style="margin:6px 0 0"></p>
-        <div id="registeredFamilyMembers" style="margin-top:10px"></div>
-      </div>
-      <div class="card" style="margin-top:8px">
-        <label class="lbl">내 이름</label>
-        <input class="field" id="joinMemberName" placeholder="예: 이영희">
-        <label class="lbl">가족 비밀번호</label>
-        <div class="pw-wrap"><input class="field" id="joinPassword" type="password" placeholder="대표에게 받은 비밀번호"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
-        <button class="btn" onclick="joinFamilyManual()" style="margin-top:8px">가족 등록하기</button>
-      </div>
-      <p class="muted center" style="margin-top:14px;font-size:calc(var(--fs)-4px)">또는 대표에게 초대 링크를 받아 접속하세요</p>
-    </div>
     <!-- 메뉴 바 1 -->
     <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line)">
       <nav style="display:flex;justify-content:space-around;gap:6px">
