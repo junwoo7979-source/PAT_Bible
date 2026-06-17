@@ -218,6 +218,7 @@ function startVoiceRecognition(SR, isRecovery=false){
   document.getElementById('voiceRestart').style.display = 'none';
   let finalText='', latestText='', handled=false;
   let recogStartedAt=0; // onstart 시각 — 초기 잡소리 제거 기준
+  let lastProcessedFinalIndex=-1; // 마지막으로 처리한 isFinal 인덱스 — 중복 제거
   const STARTUP_NOISE_GUARD=150; // 시작 후 N ms 동안 result 무시 (탭 소리 등 차단)
 
   const mergeSpeechText=(base,fragment)=>{
@@ -307,11 +308,17 @@ function startVoiceRecognition(SR, isRecovery=false){
       if(recogStartedAt && _elapsed < STARTUP_NOISE_GUARD) return;
       // isFinal 세그먼트: mergeSpeechText 없이 단순 연결 후 중복 구절 제거
       // (mergeSpeechText는 한국어 어절 경계 overlap 미감지 → append → 반복 누적 버그)
-      const isFinalParts=[];
-      for(let i=0;i<e.results.length;i++){
-        if(e.results[i].isFinal) isFinalParts.push(e.results[i][0].transcript.trim());
+      // 새로운 isFinal 결과만 추가하여 중복 방지
+      const newFinalParts=[];
+      for(let i=lastProcessedFinalIndex+1;i<e.results.length;i++){
+        if(e.results[i].isFinal){
+          newFinalParts.push(e.results[i][0].transcript.trim());
+          lastProcessedFinalIndex=i;
+        }
       }
-      finalText=collapseRepeatedNgrams(isFinalParts.join(' ').trim());
+      if(newFinalParts.length>0){
+        finalText=collapseRepeatedNgrams((finalText?(finalText+' '):'')+newFinalParts.join(' ').trim());
+      }
       const last=e.results[e.results.length-1];
       const interimText=last.isFinal?'':last[0].transcript.trim();
       latestText=(interimText?mergeSpeechText(finalText,interimText):finalText).trim();
