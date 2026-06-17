@@ -305,34 +305,41 @@ function startVoiceRecognition(SR, isRecovery=false){
     recog.onresult=(e)=>{
       const _elapsed=Date.now()-recogStartedAt;
       const _last=e.results[e.results.length-1];
-      // 전체 e.results 배열 상태 추적
-      let resultsLog='[';
-      for(let i=0;i<e.results.length;i++){
-        resultsLog+=(i>0?',':'')+'['+i+']isFinal:'+e.results[i].isFinal+' "'+e.results[i][0].transcript.substring(0,20).replace(/"/g,"'")+'"';
-      }
-      resultsLog+=']';
-      console.log('[VOICE-LOG] onresult elapsed:'+_elapsed+'ms lastProcessed:'+lastProcessedFinalIndex+' '+resultsLog);
+      console.log('[VOICE-LOG] onresult elapsed:'+_elapsed+'ms isFinal:'+_last.isFinal+' results.length:'+e.results.length+' lastProcessed:'+lastProcessedFinalIndex);
       // onstart 직후 N ms 이내 result는 탭 소리·주변 잡음일 가능성이 높으므로 무시
       if(recogStartedAt && _elapsed < STARTUP_NOISE_GUARD) return;
-      // isFinal 세그먼트: 처음 들어올 때만 처리하여 중복 방지
-      // (isFinal 결과는 이전 onresult에서 이미 처리했으면 다시 처리하지 않음)
-      const newFinalParts=[];
-      for(let i=lastProcessedFinalIndex+1;i<e.results.length;i++){
+
+      // isFinal=true인 모든 결과를 현재 상태로 수집 (내용 변경 감지용)
+      const allFinalText=[];
+      for(let i=0;i<e.results.length;i++){
         if(e.results[i].isFinal){
           const transcript=e.results[i][0].transcript.trim();
-          if(transcript){
-            newFinalParts.push(transcript);
-            console.log('[VOICE-LOG] NEW_FINAL['+i+'] "'+transcript+'"');
-          }
-          lastProcessedFinalIndex=i;
+          if(transcript) allFinalText.push(transcript);
         }
       }
-      if(newFinalParts.length>0){
-        const newText=newFinalParts.join(' ').trim();
-        const oldFinalText=finalText;
-        finalText=collapseRepeatedNgrams((finalText?(finalText+' '):'')+newText);
-        console.log('[VOICE-LOG] finalText: "'+oldFinalText+'" + "'+newText+'" = "'+finalText+'"');
+      const currentFinalText=allFinalText.join(' ');
+
+      // 중요: isFinal=true인 첫 번째 결과만 한 번 처리하기
+      // 이후 onresult 콜백에서 동일하거나 포함된 내용은 무시
+      let shouldUpdate=false;
+      if(lastProcessedFinalIndex===-1 && currentFinalText){
+        // 첫 isFinal 내용
+        shouldUpdate=true;
+        lastProcessedFinalIndex=0; // 표식: 적어도 하나의 isFinal이 처리됨
+      }else if(lastProcessedFinalIndex>=0 && currentFinalText && !finalText.includes(currentFinalText)){
+        // 이전 finalText에 현재 내용이 포함되지 않음 → 새로운 내용이 추가됨
+        shouldUpdate=true;
       }
+
+      if(shouldUpdate){
+        const oldFinalText=finalText;
+        finalText=collapseRepeatedNgrams((finalText?(finalText+' '):'')+currentFinalText);
+        if(finalText!==oldFinalText){
+          console.log('[VOICE-LOG] finalText 업데이트: "'+oldFinalText+'" → "'+finalText+'"');
+        }
+      }
+
+      // interim (아직 isFinal 아님) 결과 렌더링
       const last=e.results[e.results.length-1];
       const interimText=last.isFinal?'':last[0].transcript.trim();
       latestText=(interimText?mergeSpeechText(finalText,interimText):finalText).trim();
