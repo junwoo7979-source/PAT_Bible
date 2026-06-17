@@ -379,6 +379,8 @@ function startVoiceRecognition(SR, isRecovery=false){
       const last=e.results[e.results.length-1];
       const interimText=last.isFinal?'':last[0].transcript.trim();
       latestText=(interimText?mergeSpeechText(finalText,interimText):finalText).trim();
+      // 최종 텍스트도 중복 제거하여 화면 표시 시 이미 깔끔한 상태 유지
+      latestText=collapseRepeatedNgrams(latestText);
       document.getElementById('recognized').textContent=latestText;
       previewVoice(latestText);
     };
