@@ -31,6 +31,7 @@ function switchAdminTab(tabName) {
   // 각 탭별 초기화 작업
   if (tabName === 'award') {
     renderAwardRanking();
+    updateAwardListOnValueChange();
   }
 }
 
@@ -224,7 +225,7 @@ function selectFamilyForDetail(familyId) {
   `;
 }
 
-// ── 시상 대상 생성 ────────────────────────────────────
+// ── 시상 대상 생성 (자동 업데이트) ────────────────────────────────────
 async function generateAwardList() {
   const minRate = parseInt(document.getElementById('awardMinRate').value) || 85;
   const churchCode = DB?.church?.code || '11111';
@@ -264,4 +265,18 @@ async function generateAwardList() {
       `).join('')}
     </div>
   `;
+}
+
+// ── 기준율 입력 필드 값 변경 시 자동 업데이트 ────────────────────────────────────
+function updateAwardListOnValueChange() {
+  const input = document.getElementById('awardMinRate');
+  if (!input) return;
+
+  // 기존 이벤트 리스너 제거 후 새로 추가 (중복 방지)
+  if (!input.__hasAwEventListener) {
+    input.addEventListener('input', () => {
+      generateAwardList();
+    });
+    input.__hasAwEventListener = true;
+  }
 }
