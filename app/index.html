@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v46-startup-stable-20260617">
+<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v47-family-join-auto-confirm-20260617">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -503,6 +503,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- 등록 버튼 -->
     <div style="display:flex;gap:8px;margin:8px 0">
       <button class="btn" style="flex:1;margin:0" onclick="openFamilyRegister('leader')">👑 대표 등록</button>
+      <button class="btn" style="flex:1;margin:0" onclick="openFamilyJoinManual()">👨‍👩‍👧 가족 등록</button>
     </div>
     <button class="btn ghost" id="inviteLinkBtn" onclick="copyInviteLink()" style="display:none">📎 초대 링크 복사</button>
     <button class="btn ghost" onclick="goResetPwFromFamily()" style="margin-top:8px;color:var(--muted);border-color:var(--line)">🔑 비밀번호 재설정</button>
@@ -513,17 +514,21 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div style="display:none"><span id="famVerseRef"></span><span id="famVerseText"></span></div>
   </section>
 
-  <!-- S3b: 본인 선택 화면 -->
-  <section class="screen" id="s-member-select">
+  <!-- S3b: 가족 등록 (구성원 자가 입력) -->
+  <section class="screen" id="s-family-join-manual">
     <button class="back" onclick="go('s-family')">‹ 가족방</button>
-    <h1>본인 확인</h1>
+    <h1>가족 등록</h1>
 
     <div class="card" style="margin-top:16px">
-      <p class="muted" style="margin-bottom:12px">아래에서 본인의 이름을 선택하세요</p>
+      <p class="muted" style="margin-bottom:12px">가족방에 참여하시려면 다음 정보를 입력하세요</p>
 
-      <div id="memberSelectList" style="margin-top:12px"></div>
+      <label class="lbl">내 이름 또는 닉네임</label>
+      <input class="field" id="joinMemberNameInput" placeholder="예: 김민수" autocomplete="off">
 
-      <button class="btn" onclick="confirmMemberSelection()" style="margin-top:16px">선택 완료</button>
+      <label class="lbl">가족 비밀번호</label>
+      <div class="pw-wrap"><input class="field" id="joinPasswordInput" type="password" placeholder="가족장에게 비밀번호를 물어보세요"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+
+      <button class="btn" onclick="submitFamilyJoinManual()" style="margin-top:12px">가족에 등록하기</button>
     </div>
   </section>
 
@@ -569,17 +574,8 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         <p class="muted" style="font-size:calc(var(--fs) - 5px);margin:-4px 2px 10px">
           가족 구성원이 참여할 때 사용하는 비밀번호입니다.</p>
       </div>
-      <!-- 가족 구성원 등록 -->
-      <div class="card" style="margin-top:0">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-weight:700">👨‍👩‍👧 가족 구성원 이름</span>
-          <button onclick="addMemberRow()" style="background:var(--accent);color:#04231a;border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:calc(var(--fs)-2px);cursor:pointer">+ 추가</button>
-        </div>
-        <div id="memberRows"></div>
-        <p class="muted" style="font-size:calc(var(--fs)-5px);margin-top:4px">구성원 이름을 입력하면 입장 후 [확인] 버튼으로 확정합니다</p>
-      </div>
 
-      <button class="btn" onclick="saveFamilyProfile()">가족방 설정 저장</button>
+      <button class="btn" onclick="saveFamilyProfileAsLeader()">가족방 설정 저장</button>
     </div>
 
     <!-- 메뉴 바 1 -->

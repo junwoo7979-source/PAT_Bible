@@ -262,13 +262,13 @@ function openFamilyRegister(tab){
   renderMemberRows(profile?.members||[]);
   go('s-family-register');
 }
-function saveFamilyProfile(){
+// ── 대표 등록 (대표자만, 자동 확인) ────────────────────────────
+function saveFamilyProfileAsLeader(){
   const roomName   = document.getElementById('familyRoomName').value.trim();
   const leaderName = document.getElementById('familyLeaderName').value.trim();
   const parish     = document.getElementById('familyParish').value.trim();
   const district   = document.getElementById('familyDistrict').value.trim();
   let familyPassword = document.getElementById('familyPassword').value.trim();
-  let members = getMemberNames();
 
   if(!roomName||!leaderName||!parish||!district){
     toast('가족방 이름, 대표 이름, 교구와 구역을 입력하세요');
@@ -276,7 +276,9 @@ function saveFamilyProfile(){
   }
 
   if(!familyPassword) familyPassword = DB.church.code;
-  if(!members.includes(leaderName)) members.unshift(leaderName);
+
+  // ★ 대표자만 members에 자동 추가 (1번 위치)
+  const members = [leaderName];
 
   // memberName: 대표자 기기에선 대표자가 "나"
   const profileData = { roomName, leaderName, parish, district, familyPassword, members, memberName: leaderName };
@@ -471,36 +473,26 @@ let familyProgressNonce = 0;   // 단조 증가 nonce — 경쟁 요청 방지
 let familyProgressPollKey = '';
 let familyProgressPollTimer = null;
 
+// ── 가족 구성원 목록 렌더링 (자동 완료, 순서 번호, 버튼 없음) ──
 function renderFamilyMemberList(members){
-  const safeMembers = members.length ? members : [{ name:'나', me:true, done:false }];
+  const safeMembers = members.length ? members : [{ name:'나', me:true }];
   DB.members = safeMembers;
 
-  const profile = loadFamilyProfile();
-  const memberStatuses = JSON.parse(localStorage.getItem('pat_member_confirmed') || '{}');
-
-  // 확인된 구성원 수 계산 (대기 → 완료)
-  const confirmedCount = Object.values(memberStatuses).filter(v => v).length;
-  const pct = Math.round(confirmedCount/safeMembers.length*100);
+  // ★ 자동 완료: 모든 구성원이 이미 ✓ 완료 상태
+  const confirmedCount = safeMembers.length;
+  const pct = 100; // 모두 자동 완료
   document.getElementById('familyProgress').textContent = `이번 주 달성률 ${confirmedCount}/${safeMembers.length}명`;
   document.getElementById('familyBar').style.width = pct+'%';
 
   const list = safeMembers.map((m, idx) => {
-    const memberId = `member${idx + 1}`;
-    const isConfirmed = memberStatuses[memberId];
-    const isMe = m.me;
-
-    // 모든 구성원에 [확인] 버튼 표시, 본인만 클릭 가능
-    const confirmBtn = `<button class="btn sm"
-      style="padding:4px 10px;font-size:calc(var(--fs)-3px);margin-left:8px;${!isMe?'opacity:0.5;pointer-events:none;':'cursor:pointer;'}"
-      onclick="${isMe ? `confirmMemberIdentity('${memberId}')` : 'return false;'}"
-      ${!isMe ? 'disabled' : ''}>확인</button>`;
+    const orderNum = idx + 1; // ★ 등록 순서 번호
 
     return `<div class="member" style="display:flex;justify-content:space-between;align-items:center">
               <div style="flex:1">
+                <span style="color:var(--muted);margin-right:8px;font-weight:700;font-size:calc(var(--fs)-2px)">${orderNum}.</span>
                 <span>${esc(m.name)}</span>
-                <span style="margin-left:8px;font-size:calc(var(--fs)-2px)">${isConfirmed?'✓ 완료':'⏳ 대기'}</span>
+                <span style="margin-left:8px;font-size:calc(var(--fs)-2px);color:var(--accent)">✓ 완료</span>
               </div>
-              ${confirmBtn}
             </div>`;
   }).join('');
 
@@ -610,11 +602,7 @@ function startFamilyProgressPolling(profile){
 function renderFamily(){
   const profile = loadFamilyProfile();
 
-  // memberName이 없으면 본인 선택 화면 표시
-  if(profile && profile.members && profile.members.length > 0 && !profile.memberName){
-    showMemberSelection();
-    return;
-  }
+  // ★ 이제 본인 선택 화면이 필요 없음 - memberName은 자동으로 설정됨
 
   const recs    = loadRec();
   const profileMembers = familyMemberNames(profile);
@@ -625,14 +613,12 @@ function renderFamily(){
     DB.members = profileMembers.map((name,i)=>({
       name,
       me: myName ? name === myName : i===0,
-      done: false
+      done: true  // ★ 자동 완료로 변경
     }));
     if(!DB.members.find(m=>m.me)) DB.members[0].me = true;
   }
   const me = DB.members.find(m=>m.me);
-  // ★ 동기화: syncFamilyProgressFromCloud()에서
-  // Firebase members의 done 상태를 받아서 반영함
-  // (done=true = 가족방에 입장했다는 뜻)
+  // ★ 자동 완료: 렌더링 시 모든 구성원이 ✓ 완료 상태
   renderFamilyMemberList(DB.members);
   const syncPromise = (profile?.familyPassword
     ? refreshFamilyProfileByPassword(profile, profile.familyPassword)
@@ -645,7 +631,7 @@ function renderFamily(){
         DB.members = names.map((name,i)=>({
           name,
           me: currentName ? name === currentName : i===0,
-          done: false
+          done: true  // ★ 자동 완료로 변경
         }));
         if(!DB.members.find(m=>m.me)) DB.members[0].me = true;
         renderFamilyMemberList(DB.members);
@@ -691,43 +677,93 @@ function confirmMemberIdentity(memberId) {
   toast(`✅ ${esc(memberName)} 확인 완료!`);
 }
 
-// ── 본인 선택 화면 ────────────────────────────────────────────
-function showMemberSelection(){
-  const profile = loadFamilyProfile();
-  if(!profile || !profile.members || profile.members.length === 0){
-    toast('가족 구성원이 없습니다');
-    return;
-  }
-
-  // 라디오 버튼 생성
-  const html = profile.members.map(name => `
-    <label style="display:flex;align-items:center;padding:12px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer">
-      <input type="radio" name="memberName" value="${esc(name)}" style="margin-right:12px;width:18px;height:18px;cursor:pointer">
-      <span>${esc(name)}</span>
-    </label>
-  `).join('');
-
-  document.getElementById('memberSelectList').innerHTML = html;
-  go('s-member-select');
+// ── 가족 등록 화면 열기 ────────────────────────────────────────
+function openFamilyJoinManual(){
+  document.getElementById('joinMemberNameInput').value = '';
+  document.getElementById('joinPasswordInput').value = '';
+  go('s-family-join-manual');
 }
 
-function confirmMemberSelection(){
-  const selected = document.querySelector('input[name="memberName"]:checked');
-  if(!selected){
-    toast('본인을 선택해주세요');
+// ── 가족 등록 제출 (구성원 자가 입력) ───────────────────────────
+async function submitFamilyJoinManual(){
+  const name = document.getElementById('joinMemberNameInput').value.trim();
+  const pw = document.getElementById('joinPasswordInput').value.trim();
+
+  if(!name){
+    toast('이름을 입력하세요');
+    return;
+  }
+  if(!pw){
+    toast('비밀번호를 입력하세요');
     return;
   }
 
-  const memberName = selected.value;
-  const profile = loadFamilyProfile();
+  const existing = loadFamilyProfile();
 
-  // memberName 저장
-  const updatedProfile = { ...profile, memberName };
-  setFamilyStorage('pat_family_profile', JSON.stringify(updatedProfile));
-  window._lastSavedFamilyProfile = updatedProfile;
+  // 1️⃣ 기존 가족방 있으면 비밀번호 확인 후 추가
+  if(existing){
+    if(pw !== existing.familyPassword){
+      toast('비밀번호가 올바르지 않습니다');
+      return;
+    }
+    const members = existing.members || [];
+    if(!members.includes(name)) members.push(name);
+    const updatedProfile = { ...existing, memberName: name, members };
+    setFamilyStorage('pat_family_profile', JSON.stringify(updatedProfile));
 
-  // 가족방으로 이동
+    if(window.PAT_DB && PAT_DB.ready()){
+      const familyId = localStorage.getItem('pat_family_id') || '';
+      if(familyId) await PAT_DB.joinFamily(DB.church.code, familyId, name);
+      await syncFamilyProgressFromCloud(updatedProfile);
+    }
+
+    renderFamily();
+    go('s-family');
+    toast(`✓ ${esc(name)} 등록 완료! 🎉`);
+    return;
+  }
+
+  // 2️⃣ Firebase에서 가족 찾기
+  if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
+    try{
+      const found = await PAT_DB.findFamilyByPassword(DB.church.code, pw);
+      if(found){
+        const members = Array.isArray(found.members) ? found.members.slice() : [];
+        if(!members.includes(name)) members.push(name);
+        localStorage.setItem('pat_family_id', found.id);
+        const profileData = {
+          roomName: found.roomName || '',
+          leaderName: found.leaderName || '',
+          parish: found.parish || '',
+          district: found.district || '',
+          familyPassword: pw,
+          memberName: name,
+          members
+        };
+        setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
+        await PAT_DB.joinFamily(DB.church.code, found.id, name);
+        renderFamily();
+        go('s-family');
+        toast(`✓ ${found.roomName || '가족방'}에 등록되었습니다! 🎉`);
+        return;
+      }
+    }catch(e){
+      console.warn('[PAT] Firebase lookup failed:', e.message);
+    }
+  }
+
+  // 3️⃣ Fallback: 로컬만 저장
+  const profileData = {
+    roomName: '',
+    leaderName: '',
+    parish: '',
+    district: '',
+    familyPassword: pw,
+    memberName: name,
+    members: [name]
+  };
+  setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
   renderFamily();
   go('s-family');
-  toast(`✅ ${esc(memberName)}으로 설정되었습니다`);
+  toast(`✓ 가족에 등록되었습니다! 🎉`);
 }
