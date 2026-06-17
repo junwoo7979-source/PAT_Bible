@@ -260,25 +260,29 @@ function startVoiceRecognition(SR, isRecovery=false){
     const words=(text||'').trim().split(/\s+/).filter(Boolean);
     if(words.length<2) return words.join(' ');
 
-    // 1단계: 인접 중복 단어 제거 (같지 같지 → 같지)
+    // 1단계: 인접 중복 단어 제거 (같지 같지 → 같지) — 역순으로 안전하게 제거
+    let removed=0;
     for(let i=words.length-1;i>0;i--){
       if(words[i]===words[i-1]){
-        console.log('[VOICE-LOG] collapseRepeatedNgrams — 인접 중복 제거['+i+']:"'+words[i]+'"');
+        console.log('[VOICE-LOG] collapseRepeatedNgrams — 인접 중복 제거['+i+']:"'+words[i]+'" (before:"'+words.join(' ')+'" → after:"'+words.slice(0,i).concat(words.slice(i+1)).join(' ')+'"');
         words.splice(i,1);
+        removed++;
       }
     }
 
-    // 2단계: n-gram 중복 제거 (3단어 이상 패턴)
+    // 2단계: n-gram 중복 제거 (3단어 이상 패턴) — 큰 패턴부터 제거
     if(words.length<4) return words.join(' ');
     let changed=true;
     while(changed){
       changed=false;
       outer: for(let size=Math.min(words.length,8);size>=3;size--){
-        for(let i=0;i<=words.length-size;i++){
-          const ph=words.slice(i,i+size).join(' ');
-          for(let j=i+1;j<=words.length-size;j++){
-            if(words.slice(j,j+size).join(' ')===ph){
-              console.log('[VOICE-LOG] collapseRepeatedNgrams — n-gram 중복 제거 size:'+size+' pattern:"'+ph+'"');
+        for(let i=0;i<words.length-size;i++){
+          const pattern=words.slice(i,i+size);
+          const patternStr=pattern.join(' ');
+          // 다음 위치부터 같은 패턴 찾기
+          for(let j=i+size;j<=words.length-size;j++){
+            if(words.slice(j,j+size).join(' ')===patternStr){
+              console.log('[VOICE-LOG] collapseRepeatedNgrams — n-gram 중복 제거 size:'+size+' at['+j+'] pattern:"'+patternStr+'"');
               words.splice(j,size);
               changed=true;
               break outer;
@@ -287,6 +291,7 @@ function startVoiceRecognition(SR, isRecovery=false){
         }
       }
     }
+    console.log('[VOICE-LOG] collapseRepeatedNgrams 완료: 인접 중복 '+removed+'개 제거, 최종 결과:"'+words.join(' ')+'"');
     return words.join(' ');
   };
   const recover=(msg)=>{
