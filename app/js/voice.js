@@ -305,7 +305,13 @@ function startVoiceRecognition(SR, isRecovery=false){
     recog.onresult=(e)=>{
       const _elapsed=Date.now()-recogStartedAt;
       const _last=e.results[e.results.length-1];
-      console.log('[VOICE-LOG] onresult isFinal:'+_last.isFinal+' elapsed:'+_elapsed+'ms results:'+e.results.length+' lastProcessed:'+lastProcessedFinalIndex+' "'+_last[0].transcript.substring(0,40)+'"');
+      // 전체 e.results 배열 상태 추적
+      let resultsLog='[';
+      for(let i=0;i<e.results.length;i++){
+        resultsLog+=(i>0?',':'')+'['+i+']isFinal:'+e.results[i].isFinal+' "'+e.results[i][0].transcript.substring(0,20).replace(/"/g,"'")+'"';
+      }
+      resultsLog+=']';
+      console.log('[VOICE-LOG] onresult elapsed:'+_elapsed+'ms lastProcessed:'+lastProcessedFinalIndex+' '+resultsLog);
       // onstart 직후 N ms 이내 result는 탭 소리·주변 잡음일 가능성이 높으므로 무시
       if(recogStartedAt && _elapsed < STARTUP_NOISE_GUARD) return;
       // isFinal 세그먼트: 처음 들어올 때만 처리하여 중복 방지
@@ -316,15 +322,16 @@ function startVoiceRecognition(SR, isRecovery=false){
           const transcript=e.results[i][0].transcript.trim();
           if(transcript){
             newFinalParts.push(transcript);
-            console.log('[VOICE-LOG] onresult — 새로운 isFinal['+i+']:"'+transcript.substring(0,30)+'"');
+            console.log('[VOICE-LOG] NEW_FINAL['+i+'] "'+transcript+'"');
           }
           lastProcessedFinalIndex=i;
         }
       }
       if(newFinalParts.length>0){
         const newText=newFinalParts.join(' ').trim();
+        const oldFinalText=finalText;
         finalText=collapseRepeatedNgrams((finalText?(finalText+' '):'')+newText);
-        console.log('[VOICE-LOG] onresult — finalText 업데이트:"'+finalText.substring(0,40)+'"');
+        console.log('[VOICE-LOG] finalText: "'+oldFinalText+'" + "'+newText+'" = "'+finalText+'"');
       }
       const last=e.results[e.results.length-1];
       const interimText=last.isFinal?'':last[0].transcript.trim();
