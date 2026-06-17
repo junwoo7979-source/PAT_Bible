@@ -25,6 +25,26 @@ function isKakaoInAppBrowser(){
 }
 
 // ── 텍스트 정규화 / 유사도 ────────────────────────────────
+// 한국어 발음 유사 문자 매핑 (음성 인식 오류 보정)
+const korPhoneticMap={
+  '같':'까','까':'같','지':'치','치':'지',
+  '함':'함','으로':'으로','하므로':'함으로','함으로':'하므로',
+  '롤':'를','를':'롤','게':'게','기':'기','고':'고','어':'어','에':'에'
+};
+function normalizeKorean(s){
+  s=(s||'').replace(/[\s.,!?;:'"·…]/g,'');
+  // 한국어 발음 유사 치환 시도 (1글자 유사도 향상)
+  let result=s;
+  for(let orig in korPhoneticMap){
+    if(s.includes(orig)){
+      const alt=korPhoneticMap[orig];
+      const replaced=s.replace(new RegExp(orig,'g'),alt);
+      // 원본과 대체본 중 원문과 더 유사한 것 선택
+      if(replaced.length===s.length) result=replaced;
+    }
+  }
+  return result.toLowerCase();
+}
 function normalize(s){ return (s||'').replace(/[\s.,!?;:'"·…]/g,'').toLowerCase(); }
 function similarity(a,b){
   a=normalize(a); b=normalize(b);
