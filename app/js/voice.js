@@ -235,17 +235,19 @@ function startVoiceRecognition(SR, isRecovery=false){
   // isFinal 세그먼트 연결 후 중복 n-gram 제거
   // 구절 텍스트와 무관하게 인식 결과 내 반복 어절을 감지·제거
   // → Android Chrome이 '생각함으로'를 '생각하므로'로 인식해도 반복 패턴을 정확히 잡음
+  // 변경: size>=3 (2글자 이상인 패턴만 제거) → 의도하지 않은 단어 중복 제거 방지
   const collapseRepeatedNgrams=(text)=>{
     const words=(text||'').trim().split(/\s+/).filter(Boolean);
     if(words.length<4) return words.join(' ');
     let changed=true;
     while(changed){
       changed=false;
-      outer: for(let size=Math.min(words.length,8);size>=2;size--){
+      outer: for(let size=Math.min(words.length,8);size>=3;size--){
         for(let i=0;i<=words.length-size;i++){
           const ph=words.slice(i,i+size).join(' ');
           for(let j=i+1;j<=words.length-size;j++){
             if(words.slice(j,j+size).join(' ')===ph){
+              console.log('[VOICE-LOG] collapseRepeatedNgrams — 중복 제거 size:'+size+' pattern:"'+ph+'"');
               words.splice(j,size);
               changed=true;
               break outer;
@@ -303,21 +305,26 @@ function startVoiceRecognition(SR, isRecovery=false){
     recog.onresult=(e)=>{
       const _elapsed=Date.now()-recogStartedAt;
       const _last=e.results[e.results.length-1];
-      console.log('[VOICE-LOG] onresult isFinal:'+_last.isFinal+' elapsed:'+_elapsed+'ms results:'+e.results.length+' "'+_last[0].transcript.substring(0,40)+'"');
+      console.log('[VOICE-LOG] onresult isFinal:'+_last.isFinal+' elapsed:'+_elapsed+'ms results:'+e.results.length+' lastProcessed:'+lastProcessedFinalIndex+' "'+_last[0].transcript.substring(0,40)+'"');
       // onstart 직후 N ms 이내 result는 탭 소리·주변 잡음일 가능성이 높으므로 무시
       if(recogStartedAt && _elapsed < STARTUP_NOISE_GUARD) return;
-      // isFinal 세그먼트: mergeSpeechText 없이 단순 연결 후 중복 구절 제거
-      // (mergeSpeechText는 한국어 어절 경계 overlap 미감지 → append → 반복 누적 버그)
-      // 새로운 isFinal 결과만 추가하여 중복 방지
+      // isFinal 세그먼트: 처음 들어올 때만 처리하여 중복 방지
+      // (isFinal 결과는 이전 onresult에서 이미 처리했으면 다시 처리하지 않음)
       const newFinalParts=[];
       for(let i=lastProcessedFinalIndex+1;i<e.results.length;i++){
         if(e.results[i].isFinal){
-          newFinalParts.push(e.results[i][0].transcript.trim());
+          const transcript=e.results[i][0].transcript.trim();
+          if(transcript){
+            newFinalParts.push(transcript);
+            console.log('[VOICE-LOG] onresult — 새로운 isFinal['+i+']:"'+transcript.substring(0,30)+'"');
+          }
           lastProcessedFinalIndex=i;
         }
       }
       if(newFinalParts.length>0){
-        finalText=collapseRepeatedNgrams((finalText?(finalText+' '):'')+newFinalParts.join(' ').trim());
+        const newText=newFinalParts.join(' ').trim();
+        finalText=collapseRepeatedNgrams((finalText?(finalText+' '):'')+newText);
+        console.log('[VOICE-LOG] onresult — finalText 업데이트:"'+finalText.substring(0,40)+'"');
       }
       const last=e.results[e.results.length-1];
       const interimText=last.isFinal?'':last[0].transcript.trim();
