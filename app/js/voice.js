@@ -258,6 +258,17 @@ function startVoiceRecognition(SR, isRecovery=false){
   // 변경: size>=3 (2글자 이상인 패턴만 제거) → 의도하지 않은 단어 중복 제거 방지
   const collapseRepeatedNgrams=(text)=>{
     const words=(text||'').trim().split(/\s+/).filter(Boolean);
+    if(words.length<2) return words.join(' ');
+
+    // 1단계: 인접 중복 단어 제거 (같지 같지 → 같지)
+    for(let i=words.length-1;i>0;i--){
+      if(words[i]===words[i-1]){
+        console.log('[VOICE-LOG] collapseRepeatedNgrams — 인접 중복 제거['+i+']:"'+words[i]+'"');
+        words.splice(i,1);
+      }
+    }
+
+    // 2단계: n-gram 중복 제거 (3단어 이상 패턴)
     if(words.length<4) return words.join(' ');
     let changed=true;
     while(changed){
@@ -267,7 +278,7 @@ function startVoiceRecognition(SR, isRecovery=false){
           const ph=words.slice(i,i+size).join(' ');
           for(let j=i+1;j<=words.length-size;j++){
             if(words.slice(j,j+size).join(' ')===ph){
-              console.log('[VOICE-LOG] collapseRepeatedNgrams — 중복 제거 size:'+size+' pattern:"'+ph+'"');
+              console.log('[VOICE-LOG] collapseRepeatedNgrams — n-gram 중복 제거 size:'+size+' pattern:"'+ph+'"');
               words.splice(j,size);
               changed=true;
               break outer;
