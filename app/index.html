@@ -513,6 +513,20 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div style="display:none"><span id="famVerseRef"></span><span id="famVerseText"></span></div>
   </section>
 
+  <!-- S3b: 본인 선택 화면 -->
+  <section class="screen" id="s-member-select">
+    <button class="back" onclick="go('s-family')">‹ 가족방</button>
+    <h1>본인 확인</h1>
+
+    <div class="card" style="margin-top:16px">
+      <p class="muted" style="margin-bottom:12px">아래에서 본인의 이름을 선택하세요</p>
+
+      <div id="memberSelectList" style="margin-top:12px"></div>
+
+      <button class="btn" onclick="confirmMemberSelection()" style="margin-top:16px">선택 완료</button>
+    </div>
+  </section>
+
   <!-- S3c: 초대장 -->
   <section class="screen" id="s-invite">
     <div class="logo">📩</div>

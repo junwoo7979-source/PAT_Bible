@@ -608,8 +608,15 @@ function startFamilyProgressPolling(profile){
   }, 10000);
 }
 function renderFamily(){
-  const recs    = loadRec();
   const profile = loadFamilyProfile();
+
+  // memberName이 없으면 본인 선택 화면 표시
+  if(profile && profile.members && profile.members.length > 0 && !profile.memberName){
+    showMemberSelection();
+    return;
+  }
+
+  const recs    = loadRec();
   const profileMembers = familyMemberNames(profile);
   // memberName(이 기기 사용자 이름)으로 "나" 판별 — 없으면 leaderName, 없으면 첫 번째
   const myName  = (profile?.memberName || profile?.leaderName || '').trim();
@@ -682,4 +689,45 @@ function confirmMemberIdentity(memberId) {
   // UI 즉시 업데이트 (가족방 재렌더링)
   renderFamily();
   toast(`✅ ${esc(memberName)} 확인 완료!`);
+}
+
+// ── 본인 선택 화면 ────────────────────────────────────────────
+function showMemberSelection(){
+  const profile = loadFamilyProfile();
+  if(!profile || !profile.members || profile.members.length === 0){
+    toast('가족 구성원이 없습니다');
+    return;
+  }
+
+  // 라디오 버튼 생성
+  const html = profile.members.map(name => `
+    <label style="display:flex;align-items:center;padding:12px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer">
+      <input type="radio" name="memberName" value="${esc(name)}" style="margin-right:12px;width:18px;height:18px;cursor:pointer">
+      <span>${esc(name)}</span>
+    </label>
+  `).join('');
+
+  document.getElementById('memberSelectList').innerHTML = html;
+  go('s-member-select');
+}
+
+function confirmMemberSelection(){
+  const selected = document.querySelector('input[name="memberName"]:checked');
+  if(!selected){
+    toast('본인을 선택해주세요');
+    return;
+  }
+
+  const memberName = selected.value;
+  const profile = loadFamilyProfile();
+
+  // memberName 저장
+  const updatedProfile = { ...profile, memberName };
+  setFamilyStorage('pat_family_profile', JSON.stringify(updatedProfile));
+  window._lastSavedFamilyProfile = updatedProfile;
+
+  // 가족방으로 이동
+  renderFamily();
+  go('s-family');
+  toast(`✅ ${esc(memberName)}으로 설정되었습니다`);
 }
