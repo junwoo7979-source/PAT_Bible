@@ -259,6 +259,7 @@ function openFamilyRegister(tab){
   document.getElementById('familyParish').value     = profile?.parish||'';
   document.getElementById('familyDistrict').value   = profile?.district||'';
   document.getElementById('familyPassword').value   = profile?.familyPassword||DB.church.code;
+  renderMemberRows(profile?.members||[]);
   go('s-family-register');
 }
 function saveFamilyProfile(){
@@ -267,6 +268,7 @@ function saveFamilyProfile(){
   const parish     = document.getElementById('familyParish').value.trim();
   const district   = document.getElementById('familyDistrict').value.trim();
   let familyPassword = document.getElementById('familyPassword').value.trim();
+  let members = getMemberNames();
 
   if(!roomName||!leaderName||!parish||!district){
     toast('가족방 이름, 대표 이름, 교구와 구역을 입력하세요');
@@ -274,9 +276,10 @@ function saveFamilyProfile(){
   }
 
   if(!familyPassword) familyPassword = DB.church.code;
+  if(!members.includes(leaderName)) members.unshift(leaderName);
 
   // memberName: 대표자 기기에선 대표자가 "나"
-  const profileData = { roomName, leaderName, parish, district, familyPassword, memberName: leaderName };
+  const profileData = { roomName, leaderName, parish, district, familyPassword, members, memberName: leaderName };
 
   setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
   // ★ localStorage에 저장된 값을 메모리에도 캐시 (다른 폴링이 읽을 수 있도록)
