@@ -474,32 +474,34 @@ let familyProgressPollTimer = null;
 function renderFamilyMemberList(members){
   const safeMembers = members.length ? members : [{ name:'나', me:true, done:false }];
   DB.members = safeMembers;
-  const doneCount = safeMembers.filter(m=>m.done).length;
-  const pct = Math.round(doneCount/safeMembers.length*100);
-  document.getElementById('familyProgress').textContent = `이번 주 달성률 ${doneCount}/${safeMembers.length}명`;
-  document.getElementById('familyBar').style.width = pct+'%';
 
   const profile = loadFamilyProfile();
   const memberStatuses = JSON.parse(localStorage.getItem('pat_member_confirmed') || '{}');
+
+  // 확인된 구성원 수 계산 (대기 → 완료)
+  const confirmedCount = Object.values(memberStatuses).filter(v => v).length;
+  const pct = Math.round(confirmedCount/safeMembers.length*100);
+  document.getElementById('familyProgress').textContent = `이번 주 달성률 ${confirmedCount}/${safeMembers.length}명`;
+  document.getElementById('familyBar').style.width = pct+'%';
 
   const list = safeMembers.map((m, idx) => {
     const memberId = `member${idx + 1}`;
     const isConfirmed = memberStatuses[memberId];
     const isMe = m.me;
 
-    // 본인 확인 버튼: 아직 미확인이고 자신의 이름일 때만 보임
-    let memberRow = `<div class="member" style="display:flex;justify-content:space-between;align-items:center">
-                      <div style="flex:1">
-                        <span>${esc(m.name)}${m.me?' (나)':''}</span>
-                        <span class="${m.done?'tag-ok':'tag-wait'}" style="margin-left:8px">${m.done?'✔ 완료':'대기'}</span>
-                      </div>`;
+    // 모든 구성원에 [확인] 버튼 표시, 본인만 클릭 가능
+    const confirmBtn = `<button class="btn sm"
+      style="padding:4px 10px;font-size:calc(var(--fs)-3px);margin-left:8px;${!isMe?'opacity:0.5;pointer-events:none;':'cursor:pointer;'}"
+      onclick="${isMe ? `confirmMemberIdentity('${memberId}')` : 'return false;'}"
+      ${!isMe ? 'disabled' : ''}>확인</button>`;
 
-    if(isMe && !isConfirmed) {
-      memberRow += `<button class="btn sm" style="padding:4px 10px;font-size:calc(var(--fs)-3px);margin-left:8px" onclick="confirmMemberIdentity('${memberId}')">확인</button>`;
-    }
-
-    memberRow += `</div>`;
-    return memberRow;
+    return `<div class="member" style="display:flex;justify-content:space-between;align-items:center">
+              <div style="flex:1">
+                <span>${esc(m.name)}${m.me?' (나)':''}</span>
+                <span style="margin-left:8px;font-size:calc(var(--fs)-2px)">${isConfirmed?'✓ 완료':'⏳ 대기'}</span>
+              </div>
+              ${confirmBtn}
+            </div>`;
   }).join('');
 
   document.getElementById('memberList').innerHTML = list;
@@ -677,7 +679,7 @@ function confirmMemberIdentity(memberId) {
     }
   }
 
-  // UI 업데이트
+  // UI 즉시 업데이트 (가족방 재렌더링)
   renderFamily();
   toast(`✅ ${esc(memberName)} 확인 완료!`);
 }
