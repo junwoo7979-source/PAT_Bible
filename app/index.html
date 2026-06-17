@@ -34,7 +34,7 @@
 body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);
   color:var(--text);font-size:var(--fs);line-height:var(--lh);transition:background .3s,color .3s;}
 .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
-.screen{flex:1;padding:24px 20px 90px;display:none;}
+.screen{flex:1;padding:24px 20px 120px;display:none;}
 .screen.active{display:flex;flex-direction:column;}
 .screen.no-motion{}
 h1{font-size:var(--fs-xl);line-height:var(--lh-title);margin-bottom:6px;}
@@ -524,7 +524,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       </nav>
     </div>
     <!-- 메뉴 바 2 -->
-    <div style="margin-top:12px">
+    <div style="margin-top:12px;margin-bottom:12px">
       <nav style="display:flex;justify-content:space-around;gap:6px">
         <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-family');renderFamily()"><span style="font-size:20px">🏠</span><br>홈</button>
         <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-verse')"><span style="font-size:20px">📖</span><br>암송</button>
