@@ -42,6 +42,26 @@ function startPrayerMic(){
     return;
   }
 
+  // 마이크 권한 요청 (TWA/폰 환경용)
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream=>{
+        // 권한 획득 성공 - 스트림 정지
+        stream.getTracks().forEach(track => track.stop());
+        initiatePrayerRecognition(SR);
+      })
+      .catch(err=>{
+        console.error('[PRAYER-VOICE] 마이크 권한 오류:', err);
+        toast('마이크 권한을 허용해주세요 (설정 > 권한 > 마이크)');
+        stopPrayerMic();
+      });
+  }else{
+    // 권한 요청 지원 안 함 → 바로 인식 시작
+    initiatePrayerRecognition(SR);
+  }
+}
+
+function initiatePrayerRecognition(SR){
   prayerRecog=new SR();
   prayerRecog.lang='ko-KR';
   prayerRecog.interimResults=true;
