@@ -56,6 +56,22 @@ function applyCloudConfig(config){
 function applyStoredData(){
   console.log('[PAT-STARTUP] applyStoredData 시작');
 
+  // ✨ 빠른 초기화: 먼저 로그인 페이지를 표시
+  // (나머지 초기화는 백그라운드에서 수행)
+  showLoginImmediately();
+
+  // 백그라운드에서 나머지 초기화 수행
+  setTimeout(() => completeAppInitialization(), 50);
+}
+
+function showLoginImmediately(){
+  // 로그인 페이지만 즉시 표시
+  go('s-login', true, false);
+}
+
+function completeAppInitialization(){
+  console.log('[PAT-STARTUP] completeAppInitialization 시작 (백그라운드)');
+
   // ?reset=1 파라미터로 localStorage 초기화
   const params = new URLSearchParams(window.location.search);
   if(params.has('reset')){
@@ -77,7 +93,7 @@ function applyStoredData(){
 
   if(!lsAvailable){
     console.warn('[PAT] localStorage 미사용 가능 — 로컬 모드로 진행');
-    go('s-login', true, false);
+    return;
     initFirebase();
     return;
   }
