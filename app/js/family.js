@@ -259,9 +259,6 @@ function openFamilyRegister(tab){
   document.getElementById('familyParish').value     = profile?.parish||'';
   document.getElementById('familyDistrict').value   = profile?.district||'';
   document.getElementById('familyPassword').value   = profile?.familyPassword||DB.church.code;
-  renderMemberRows(profile?.members||[]);
-  renderRegisteredFamilyRoom();
-  switchRegTab(tab||'leader');
   go('s-family-register');
 }
 function saveFamilyProfile(){
@@ -270,25 +267,34 @@ function saveFamilyProfile(){
   const parish     = document.getElementById('familyParish').value.trim();
   const district   = document.getElementById('familyDistrict').value.trim();
   let familyPassword = document.getElementById('familyPassword').value.trim();
-  let members = getMemberNames();
-  if(!roomName||!leaderName||!parish||!district){ toast('가족방 이름, 대표 이름, 교구와 구역을 입력하세요'); return; }
+
+  if(!roomName||!leaderName||!parish||!district){
+    toast('가족방 이름, 대표 이름, 교구와 구역을 입력하세요');
+    return;
+  }
+
   if(!familyPassword) familyPassword = DB.church.code;
-  if(!members.includes(leaderName)) members.unshift(leaderName);
+
   // memberName: 대표자 기기에선 대표자가 "나"
-  const profileData = { roomName, leaderName, parish, district, familyPassword, members, memberName: leaderName };
+  const profileData = { roomName, leaderName, parish, district, familyPassword, memberName: leaderName };
+
   setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
   // ★ localStorage에 저장된 값을 메모리에도 캐시 (다른 폴링이 읽을 수 있도록)
   window._lastSavedFamilyProfile = profileData;
+
   if(window.PAT_DB && PAT_DB.ready()){
     PAT_DB.saveFamily(DB.church.code, profileData)
       .then(familyId=>{
-        if(familyId) PAT_DB.joinFamily(DB.church.code, familyId, leaderName);
+        if(familyId) {
+          localStorage.setItem('pat_family_id', familyId);
+          PAT_DB.joinFamily(DB.church.code, familyId, leaderName);
+        }
       });
   }
-  // ★ 가족 구성원 목록도 즉시 업데이트 (memberList 화면 반영)
+
   renderFamily();
   go('s-family');
-  toast('✓ 가족방 정보가 저장되었습니다');
+  toast('✓ 가족방 설정이 저장되었습니다');
 }
 
 // ── 초대 링크 ─────────────────────────────────────────────
