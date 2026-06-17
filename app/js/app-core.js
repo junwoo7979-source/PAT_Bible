@@ -56,17 +56,39 @@ function applyCloudConfig(config){
 function applyStoredData(){
   console.log('[PAT-STARTUP] applyStoredData 시작');
 
-  // ✨ 빠른 초기화: 먼저 로그인 페이지를 표시
-  // (나머지 초기화는 백그라운드에서 수행)
-  showLoginImmediately();
+  // ✨ 최적화: localStorage 동기적 확인 후 바로 최종 화면으로 이동
+  // (로그인 페이지 스킵, 저장된 상태면 즉시 복원)
+  const initialScreen = determineInitialScreen();
+  go(initialScreen, true, false);
 
   // 백그라운드에서 나머지 초기화 수행
   setTimeout(() => completeAppInitialization(), 50);
 }
 
-function showLoginImmediately(){
-  // 로그인 페이지만 즉시 표시
-  go('s-login', true, false);
+function determineInitialScreen(){
+  // localStorage 빠른 확인
+  try {
+    const familyProfile = localStorage.getItem('pat_family_profile');
+    const adminId = localStorage.getItem('pat_admin_id');
+    const adminPw = localStorage.getItem('pat_admin_pw');
+
+    // 저장된 가족방이 있으면 가족방으로
+    if(familyProfile){
+      console.log('[PAT-STARTUP] 저장된 가족방 복원');
+      return 's-family';
+    }
+    // 저장된 관리자 정보가 있으면 관리자 화면으로
+    if(adminId && adminPw){
+      console.log('[PAT-STARTUP] 저장된 관리자 계정 복원');
+      return 's-admin';
+    }
+  } catch(e) {
+    console.error('[PAT] localStorage 확인 중 오류:', e.message);
+  }
+
+  // 기본값: 로그인 페이지
+  console.log('[PAT-STARTUP] 로그인 페이지 표시');
+  return 's-login';
 }
 
 function completeAppInitialization(){
