@@ -209,6 +209,19 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
   border-radius:10px;padding:6px 12px;font-size:calc(var(--fs) - 4px);cursor:pointer;font-family:inherit;}
 /* 로고 이미지 */
 .logo-img{width:100px;margin:20px auto 4px;display:block;}
+/* 관리자 탭 메뉴 */
+.admin-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);
+  padding:10px 16px;font-size:calc(var(--fs) - 1px);cursor:pointer;font-family:inherit;
+  transition:color .2s,border-color .2s;white-space:nowrap;}
+.admin-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.admin-tab:hover:not(.active){color:var(--text);}
+/* 시상 순위 리스트 */
+.award-rank{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
+.award-rank-num{min-width:32px;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--accent);}
+.award-rank-info{flex:1;}
+.award-rank-family{font-weight:700;color:var(--text);}
+.award-rank-detail{font-size:calc(var(--fs) - 2px);color:var(--muted);margin-top:2px;}
+.award-rank-rate{min-width:60px;text-align:right;font-weight:700;color:var(--accent);font-size:calc(var(--fs) + 1px);}
 </style>
 </head>
 <body>
@@ -275,11 +288,22 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
   <!-- S-admin: 관리자 페이지 (성경 구절 입력이 메인) -->
   <section class="screen" id="s-admin">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <h1>📖 구절 등록</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h1 id="adminTabTitle">📖 구절 등록</h1>
       <button class="back" style="margin:0" onclick="adminLogout()">로그아웃</button>
     </div>
     <p class="muted" id="adminChurchLabel">관리 교회: 세광교회</p>
+
+    <!-- 관리자 탭 메뉴 -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:8px;overflow-x:auto">
+      <button class="admin-tab active" onclick="switchAdminTab('verse')">📖 구절 등록</button>
+      <button class="admin-tab" onclick="switchAdminTab('award')">🏆 시상 관리</button>
+      <button class="admin-tab" onclick="switchAdminTab('church')">⛪ 교회 정보</button>
+      <button class="admin-tab" onclick="switchAdminTab('password')">🔑 비밀번호</button>
+    </div>
+
+    <!-- 탭 1: 구절 등록 -->
+    <div id="adminTabVerse">
 
     <!-- 메인: 성경 구절 입력 -->
     <div class="card" style="margin-top:14px">
@@ -345,9 +369,66 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <h2>📋 등록된 구절</h2>
       <div id="verseList" style="margin-top:8px"></div>
     </div>
+    </div><!-- end adminTabVerse -->
+
+    <!-- 탭 2: 시상 관리 -->
+    <div id="adminTabAward" style="display:none">
+    <div class="card" style="margin-top:14px">
+      <h2>🏆 1년 가족 실천율 순위</h2>
+      <p class="muted" style="margin:6px 0 12px">1년간의 암송 완료율을 기준으로 한 가족별 실천율</p>
+      <div id="awardRankingList" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 개인별 실천율 조회</h2>
+      <p class="muted" style="margin:6px 0 12px">가족을 선택하면 각 구성원의 실천율을 확인할 수 있습니다</p>
+      <label class="lbl">가족 검색</label>
+      <input class="field" id="awardFamilySearch" placeholder="가족 대표자 이름 입력" oninput="searchFamilyForAward()">
+      <div id="awardFamilyList" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h2>🎯 시상 기준 설정</h2>
+      <p class="muted" style="margin:6px 0 12px">시상 대상 선정 기준을 설정합니다</p>
+      <label class="lbl">기준 실천율 (%)</label>
+      <input class="field" id="awardMinRate" type="number" placeholder="예: 85" value="85">
+      <p class="muted" style="font-size:calc(var(--fs)-3px);margin-top:6px">이 이상의 실천율을 가진 가족들이 시상 대상입니다</p>
+      <button class="btn ghost" style="margin-top:12px" onclick="generateAwardList()">🎯 시상 대상 생성</button>
+      <div id="awardFinalList" style="margin-top:16px"></div>
+    </div>
+    </div><!-- end adminTabAward -->
+
+    <!-- 탭 3: 교회 정보 -->
+    <div id="adminTabChurch" style="display:none">
+
+    <!-- 교회 정보 -->
+    <div class="card" style="margin-top:14px">
+      <h2>⛪ 교회 정보 관리</h2>
+      <p class="muted" style="margin:6px 0 10px">교회 이름과 로그인 화면 제목 등록·수정 권한</p>
+      <label class="lbl">앱 상단 제목</label>
+      <input class="field" id="inAppTitle" placeholder="예: PAT Bible">
+      <button class="btn ghost" onclick="saveAppTitle()">앱 제목 저장</button>
+      <label class="lbl">교회 이름</label>
+      <input class="field" id="inChurchName" placeholder="교회 이름">
+      <button class="btn ghost" onclick="saveChurchName()">교회 이름 저장</button>
+      <label class="lbl" style="margin-top:12px">교회 로고 앱 로고</label>
+      <p class="muted" style="margin:4px 0 8px;font-size:calc(var(--fs) - 3px)">SVG 파일 (권장) • 권장 사이즈: 200×200px 이상 • 최대 500KB</p>
+      <div style="display:flex;gap:8px">
+        <input type="file" id="churchLogoFile" class="field" style="flex:1;padding:12px;cursor:pointer" accept=".svg" onchange="handleLogoUpload(event)">
+        <button class="btn ghost" style="width:auto;padding:12px 16px" onclick="removeChurchLogo()">삭제</button>
+      </div>
+      <div id="logoPreview" style="margin-top:12px;padding:12px;background:var(--bg);border-radius:var(--radius);text-align:center;display:none">
+        <p class="muted" style="margin-bottom:8px">로고 미리보기:</p>
+        <img id="logoPreviewImg" style="max-width:100px;max-height:100px;margin:0 auto">
+      </div>
+    </div>
+    </div><!-- end adminTabChurch -->
+
+    <!-- 탭 4: 비밀번호 초기화 -->
+    <div id="adminTabPassword" style="display:none">
 
     <!-- 가족 비밀번호 초기화 (관리자용) -->
-    <div class="card">
+    <div class="card" style="margin-top:14px">
       <h2>🔑 가족 비밀번호 초기화</h2>
       <p class="muted" style="margin:6px 0 12px">대표자 이름 + 교구 + 구역으로 가족방을 찾아 비밀번호를 초기화합니다</p>
       <label class="lbl">대표자 이름</label>
@@ -360,6 +441,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <div class="pw-wrap"><input class="field" id="adminRpNewPw" type="password" placeholder="새 비밀번호 (4자 이상)" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
       <button class="btn ghost" style="margin-top:4px" onclick="doAdminResetFamilyPassword()">🔑 비밀번호 초기화</button>
     </div>
+    </div><!-- end adminTabPassword -->
   </section>
 
   <!-- S3: 가족방 (church-bible-challenge 디자인) -->
@@ -742,6 +824,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <script src="js/memorize.js"></script>
 <script src="js/prayer.js"></script>
 <script src="js/reset-pw.js"></script>
+<script src="js/admin.js"></script>
 <script>
 // memorize.js 로드 시 applyStoredData()·churchCode·tabbar 초기화 완료
 // 서비스 워커 등록

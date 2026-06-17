@@ -12,6 +12,7 @@ const APP_SHELL = [
   './js/memorize.js',
   './js/prayer.js',
   './js/reset-pw.js',
+  './js/admin.js',
   './manifest.json',
   './icons/pat-icon-192.png',
   './icons/pat-icon-512.png'
