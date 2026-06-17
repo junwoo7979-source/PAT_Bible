@@ -685,9 +685,32 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         <h2 style="font-size:var(--fs);font-weight:700">오늘의 기도</h2>
         <span id="prayerDoneBadge" style="display:none;background:var(--accent);color:#04231a;font-size:calc(var(--fs)-4px);font-weight:700;padding:4px 12px;border-radius:20px">✓ 완료</span>
       </div>
-      <textarea class="field" id="prayerText" rows="6"
-        placeholder="오늘 기도 제목이나 감사한 것을 적어보세요...&#10;&#10;예) 예운이가 말씀을 잘 암송할 수 있도록&#10;건강과 지혜를 주셔서 감사합니다"
-        style="resize:none;line-height:1.7"></textarea>
+      <!-- 음성/텍스트 입력 탭 -->
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button id="prayerTabText" class="reg-tab active" onclick="switchPrayerTab('text')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--accent);color:#fff">📝 텍스트</button>
+        <button id="prayerTabVoice" class="reg-tab" onclick="switchPrayerTab('voice')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--surface);color:var(--text)">🎤 음성</button>
+      </div>
+      <!-- 텍스트 입력 -->
+      <div id="prayerTextPanel">
+        <textarea class="field" id="prayerText" rows="6"
+          placeholder="오늘 기도 제목이나 감사한 것을 적어보세요...&#10;&#10;예) 예운이가 말씀을 잘 암송할 수 있도록&#10;건강과 지혜를 주셔서 감사합니다"
+          style="resize:none;line-height:1.7" maxlength="300"></textarea>
+        <small class="muted" style="display:block;margin-top:4px">
+          <span id="prayerTextLength">0</span>/300자
+        </small>
+      </div>
+      <!-- 음성 입력 -->
+      <div id="prayerVoicePanel" style="display:none">
+        <div style="text-align:center;padding:20px 0">
+          <button class="mic" id="prayerMicBtn" onclick="togglePrayerMic()" style="margin:0 auto 12px">🎤</button>
+          <p class="center muted" id="prayerMicHint">탭하여 기도 녹음 시작</p>
+          <p class="center muted" style="font-size:calc(var(--fs)-2px);margin-top:4px" id="prayerTimeLeft">1:30</p>
+        </div>
+        <div class="field" id="prayerRecognized" style="min-height:80px;background:var(--bg);padding:12px;border-radius:10px;word-break:break-all">—</div>
+        <small class="muted" style="display:block;margin-top:4px">
+          <span id="prayerVoiceLength">0</span>/300자 · 최대 1분 30초
+        </small>
+      </div>
       <button class="btn" id="prayerSaveBtn" onclick="savePrayer()" style="margin-top:8px">🙏 기도 완료</button>
     </div>
 

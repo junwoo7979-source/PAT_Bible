@@ -1,6 +1,142 @@
 // ====== PAT Bible — prayer.js ======
 // 기도 기록 화면
 
+// ── 기도 음성 입력 ────────────────────────────────────
+let prayerRecog=null, prayerRecognizing=false, prayerRecognizedText='';
+let prayerStartTime=0, prayerTimeoutId=null;
+const PRAYER_MAX_DURATION=90000; // 1분 30초
+
+function switchPrayerTab(tab){
+  const textPanel=document.getElementById('prayerTextPanel');
+  const voicePanel=document.getElementById('prayerVoicePanel');
+  const btnText=document.getElementById('prayerTabText');
+  const btnVoice=document.getElementById('prayerTabVoice');
+
+  if(tab==='text'){
+    textPanel.style.display='block';
+    voicePanel.style.display='none';
+    btnText.style.background='var(--accent)';
+    btnText.style.color='#fff';
+    btnVoice.style.background='var(--surface)';
+    btnVoice.style.color='var(--text)';
+    if(prayerRecognizing) stopPrayerMic();
+  }else{
+    textPanel.style.display='none';
+    voicePanel.style.display='block';
+    btnText.style.background='var(--surface)';
+    btnText.style.color='var(--text)';
+    btnVoice.style.background='var(--accent)';
+    btnVoice.style.color='#fff';
+  }
+}
+
+function togglePrayerMic(){
+  if(prayerRecognizing) stopPrayerMic();
+  else startPrayerMic();
+}
+
+function startPrayerMic(){
+  const SR=window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
+    toast('음성 인식을 지원하지 않습니다');
+    return;
+  }
+
+  prayerRecog=new SR();
+  prayerRecog.lang='ko-KR';
+  prayerRecog.interimResults=true;
+  prayerRecognizing=true;
+  prayerRecognizedText='';
+  prayerStartTime=Date.now();
+
+  document.getElementById('prayerMicBtn').classList.add('rec');
+  document.getElementById('prayerMicBtn').textContent='⏹️';
+  document.getElementById('prayerMicHint').textContent='기도 중... 탭하여 종료';
+  document.getElementById('prayerRecognized').textContent='';
+
+  // 시간 업데이트
+  prayerTimeoutId=setInterval(()=>{
+    const elapsed=Date.now()-prayerStartTime;
+    const remaining=Math.max(0, PRAYER_MAX_DURATION-elapsed);
+    const min=Math.floor(remaining/60000);
+    const sec=Math.floor((remaining%60000)/1000);
+    document.getElementById('prayerTimeLeft').textContent=min+':'+(sec<10?'0':'')+sec;
+
+    if(remaining<=0){
+      toast('1분 30초 제한에 도달했습니다');
+      stopPrayerMic();
+    }
+  }, 100);
+
+  prayerRecog.onstart=()=>{
+    console.log('[PRAYER-VOICE] started');
+  };
+
+  prayerRecog.onresult=(e)=>{
+    let interim='';
+    for(let i=0;i<e.results.length;i++){
+      const transcript=e.results[i][0].transcript.trim();
+      if(e.results[i].isFinal){
+        prayerRecognizedText+=(prayerRecognizedText?' ':'')+transcript;
+      }else{
+        interim=transcript;
+      }
+    }
+    const display=prayerRecognizedText+(interim?' '+interim:'');
+    document.getElementById('prayerRecognized').textContent=display.slice(0,300);
+    document.getElementById('prayerVoiceLength').textContent=display.length;
+  };
+
+  prayerRecog.onend=()=>{
+    console.log('[PRAYER-VOICE] ended');
+  };
+
+  prayerRecog.onerror=(e)=>{
+    console.log('[PRAYER-VOICE] error:', e.error);
+    toast('음성 인식 오류');
+    stopPrayerMic();
+  };
+
+  prayerRecog.start();
+}
+
+function stopPrayerMic(){
+  if(!prayerRecognizing) return;
+  prayerRecognizing=false;
+
+  if(prayerRecog){
+    try{ prayerRecog.abort(); }catch(e){}
+    prayerRecog=null;
+  }
+
+  if(prayerTimeoutId){
+    clearInterval(prayerTimeoutId);
+    prayerTimeoutId=null;
+  }
+
+  const btn=document.getElementById('prayerMicBtn');
+  btn.classList.remove('rec');
+  btn.textContent='🎤';
+  document.getElementById('prayerMicHint').textContent='탭하여 기도 녹음 시작';
+  document.getElementById('prayerTimeLeft').textContent='1:30';
+
+  // 음성 인식 결과를 텍스트 입력란에 추가
+  if(prayerRecognizedText){
+    const textEl=document.getElementById('prayerText');
+    const currentText=textEl.value.trim();
+    const newText=(currentText?(currentText+'\n\n'):'')+prayerRecognizedText.slice(0,300);
+    textEl.value=newText.slice(0,300);
+    updatePrayerTextLength();
+    switchPrayerTab('text');
+    toast('🎤 음성 입력 완료');
+  }
+}
+
+function updatePrayerTextLength(){
+  const text=document.getElementById('prayerText').value;
+  document.getElementById('prayerTextLength').textContent=text.length;
+}
+
 function prayerKey(dateStr){ return 'pat_prayer_'+dateStr; }
 
 function loadPrayer(dateStr){
@@ -35,9 +171,17 @@ function renderPrayer(){
 
   if(textEl && todayData){
     textEl.value = todayData.text || '';
+    // 텍스트 길이 업데이트
+    updatePrayerTextLength();
   }
   if(badge) badge.style.display = (todayData?.done) ? 'inline-block' : 'none';
   if(saveBtn) saveBtn.textContent = (todayData?.done) ? '🙏 기도 수정' : '🙏 기도 완료';
+
+  // 텍스트 입력 이벤트 리스너
+  if(textEl && !textEl.__eventAdded){
+    textEl.addEventListener('input', updatePrayerTextLength);
+    textEl.__eventAdded=true;
+  }
 
   // 최근 7일 기도 기록
   const histEl = document.getElementById('prayerHistory');
