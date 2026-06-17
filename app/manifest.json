@@ -4,7 +4,7 @@
   "description": "교회, 가족, 개인 성경 암송 관리 앱 - 음성 인식으로 정확도 검증, 실시간 동기화, 개인정보 보호",
   "start_url": "./index.html",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#e8ecf1",
   "theme_color": "#e8ecf1",
@@ -21,29 +21,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "screenshots/login.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "로그인 화면"
-    },
-    {
-      "src": "screenshots/family.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "가족방 진행도"
-    },
-    {
-      "src": "screenshots/voice.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "음성 암송 검증"
     }
   ],
   "shortcuts": [

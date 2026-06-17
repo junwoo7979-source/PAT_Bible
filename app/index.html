@@ -31,13 +31,15 @@
 }
 [data-fontsize="large"]{ --fs:20px; --fs-lg:25px; --fs-xl:32px; }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#e8ecf1;
   color:var(--text);font-size:var(--fs);line-height:var(--lh);transition:background .3s,color .3s;}
 .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
 .screen{flex:1;padding:24px 20px 120px;display:none;}
 .screen.active{display:flex;flex-direction:column;}
-/* 초기 로드: 로그인 페이지만 즉시 표시 */
+/* 초기 로드: 로그인 페이지만 즉시 표시 - 스플래시 스킵 */
 #s-login{display:flex !important;}
+/* 초기 로딩 상태: 아무것도 보이지 않게 (완전 스킵) */
+body.loading::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:transparent;z-index:-1}
 .screen.no-motion{}
 h1{font-size:var(--fs-xl);line-height:var(--lh-title);margin-bottom:6px;}
 h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
