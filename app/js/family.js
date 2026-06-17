@@ -488,17 +488,18 @@ function renderFamilyMemberList(members){
     const isMe = m.me;
 
     // 본인 확인 버튼: 아직 미확인이고 자신의 이름일 때만 보임
-    const confirmBtn = isMe && !isConfirmed
-      ? `<button class="btn sm" onclick="confirmMemberIdentity('${memberId}', '${esc(m.name)}')" style="padding:4px 10px;font-size:calc(var(--fs)-3px)">확인</button>`
-      : '';
+    let memberRow = `<div class="member" style="display:flex;justify-content:space-between;align-items:center">
+                      <div style="flex:1">
+                        <span>${esc(m.name)}${m.me?' (나)':''}</span>
+                        <span class="${m.done?'tag-ok':'tag-wait'}" style="margin-left:8px">${m.done?'✔ 완료':'대기'}</span>
+                      </div>`;
 
-    return `<div class="member" style="display:flex;justify-content:space-between;align-items:center">
-              <div style="flex:1">
-                <span>${esc(m.name)}${m.me?' (나)':''}</span>
-                <span class="${m.done?'tag-ok':'tag-wait'}" style="margin-left:8px">${m.done?'✔ 완료':'대기'}</span>
-              </div>
-              ${confirmBtn}
-            </div>`;
+    if(isMe && !isConfirmed) {
+      memberRow += `<button class="btn sm" style="padding:4px 10px;font-size:calc(var(--fs)-3px);margin-left:8px" onclick="confirmMemberIdentity('${memberId}')">확인</button>`;
+    }
+
+    memberRow += `</div>`;
+    return memberRow;
   }).join('');
 
   document.getElementById('memberList').innerHTML = list;
@@ -658,15 +659,18 @@ function renderFamily(){
 }
 
 // ── 구성원 확인 함수 ────────────────────────────────────────────
-function confirmMemberIdentity(memberId, memberName) {
+function confirmMemberIdentity(memberId) {
   // 로컬에 확인 상태 저장
   const memberStatuses = JSON.parse(localStorage.getItem('pat_member_confirmed') || '{}');
   memberStatuses[memberId] = true;
   localStorage.setItem('pat_member_confirmed', JSON.stringify(memberStatuses));
 
+  // 현재 유저 이름 가져오기
+  const profile = loadFamilyProfile();
+  const memberName = profile?.memberName || profile?.leaderName || '구성원';
+
   // Firebase에 저장 (선택사항)
   if (window.PAT_DB && PAT_DB.ready() && PAT_DB.confirmMemberIdentity) {
-    const profile = loadFamilyProfile();
     const familyId = localStorage.getItem('pat_family_id') || '';
     if (profile && familyId) {
       PAT_DB.confirmMemberIdentity(DB.church.code, familyId, memberId, memberName);
