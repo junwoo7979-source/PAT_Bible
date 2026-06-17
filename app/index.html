@@ -36,6 +36,8 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var
 .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
 .screen{flex:1;padding:24px 20px 120px;display:none;}
 .screen.active{display:flex;flex-direction:column;}
+/* 초기 로드: 로그인 페이지만 즉시 표시 */
+#s-login{display:flex !important;}
 .screen.no-motion{}
 h1{font-size:var(--fs-xl);line-height:var(--lh-title);margin-bottom:6px;}
 h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
