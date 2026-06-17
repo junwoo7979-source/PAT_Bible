@@ -497,7 +497,7 @@ function renderFamilyMemberList(members){
 
     return `<div class="member" style="display:flex;justify-content:space-between;align-items:center">
               <div style="flex:1">
-                <span>${esc(m.name)}${m.me?' (나)':''}</span>
+                <span>${esc(m.name)}</span>
                 <span style="margin-left:8px;font-size:calc(var(--fs)-2px)">${isConfirmed?'✓ 완료':'⏳ 대기'}</span>
               </div>
               ${confirmBtn}
