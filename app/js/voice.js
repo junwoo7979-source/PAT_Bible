@@ -257,41 +257,46 @@ function startVoiceRecognition(SR, isRecovery=false){
   // → Android Chrome이 '생각함으로'를 '생각하므로'로 인식해도 반복 패턴을 정확히 잡음
   // 변경: size>=3 (2글자 이상인 패턴만 제거) → 의도하지 않은 단어 중복 제거 방지
   const collapseRepeatedNgrams=(text)=>{
-    const words=(text||'').trim().split(/\s+/).filter(Boolean);
-    if(words.length<2) return words.join(' ');
+    let result=(text||'').trim();
+    const words=result.split(/\s+/).filter(Boolean);
+    if(words.length<2) return result;
 
-    // 1단계: 인접 중복 단어 제거 (같지 같지 → 같지) — 역순으로 안전하게 제거
-    let removed=0;
-    for(let i=words.length-1;i>0;i--){
-      if(words[i]===words[i-1]){
-        console.log('[VOICE-LOG] collapseRepeatedNgrams — 인접 중복 제거['+i+']:"'+words[i]+'" (before:"'+words.join(' ')+'" → after:"'+words.slice(0,i).concat(words.slice(i+1)).join(' ')+'"');
-        words.splice(i,1);
-        removed++;
-      }
-    }
-
-    // 2단계: n-gram 중복 제거 (3단어 이상 패턴) — 큰 패턴부터 제거
-    if(words.length<4) return words.join(' ');
+    // 1단계: 정규식을 이용한 강제 중복 제거 (모든 모든 → 모든)
+    // 패턴: 단어 + 공백 + 동일 단어 (연속 반복)
     let changed=true;
-    while(changed){
+    let iteration=0;
+    while(changed && iteration<10){
+      iteration++;
       changed=false;
-      outer: for(let size=Math.min(words.length,8);size>=3;size--){
-        for(let i=0;i<words.length-size;i++){
-          const pattern=words.slice(i,i+size);
-          const patternStr=pattern.join(' ');
-          // 다음 위치부터 같은 패턴 찾기
-          for(let j=i+size;j<=words.length-size;j++){
-            if(words.slice(j,j+size).join(' ')===patternStr){
-              console.log('[VOICE-LOG] collapseRepeatedNgrams — n-gram 중복 제거 size:'+size+' at['+j+'] pattern:"'+patternStr+'"');
-              words.splice(j,size);
-              changed=true;
-              break outer;
+      const beforeWords=[...words];
+
+      // 인접한 같은 단어 제거 (역순)
+      for(let i=words.length-1;i>0;i--){
+        if(words[i]===words[i-1]){
+          console.log('[VOICE-LOG] collapseRepeatedNgrams iter'+iteration+' — 인접 중복['+i+']:"'+words[i]+'"');
+          words.splice(i,1);
+          changed=true;
+        }
+      }
+
+      // n-gram 패턴 제거 (3단어 이상)
+      if(!changed && words.length>=4){
+        outer: for(let size=Math.min(words.length,8);size>=3;size--){
+          for(let i=0;i<words.length-size;i++){
+            for(let j=i+size;j<=words.length-size;j++){
+              const match=words.slice(i,i+size).every((w,k)=>w===words[j+k]);
+              if(match){
+                console.log('[VOICE-LOG] collapseRepeatedNgrams iter'+iteration+' — n-gram['+j+'] size:'+size);
+                words.splice(j,size);
+                changed=true;
+                break outer;
+              }
             }
           }
         }
       }
     }
-    console.log('[VOICE-LOG] collapseRepeatedNgrams 완료: 인접 중복 '+removed+'개 제거, 최종 결과:"'+words.join(' ')+'"');
+
     return words.join(' ');
   };
   const recover=(msg)=>{
