@@ -30,6 +30,14 @@ function typingNext(){
 }
 function repeatCurrentStep(kind){
   if(kind==='voice'){
+    // ★ 이전 recognition 상태 정리 — 마이크 다시 활성 가능하도록
+    clearVoiceStartTimer();
+    clearVoiceRecognition(true);
+    recognizing=false;
+    setMicRec(false);
+    voiceRecoveryCount=0;
+    voiceStopRequested=false;
+
     if(voiceStage===1){ voiceScore1=0; voiceInput1=''; } else { voiceScore2=0; voiceInput2=''; }
     renderVoice();
     toast(STEP_NAMES[voiceStage-1]+' 다시 시작');
