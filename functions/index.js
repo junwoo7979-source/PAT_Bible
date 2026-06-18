@@ -370,15 +370,22 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
       }
     });
 
-    const total = completedFamilies.size;
+    const completedTotal = completedFamilies.size;  // 완료한 가정 수
+    const totalFamilies = familiesSnap.size;        // 등록된 모든 가정 수
 
     console.log(`\n[PAT-DASHBOARD] ===== 최종 결과 =====`);
-    console.log(`  1교구: ${byParish['1교구']}명`);
-    console.log(`  2교구: ${byParish['2교구']}명`);
-    console.log(`  3교구: ${byParish['3교구']}명`);
-    console.log(`  합계: ${total}명\n`);
+    console.log(`  등록된 가정: ${totalFamilies}개`);
+    console.log(`  완료한 가정: ${completedTotal}개`);
+    console.log(`  1교구: ${byParish['1교구']}개 가정`);
+    console.log(`  2교구: ${byParish['2교구']}개 가정`);
+    console.log(`  3교구: ${byParish['3교구']}개 가정`);
+    console.log(`  교회 전체: ${completedTotal}/${totalFamilies} (${totalFamilies > 0 ? Math.round(completedTotal/totalFamilies*100) : 0}%)\n`);
 
-    res.json({ total, byParish });
+    res.json({
+      total: completedTotal,           // 완료한 가정 수
+      totalFamilies: totalFamilies,     // 등록된 모든 가정 수 (새로 추가)
+      byParish
+    });
   } catch (e) { errRes(res, e); }
 });
 
