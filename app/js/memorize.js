@@ -155,7 +155,7 @@ const TEST_DATA_PARISH = {
 
 // 현황 대시보드 자동 갱신 폴링
 let dashboardPollTimer = null;
-const DASHBOARD_POLL_INTERVAL = 5000; // 5초마다 갱신
+const DASHBOARD_POLL_INTERVAL = 1000; // 1초마다 갱신 (폰↔웹 실시간 동기화)
 
 // 현황 대시보드 데이터 계산 (모든 데이터 통합)
 async function computeDashboardData(){
@@ -215,32 +215,54 @@ async function computeDashboardData(){
 }
 
 // 현황 대시보드 렌더링 (계산된 데이터 기반)
-async function renderDashboard(){
-  console.log('[PAT-DASHBOARD] ===== 현황 페이지 렌더링 시작 =====');
+// 캐시: 변경된 데이터만 렌더링
+let lastDashboardData = null;
 
+async function renderDashboard(){
   const data = await computeDashboardData();
 
+  // 데이터 변경 감지 (해시 기반)
+  if(window.SYNC_MANAGER){
+    if(!window.SYNC_MANAGER.hasChanged('dashboardStats', data)){
+      console.log('[PAT-DASHBOARD] 데이터 미변경 - 스킵');
+      return; // 변경 없으면 UI 업데이트 안 함
+    }
+  }
+
+  console.log('[PAT-DASHBOARD] 데이터 변경 감지 - UI 업데이트 시작');
+
   // 1️⃣ 개인 통계
-  document.getElementById('dMyCount').textContent = data.myCount;
-  document.getElementById('dStreak').textContent = data.myCount > 0 ? 1 : 0;
-  document.getElementById('dBadge').textContent = data.myCount;
-  document.getElementById('dMyScore').textContent = data.myCount + '회';
+  const myCountEl = document.getElementById('dMyCount');
+  if(myCountEl && myCountEl.textContent !== String(data.myCount)){
+    myCountEl.textContent = data.myCount;
+    document.getElementById('dStreak').textContent = data.myCount > 0 ? 1 : 0;
+    document.getElementById('dBadge').textContent = data.myCount;
+    document.getElementById('dMyScore').textContent = data.myCount + '회';
+    console.log('[PAT-DASHBOARD] ✅ 개인 통계 업데이트:', data.myCount);
+  }
 
   // 2️⃣ 가족 달성률
   const familyPct = data.familyTotal > 0 ? Math.round(data.familyDone / data.familyTotal * 100) : 0;
-  document.getElementById('dFamily').textContent = familyPct + '%';
-  console.log('[PAT-DASHBOARD] 가족 달성률:', familyPct, '%');
+  const familyEl = document.getElementById('dFamily');
+  if(familyEl && familyEl.textContent !== (familyPct + '%')){
+    familyEl.textContent = familyPct + '%';
+    console.log('[PAT-DASHBOARD] ✅ 가족 달성률 업데이트:', familyPct, '%');
+  }
 
   // 3️⃣ 교구별 현황
   renderParishStatsDisplay(data.parishData, data.totalDone);
 
   // 4️⃣ 교회 전체 현황
   const churchPct = DB.church.memberCount > 0 ? Math.round(data.totalDone / DB.church.memberCount * 100) : 0;
-  document.getElementById('dChurch').textContent =
-    `참여율 ${churchPct}% · ${DB.church.memberCount}명 중 ${data.totalDone}명`;
-  document.getElementById('dChurchBar').style.width = churchPct + '%';
+  const churchEl = document.getElementById('dChurch');
+  const churchText = `참여율 ${churchPct}% · ${DB.church.memberCount}명 중 ${data.totalDone}명`;
+  if(churchEl && churchEl.textContent !== churchText){
+    churchEl.textContent = churchText;
+    document.getElementById('dChurchBar').style.width = churchPct + '%';
+    console.log('[PAT-DASHBOARD] ✅ 교회 현황 업데이트:', churchPct, '%');
+  }
 
-  console.log('[PAT-DASHBOARD] ===== 현황 페이지 렌더링 완료 =====');
+  lastDashboardData = data;
 }
 
 // 현황 대시보드 폴링 시작 (5초마다 자동 갱신)

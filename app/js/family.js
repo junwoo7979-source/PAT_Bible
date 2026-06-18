@@ -548,7 +548,7 @@ function startFamilyProgressPolling(profile){
   if(familyProgressPollKey === pollKey && familyProgressPollTimer) return;
   if(familyProgressPollTimer) clearInterval(familyProgressPollTimer);
   familyProgressPollKey  = pollKey;
-  // ★ 10초마다 Firebase에서 최신 데이터 조회 (roomName, members, metadata 모두 동기화)
+  // ★ 1초마다 Firebase에서 최신 데이터 조회 (실시간 폰↔웹 동기화)
   familyProgressPollTimer = setInterval(async ()=>{
     let freshProfile = loadFamilyProfile();
     if(!window.PAT_DB || !PAT_DB.ready() || !PAT_DB.getFamilyInfo) return;
@@ -580,6 +580,7 @@ function startFamilyProgressPolling(profile){
         const fbMemberNames = normalizeFamilyMemberNames(fbInfo.members);
         if(fbMemberNames.length && JSON.stringify(fbMemberNames) !== JSON.stringify(localMembers)){
           shouldUpdate.members = fbMemberNames;
+          console.log('[SYNC] 가족 구성원 동기화:', fbMemberNames);
         }
       }
 
@@ -588,6 +589,7 @@ function startFamilyProgressPolling(profile){
         freshProfile = { ...freshProfile, ...shouldUpdate };
         setFamilyStorage('pat_family_profile', JSON.stringify(freshProfile));
         // ★ 화면 즉시 업데이트
+        console.log('[SYNC] 가족방 데이터 업데이트:', Object.keys(shouldUpdate));
         renderFamilyProfile();
         renderRegisteredFamilyRoom();
       }
@@ -595,9 +597,9 @@ function startFamilyProgressPolling(profile){
       // 4. 진행 상황 동기화 (members done 상태 업데이트)
       await syncFamilyProgressFromCloud(freshProfile);
     } catch(e) {
-      console.warn('[PAT] polling error:', e.message);
+      console.warn('[SYNC] 폴링 에러:', e.message);
     }
-  }, 10000);
+  }, 1000); // 1초 (기존 10초 → 1초로 단축)
 }
 function renderFamily(){
   const profile = loadFamilyProfile();

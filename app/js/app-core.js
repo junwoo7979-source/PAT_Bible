@@ -590,6 +590,97 @@ window.addEventListener('appinstalled', () => {
   deferredPrompt = null;
 });
 
+// ── 🔄 실시간 양방향 동기화 시스템 ─────────────────────────
+// 폰↔웹 실시간 동기화 (1초 폴링 + 포커스 감지)
+window.SYNC_MANAGER = {
+  // 동기화 상태 추적
+  lastDataHashes: {
+    familyProgress: null,
+    dashboardStats: null,
+    verseData: null,
+  },
+
+  // 1초 폴링 타이머
+  pollTimers: {},
+  POLL_INTERVAL: 1000, // 1초 (기존 5-10초 → 1초로 단축)
+
+  // 폴링 시작
+  startPolling(name, callback) {
+    if(this.pollTimers[name]) clearInterval(this.pollTimers[name]);
+    console.log(`[SYNC] 폴링 시작: ${name} (1초 간격)`);
+
+    // 즉시 한 번 실행
+    callback();
+
+    // 1초마다 반복
+    this.pollTimers[name] = setInterval(callback, this.POLL_INTERVAL);
+  },
+
+  // 폴링 중지
+  stopPolling(name) {
+    if(this.pollTimers[name]){
+      clearInterval(this.pollTimers[name]);
+      this.pollTimers[name] = null;
+      console.log(`[SYNC] 폴링 중지: ${name}`);
+    }
+  },
+
+  // 데이터 해시 (변경 감지)
+  getHash(data) {
+    return JSON.stringify(data).split('').reduce((a,b) => ((a << 5) - a) + b.charCodeAt(0), 0);
+  },
+
+  // 데이터 변경 여부 확인
+  hasChanged(name, newData) {
+    const newHash = this.getHash(newData);
+    const oldHash = this.lastDataHashes[name];
+    if(oldHash !== newHash){
+      this.lastDataHashes[name] = newHash;
+      return true;
+    }
+    return false;
+  },
+};
+
+// 포커스 감지 (탭 활성화 시 즉시 동기화)
+window.addEventListener('focus', () => {
+  console.log('[SYNC] 🔵 포커스 복귀 - 즉시 동기화');
+
+  // 현재 활성 화면에 따라 동기화
+  const activeScreen = document.querySelector('.screen.active')?.id;
+
+  if(activeScreen === 's-family' && typeof renderFamily === 'function'){
+    renderFamily().catch(e => console.error('[SYNC] 가족방 동기화 실패:', e.message));
+  }
+
+  if(activeScreen === 's-dashboard' && typeof renderDashboard === 'function'){
+    renderDashboard().catch(e => console.error('[SYNC] 대시보드 동기화 실패:', e.message));
+  }
+
+  if(activeScreen === 's-verse' && typeof renderVerse === 'function'){
+    renderVerse().catch(e => console.error('[SYNC] 암송 동기화 실패:', e.message));
+  }
+});
+
+// 백그라운드 → 포그라운드 감지 (앱 최소화에서 복귀)
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden){
+    console.log('[SYNC] 📱 앱 포그라운드 복귀 - 동기화 시작');
+
+    // 모든 폴링 재개
+    const activeScreen = document.querySelector('.screen.active')?.id;
+    if(activeScreen === 's-family' && typeof startFamilyProgressPolling === 'function'){
+      const profile = loadFamilyProfile();
+      if(profile) startFamilyProgressPolling(profile);
+    }
+    if(activeScreen === 's-dashboard' && typeof startDashboardPolling === 'function'){
+      startDashboardPolling();
+    }
+  } else {
+    console.log('[SYNC] 📱 앱 백그라운드 - 폴링 유지 (1초)');
+  }
+});
+
 // ── DOM 이벤트 (body 내 스크립트이므로 DOM 준비 완료) ─────
 document.getElementById('churchCode').addEventListener('keyup',e=>{ if(e.key==='Enter') enterChurch(); });
 document.getElementById('adminPw').addEventListener('keyup',e=>{ if(e.key==='Enter') adminLogin(); });
