@@ -204,9 +204,15 @@ async function toggleMic(){
     micBtn.disabled = true;
     document.getElementById('micHint').textContent = '마이크 권한 확인 중...';
   }
-  const hasMicPermission = await ensureMicrophonePermission();
-  micBtn.disabled = false;
-  if(!hasMicPermission) return;
+  try{
+    const hasMicPermission = await ensureMicrophonePermission();
+    if(!hasMicPermission){
+      micBtn.disabled = false;  // ★ 실패해도 버튼 활성화해야 다시 시도 가능
+      return;
+    }
+  }finally{
+    micBtn.disabled = false;  // ★ 모든 경로에서 확실히 활성화
+  }
   // 새 인식 시작 — 이전 통과 상태 초기화 (재시도 시 다음 단계 잠금)
   document.getElementById('voiceNext').disabled = true;
   document.getElementById('voiceRepeat').style.display = 'none';
