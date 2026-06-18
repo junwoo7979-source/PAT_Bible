@@ -173,17 +173,26 @@ async function renderDashboard(){
   const me = DB.members.find(m=>m.me); if(myCount>0) me.done=true;
   const doneCount = DB.members.filter(m=>m.done).length;
   document.getElementById('dFamily').textContent = Math.round(doneCount/DB.members.length*100)+'%';
+
+  // Firebase에서 현황 데이터 로드
   if(window.PAT_DB && PAT_DB.ready()){
-    const stats = await PAT_DB.getDashboardStats(DB.church.code, DB.verse.ref);
-    if(stats){
-      const total = stats.total;
-      document.getElementById('dChurch').textContent =
-        `참여율 ${Math.round(total/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${total}명`;
-      document.getElementById('dChurchBar').style.width = Math.round(total/DB.church.memberCount*100)+'%';
-      renderParishStatsFirebase(stats.byParish, myCount);
-      return;
+    try {
+      const stats = await PAT_DB.getDashboardStats(DB.church.code, DB.verse.ref);
+      console.log('[PAT-DASHBOARD] Firebase stats:', stats);
+      if(stats){
+        const total = stats.total || 0;
+        document.getElementById('dChurch').textContent =
+          `참여율 ${Math.round(total/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${total}명`;
+        document.getElementById('dChurchBar').style.width = Math.round(total/DB.church.memberCount*100)+'%';
+        renderParishStatsFirebase(stats.byParish || {}, myCount);
+        return;
+      }
+    } catch(e) {
+      console.error('[PAT-DASHBOARD] Firebase 에러:', e.message);
     }
   }
+
+  // Firebase 미연결 시 로컬 데이터 사용
   renderParishStats(myCount);
   const base = 188+(myCount>0?1:0);
   document.getElementById('dChurch').textContent =
@@ -192,12 +201,41 @@ async function renderDashboard(){
   document.getElementById('dMyScore').textContent = myCount+'회';
 }
 function renderParishStatsFirebase(byParish, myCount){
-  const profile    = loadFamilyProfile();
+  const profile = loadFamilyProfile();
+
+  // 교구별 기본 인원 (실제 데이터)
+  const PARISH_TOTALS = {
+    '1교구': 80,
+    '2교구': 72,
+    '3교구': 68,
+  };
+
+  // Firebase에서 받은 데이터 정규화 (정확한 키 매핑)
+  const normalizedData = {};
+  if(byParish && typeof byParish === 'object'){
+    Object.entries(byParish).forEach(([key, count]) => {
+      // 정확한 키 찾기 (예: "1교구", "1교구 " 등)
+      const trimmedKey = String(key).trim();
+      if(trimmedKey.match(/^[1-3]교구$/)) {
+        normalizedData[trimmedKey] = count;
+      }
+    });
+  }
+
+  // 누락된 교구는 0으로 초기화
   const parishKeys = ['1교구','2교구','3교구'];
+  parishKeys.forEach(k => {
+    if(!normalizedData.hasOwnProperty(k)) {
+      normalizedData[k] = 0;
+    }
+  });
+
+  console.log('[PAT-PARISH] 정규화된 데이터:', normalizedData);
+
   const rows = parishKeys.map(key=>{
-    const done  = byParish[key]||0;
-    const total = key==='1교구'?80:key==='2교구'?72:68;
-    const pct   = Math.round(done/total*100);
+    const done  = normalizedData[key] || 0;
+    const total = PARISH_TOTALS[key];
+    const pct   = total > 0 ? Math.round(done/total*100) : 0;
     const isMine = profile?.parish && (profile.parish===key||profile.parish.includes(key));
     return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)">
       <span style="min-width:48px;font-weight:700;${isMine?'color:var(--accent)':''}">${key} 진도표${isMine?' ★':''}</span>
@@ -206,14 +244,17 @@ function renderParishStatsFirebase(byParish, myCount){
       <small style="min-width:36px;text-align:right;font-weight:700">${pct}%</small>
     </div>`;
   });
-  const totalDone = Object.values(byParish).reduce((a,b)=>a+b,0)+(myCount>0?1:0);
-  const totalPct  = Math.round(totalDone/DB.church.memberCount*100);
+
+  // 블레싱 진도표 (전체 교회)
+  const totalDone = Object.values(normalizedData).reduce((a,b)=>a+b,0);
+  const totalPct  = DB.church.memberCount > 0 ? Math.round(totalDone/DB.church.memberCount*100) : 0;
   rows.push(`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);margin-top:4px">
     <span style="min-width:48px;font-weight:700">블레싱 진도표</span>
     <small class="muted" style="min-width:74px">${totalDone}/${DB.church.memberCount}명</small>
     <div class="bar" style="flex:1;margin:0"><span style="width:${totalPct}%"></span></div>
     <small style="min-width:36px;text-align:right;font-weight:700">${totalPct}%</small>
   </div>`);
+
   document.getElementById('dParishList').innerHTML = rows.join('');
 }
 
