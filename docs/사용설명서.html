@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAT Bible 사용설명서</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.8;
+      color: #333;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2c3e50;
+      border-bottom: 3px solid #3498db;
+      padding-bottom: 15px;
+      margin-bottom: 30px;
+      font-size: 2em;
+    }
+    h2 {
+      color: #2980b9;
+      margin-top: 40px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-left: 4px solid #3498db;
+      padding-left: 15px;
+      font-size: 1.5em;
+    }
+    h3 {
+      color: #34495e;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 6px;
+      border-left: 4px solid #3498db;
+    }
+    .step {
+      margin: 20px 0;
+      padding: 15px;
+      background: #ecf0f1;
+      border-radius: 4px;
+      border-left: 4px solid #e74c3c;
+    }
+    .step strong {
+      color: #e74c3c;
+    }
+    ol, ul {
+      margin-left: 25px;
+      margin-bottom: 15px;
+    }
+    li {
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+    .tip {
+      padding: 15px;
+      background: #e8f4f8;
+      border-left: 4px solid #3498db;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    .warning {
+      padding: 15px;
+      background: #fef5e7;
+      border-left: 4px solid #f39c12;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    .success {
+      padding: 15px;
+      background: #eafaf1;
+      border-left: 4px solid #27ae60;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      color: #c0392b;
+    }
+    .box {
+      border: 2px solid #3498db;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      background: #f0f7ff;
+    }
+    .box strong {
+      color: #2980b9;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    table th, table td {
+      padding: 12px;
+      border: 1px solid #bdc3c7;
+      text-align: left;
+    }
+    table th {
+      background: #3498db;
+      color: white;
+    }
+    table tr:nth-child(even) {
+      background: #f5f5f5;
+    }
+    .emoji {
+      font-size: 1.2em;
+      margin-right: 5px;
+    }
+    .highlight {
+      background: yellow;
+      padding: 2px 4px;
+      border-radius: 2px;
+    }
+    .faq-item {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f0f0f0;
+      border-radius: 6px;
+    }
+    .faq-q {
+      font-weight: bold;
+      color: #2980b9;
+      margin-bottom: 8px;
+    }
+    .faq-a {
+      color: #333;
+      margin-left: 20px;
+    }
+    .dashboard-tree {
+      background: #f4f4f4;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 15px 0;
+    }
+    @media print {
+      body { padding: 0; background: white; }
+      .container { box-shadow: none; max-width: 100%; }
+      h2 { page-break-after: avoid; }
+      .step, .section { page-break-inside: avoid; }
+    }
+    .footer {
+      text-align: center;
+      margin-top: 50px;
+      padding-top: 20px;
+      border-top: 2px solid #bdc3c7;
+      color: #7f8c8d;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span class="emoji">📖</span>PAT Bible 사용설명서</h1>
+    <p style="text-align: center; color: #7f8c8d; font-size: 1.1em; margin-bottom: 30px;">
+      성경 암송 검증 앱 — 음성 인식으로 정확하게, 함께 즐겁게
+    </p>
+
+    <!-- 1단계 -->
+    <h2><span class="emoji">📱</span>1단계: 앱 설치하기</h2>
+
+    <h3>🌐 웹에서 시작하기</h3>
+    <div class="section">
+      <p><strong>PC 또는 모바일 브라우저에서:</strong></p>
+      <ol>
+        <li>다음 주소로 접속합니다
+          <div class="box" style="margin-top: 10px;">
+            <code>https://pat-bible-app.web.app</code>
+          </div>
+        </li>
+        <li>로그인 페이지가 표시됩니다</li>
+      </ol>
+    </div>
+
+    <h3>📲 모바일 앱으로 설치하기</h3>
+
+    <div class="section">
+      <h4><span class="emoji">🍎</span>iPhone 사용자</h4>
+      <ol>
+        <li>Safari 브라우저에서 위 주소 접속</li>
+        <li>하단의 <strong>공유 아이콘</strong> (⬆️) 탭</li>
+        <li><strong>"홈 화면에 추가"</strong> 선택</li>
+        <li><strong>"추가"</strong> 버튼 탭</li>
+      </ol>
+      <div class="tip">
+        <strong>✓ 완료!</strong> 홈 화면에 PAT Bible 아이콘이 생겼습니다.
+      </div>
+    </div>
+
+    <div class="section">
+      <h4><span class="emoji">🤖</span>Android 사용자</h4>
+      <ol>
+        <li>Chrome 브라우저에서 위 주소 접속</li>
+        <li>우측 상단의 <strong>⋮</strong> (더보기) 탭</li>
+        <li><strong>"홈 화면에 추가"</strong> 선택</li>
+        <li><strong>"설치"</strong> 또는 <strong>"추가"</strong> 버튼 탭</li>
+      </ol>
+      <div class="tip">
+        <strong>✓ 완료!</strong> 홈 화면에 PAT Bible 아이콘이 생겼습니다.
+      </div>
+    </div>
+
+    <div class="tip">
+      <span class="emoji">💡</span> <strong>팁:</strong> 앱으로 설치하면 오프라인에서도 이전 데이터를 볼 수 있습니다!
+    </div>
+
+    <!-- 2단계 -->
+    <h2><span class="emoji">🔐</span>2단계: 교회 코드로 로그인하기</h2>
+
+    <div class="section">
+      <h3>✅ 로그인 방법</h3>
+      <ol>
+        <li><strong>교회 코드</strong> 입력 (관리자가 제공)
+          <div style="margin: 10px 0 10px 20px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+            예: <code>11111</code>
+          </div>
+        </li>
+        <li><strong>가족 비밀번호</strong> 입력
+          <div style="margin: 10px 0 10px 20px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+            처음 대표자가 가족방을 만들 때 설정한 번호<br/>
+            예: <code>1234</code>
+          </div>
+        </li>
+        <li><strong>[로그인]</strong> 버튼 탭</li>
+      </ol>
+      <div class="success">
+        <strong>✓ 성공하면</strong> <strong>가족방 대시보드</strong>가 열립니다
+      </div>
+    </div>
+
+    <!-- 3단계 -->
+    <h2><span class="emoji">👨‍👩‍👧</span>3단계: 가족방 구성원 등록하기</h2>
+
+    <h3>📝 대표자 (한 명만 — 예: 아버지)</h3>
+    <h4>3-1단계: 가족방 만들기</h4>
+
+    <div class="section">
+      <ol>
+        <li>로그인 후 <strong>"👑 대표 등록"</strong> 버튼 탭</li>
+        <li>다음 정보를 입력합니다:
+          <div style="margin-top: 10px; padding: 15px; background: white; border: 1px solid #ddd; border-radius: 4px;">
+            <table>
+              <tr>
+                <td><strong>가족방 이름</strong></td>
+                <td>예) "김가족", "이집안"</td>
+              </tr>
+              <tr>
+                <td><strong>대표자 이름</strong></td>
+                <td>예) "김호태"</td>
+              </tr>
+              <tr>
+                <td><strong>교구</strong></td>
+                <td>선택 (1교구, 2교구, 3교구, 블레싱)</td>
+              </tr>
+              <tr>
+                <td><strong>구역</strong></td>
+                <td>자유 입력 (선택사항)</td>
+              </tr>
+              <tr>
+                <td><strong>가족 비밀번호</strong></td>
+                <td>숫자 4자리 (예: <code>1234</code>)</td>
+              </tr>
+            </table>
+          </div>
+        </li>
+        <li><strong>[가족방 등록]</strong> 버튼 탭</li>
+      </ol>
+      <div class="success">
+        <strong>✓ 가족방이 만들어집니다.</strong> 대표자는 자동으로 구성원에 추가됩니다.
+      </div>
+    </div>
+
+    <h3>👪 다른 가족 구성원들 (아내, 아들, 딸 등)</h3>
+    <h4>3-2단계: 가족 초대 링크로 입장</h4>
+
+    <div class="section">
+      <ol>
+        <li><strong>대표자가 공유한 링크</strong> 클릭
+          <div style="margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+            예: <code>https://pat-bible-app.web.app/?code=11111&pw=1234</code>
+          </div>
+        </li>
+        <li>또는 직접 입력:
+          <ul style="margin-top: 10px;">
+            <li><strong>교회 코드:</strong> <code>11111</code></li>
+            <li><strong>가족 비밀번호:</strong> <code>1234</code> (대표자가 설정한 것)</li>
+            <li><strong>[로그인]</strong> 탭</li>
+          </ul>
+        </li>
+        <li><strong>"👨‍👩‍👧 가족 등록"</strong> 버튼 탭</li>
+        <li>본인 정보 입력:
+          <div style="margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+            <strong>이름:</strong> 예) "김미선"<br/>
+            <strong>별명</strong> (선택사항): 예) "엄마"
+          </div>
+        </li>
+        <li><strong>[가족방 입장]</strong> 버튼 탭</li>
+      </ol>
+      <div class="success">
+        <strong>✓ 자동으로 "✓ 완료" 상태가 되며, 대시보드에 이름이 표시됩니다.</strong>
+      </div>
+    </div>
+
+    <!-- 4단계 -->
+    <h2><span class="emoji">🔑</span>4단계: 비밀번호 변경하기 (선택사항)</h2>
+
+    <div class="section">
+      <p>가족 비밀번호를 변경하려면:</p>
+      <ol>
+        <li><strong>가족방 입장</strong> 후 화면 우측 상단의 <strong>⚙️ 설정</strong> 탭</li>
+        <li><strong>🔑 비밀번호 변경</strong> 섹션에서:
+          <ul style="margin-top: 10px;">
+            <li><strong>현재 비밀번호</strong> 입력</li>
+            <li><strong>새 비밀번호</strong> 입력 (4자리 숫자)</li>
+            <li><strong>[변경]</strong> 버튼 탭</li>
+          </ul>
+        </li>
+        <li>"비밀번호가 변경되었습니다" 메시지 확인</li>
+      </ol>
+      <div class="warning">
+        <span class="emoji">⚠️</span> <strong>주의:</strong> 새 비밀번호를 다른 가족들에게 알려줘야 나중에 입장할 수 있습니다!
+      </div>
+    </div>
+
+    <!-- 5단계 -->
+    <h2><span class="emoji">🎯</span>5단계: 가족 초대 링크 공유하기</h2>
+
+    <div class="section">
+      <h3>📤 다른 가족 구성원 초대</h3>
+      <ol>
+        <li>가족방 입장 후 <strong>우측 상단 설정(⚙️)</strong> 탭</li>
+        <li><strong>📨 가족 초대</strong> 섹션에서:
+          <ul style="margin-top: 10px;">
+            <li>초대 링크가 자동으로 생성됩니다</li>
+            <li><strong>[링크 복사]</strong> 또는 <strong>[공유]</strong> 버튼 탭</li>
+          </ul>
+        </li>
+        <li>다음 중 하나 선택:
+          <ul style="margin-top: 10px;">
+            <li><strong>카톡/문자로 공유:</strong> 메시지에 붙여넣기</li>
+            <li><strong>링크 직접 알려주기:</strong> URL 복사</li>
+          </ul>
+        </li>
+      </ol>
+      <div class="box">
+        <strong>초대 링크 예시</strong><br/>
+        <code>https://pat-bible-app.web.app/?code=11111&pw=1234</code>
+      </div>
+      <div class="tip">
+        <span class="emoji">💡</span> <strong>팁:</strong> 모든 가족이 같은 코드와 비밀번호로 입장합니다.
+      </div>
+    </div>
+
+    <!-- 6단계 -->
+    <h2><span class="emoji">📖</span>6단계: 암송 시작하기</h2>
+
+    <div class="section">
+      <h3>✍️ 암송 진행 순서</h3>
+
+      <h4><span class="emoji">1️⃣</span> 1단계: 음성 1차 (마이크 사용)</h4>
+      <div class="step">
+        <ol>
+          <li>가족방에서 <strong>"📖 암송 시작"</strong> 버튼 탭</li>
+          <li>구절이 표시됩니다
+            <div style="margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+              예: 요한일서 1:9<br/>
+              "만일 우리가 우리 죄를 자백하면..."
+            </div>
+          </li>
+          <li>🎙️ <strong>녹음 버튼</strong> 탭
+            <ul style="margin-top: 10px;">
+              <li>마이크 권한 허용 팝업 표시</li>
+              <li><strong>[허용]</strong> 또는 <strong>[계속]</strong> 탭</li>
+            </ul>
+          </li>
+          <li><strong>"🔴 마이크 연결 중... 잠시 후 말씀하세요"</strong> 표시 후
+            <ul style="margin-top: 10px;">
+              <li>구절을 <strong>크고 명확하게</strong> 읽으세요 (1-2분)</li>
+            </ul>
+          </li>
+          <li>말하기 종료 후 자동으로:
+            <ul style="margin-top: 10px;">
+              <li>✓ <strong>유사도</strong> 표시</li>
+              <li>녹음된 내용 재생 가능</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+
+      <h4><span class="emoji">2️⃣</span> 2단계: 음성 2차</h4>
+      <div class="step">
+        <ol>
+          <li>유사도가 <strong>100%</strong>가 아니면:
+            <ul style="margin-top: 10px;">
+              <li><strong>[다시 검수]</strong> 버튼으로 다시 녹음 가능</li>
+            </ul>
+          </li>
+          <li><strong>유사도 100%</strong> 도달하면:
+            <ul style="margin-top: 10px;">
+              <li><strong>[다음 단계]</strong> 버튼 활성화</li>
+              <li>탭하여 진행</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+
+      <h4><span class="emoji">3️⃣</span> 3단계: 타이핑 1차</h4>
+      <div class="step">
+        <ol>
+          <li>구절을 <strong>텍스트로 입력</strong>합니다
+            <ul style="margin-top: 10px;">
+              <li>마우스/터치로 자유롭게 타이핑</li>
+              <li>진행률이 실시간 표시됨</li>
+            </ul>
+          </li>
+          <li><strong>진행률 100%</strong> 도달 후:
+            <ul style="margin-top: 10px;">
+              <li><strong>[1차 완료 → 2차 진행]</strong> 버튼 탭</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+
+      <h4><span class="emoji">4️⃣</span> 4단계: 타이핑 2차</h4>
+      <div class="step">
+        <ol>
+          <li>다시 구절을 타이핑합니다
+            <ul style="margin-top: 10px;">
+              <li>이전 입력이 표시되지 않음 (재검수)</li>
+            </ul>
+          </li>
+          <li><strong>진행률 100%</strong> 도달 후:
+            <ul style="margin-top: 10px;">
+              <li><strong>[완료 확인]</strong> 버튼 탭</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+
+      <h4><span class="emoji">✓</span> 완료!</h4>
+      <div class="success">
+        <ol>
+          <li><strong>완료 화면</strong> 표시:
+            <div style="margin: 10px 0; padding: 10px; background: white; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; white-space: pre;">요한일서 1:9 암송 성공
+
+음성 1차: 95%
+음성 2차: 100%
+타이핑 1차: 100%
+타이핑 2차: 100%</div>
+          </li>
+          <li><strong>[대시보드로 돌아가기]</strong> 탭</li>
+        </ol>
+      </div>
+    </div>
+
+    <h3>🔄 다시 검수하기</h3>
+    <div class="section">
+      <p>완료 후에도 단계별로 다시 검수 가능:</p>
+      <ol>
+        <li>완료 화면에서 <strong>"유사도 95% · 다시 검수"</strong> 같은 버튼 탭</li>
+        <li>해당 단계로 이동</li>
+        <li><strong>[다시 한번 하기]</strong> 버튼으로 재녹음</li>
+      </ol>
+    </div>
+
+    <!-- FAQ -->
+    <h2><span class="emoji">❓</span>자주 묻는 질문 (FAQ)</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">Q1: 마이크가 안 됩니다</div>
+      <div class="faq-a">
+        <strong>A:</strong>
+        <ul style="margin-top: 5px;">
+          <li>권한 설정 확인: 주소창 옆의 <strong>🔒</strong> 클릭</li>
+          <li><strong>마이크</strong> 권한을 <strong>[허용]</strong>으로 변경</li>
+          <li>앱 새로고침 (F5 또는 새로고침 버튼)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q2: 음성이 인식이 안 됩니다</div>
+      <div class="faq-a">
+        <strong>A:</strong>
+        <ul style="margin-top: 5px;">
+          <li>조용한 환경에서 다시 시도</li>
+          <li>크고 명확하게 읽으세요</li>
+          <li>텍스트 입력으로 대체 가능</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q3: 진행률이 100%가 안 됩니다</div>
+      <div class="faq-a">
+        <strong>A:</strong>
+        <ul style="margin-top: 5px;">
+          <li>모든 글자가 입력되었는지 확인</li>
+          <li>구절을 정확하게 읽으세요</li>
+          <li><strong>[다시 검수]</strong> 버튼으로 재시도</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q4: 비밀번호를 잊었습니다</div>
+      <div class="faq-a">
+        <strong>A:</strong>
+        <ul style="margin-top: 5px;">
+          <li>관리자(대표자)에게 문의</li>
+          <li>관리자는 <strong>설정 > 비밀번호 변경</strong>에서 새로 설정 가능</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q5: 다른 기기에서 로그인할 수 있나요?</div>
+      <div class="faq-a">
+        <strong>A:</strong> <strong>YES!</strong> 같은 교회 코드와 비밀번호로 로그인하면 모든 기기에서 동기화됩니다.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Q6: 오프라인에서 사용 가능한가요?</div>
+      <div class="faq-a">
+        <strong>A:</strong>
+        <ul style="margin-top: 5px;">
+          <li>앱으로 설치하면 <strong>이전 데이터 조회 가능</strong></li>
+          <li>새로운 암송은 온라인에서만 등록 가능</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 푸터 -->
+    <div class="footer">
+      <p><strong>🙏 Happy Memorizing!</strong></p>
+      <p>성경 암송을 함께 즐겨보세요.</p>
+      <p style="margin-top: 20px; color: #999; font-size: 0.85em;">
+        앱 버전: v51 (2026년 6월 18일)<br/>
+        마지막 업데이트: 음성 마이크 오류 수정
+      </p>
+    </div>
+  </div>
+</body>
+</html>
