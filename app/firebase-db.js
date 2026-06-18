@@ -283,10 +283,16 @@ window.PAT_DB = (() => {
     if (!ready()) return false;
     try {
       const deviceId = getDeviceId();
-      const familyId = localStorage.getItem('pat_family_id') || '';
+      let familyId = localStorage.getItem('pat_family_id') || '';
       const profile = (() => {
         try { return JSON.parse(localStorage.getItem('pat_family_profile') || 'null'); } catch { return null; }
       })();
+
+      // ⚠️ 중요: familyId가 없으면 profiles.json에서 찾기 (가족방 미등록일 수도 있음)
+      if (!familyId) {
+        console.warn('[PAT_DB] ⚠️ pat_family_id 없음 — 로컬 전용 모드 (가족방 미등록)');
+        return false; // 가족방에 등록되지 않은 사용자는 기록 미저장
+      }
 
       console.log('[PAT_DB] saveRecord 디버깅:');
       console.log('  churchCode:', churchCode);

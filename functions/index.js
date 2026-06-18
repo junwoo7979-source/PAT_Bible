@@ -359,6 +359,13 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
     recordsSnap.docs.forEach(doc => {
       const record = doc.data();
       const familyId = record.familyId || '';
+
+      // ⚠️ 중요: familyId가 빈 문자열이면 skip (가족방 미등록)
+      if (!familyId) {
+        console.warn(`  ⚠️ familyId 없음: 가족방 미등록 사용자의 기록 (무시)`);
+        return;
+      }
+
       const parish = familyToParish[familyId];
 
       if (parish && !completedFamilies.has(familyId)) {
@@ -366,7 +373,7 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
         byParish[parish] += 1;
         console.log(`  ✅ ${parish}: ${familyId.slice(0, 8)}... 완료 → ${byParish[parish]}명`);
       } else if (!parish && familyId) {
-        console.warn(`  ⚠️ 교구 정보 없음: familyId=${familyId}`);
+        console.warn(`  ⚠️ 교구 정보 없음: familyId=${familyId.slice(0, 8)}...`);
       }
     });
 
