@@ -140,14 +140,16 @@ function reviewStep(n){
 }
 
 // ── 대시보드 ─────────────────────────────────────────────
+// 📊 테스트 데이터: 1교구 1명, 나머지 0
 const PARISH_STATS = [
-  { name:'1교구 진도표', matchName:'1교구', done:52, total:80 },
-  { name:'2교구 진도표', matchName:'2교구', done:48, total:72 },
-  { name:'3교구 진도표', matchName:'3교구', done:44, total:68 },
-  { name:'블레싱 진도표', matchName:'블레싱', done:30, total:400, isTotal:true },
+  { name:'1교구 진도표', matchName:'1교구', done:1, total:80 },
+  { name:'2교구 진도표', matchName:'2교구', done:0, total:72 },
+  { name:'3교구 진도표', matchName:'3교구', done:0, total:68 },
+  { name:'블레싱 진도표', matchName:'블레싱', done:1, total:220, isTotal:true },
 ];
 function renderParishStats(myCount){
   const profile = loadFamilyProfile();
+  console.log('[PAT-PARISH] renderParishStats 호출 (로컬):', { myCount, parish: profile?.parish });
   document.getElementById('dParishList').innerHTML = PARISH_STATS.map(item=>{
     const isMine = !item.isTotal && profile?.parish &&
       (profile.parish===item.matchName||profile.parish===item.name||profile.parish.includes(item.matchName));
@@ -174,17 +176,25 @@ async function renderDashboard(){
   const doneCount = DB.members.filter(m=>m.done).length;
   document.getElementById('dFamily').textContent = Math.round(doneCount/DB.members.length*100)+'%';
 
-  // Firebase에서 현황 데이터 로드
+  // 🧪 테스트 데이터: 1교구 1명, 나머지 0
+  const testByParish = {
+    '1교구': 1,
+    '2교구': 0,
+    '3교구': 0,
+  };
+
+  // Firebase에서 현황 데이터 로드 (프로덕션)
   if(window.PAT_DB && PAT_DB.ready()){
     try {
       const stats = await PAT_DB.getDashboardStats(DB.church.code, DB.verse.ref);
       console.log('[PAT-DASHBOARD] Firebase stats:', stats);
-      if(stats){
+      if(stats && stats.total !== undefined){
         const total = stats.total || 0;
         document.getElementById('dChurch').textContent =
           `참여율 ${Math.round(total/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${total}명`;
         document.getElementById('dChurchBar').style.width = Math.round(total/DB.church.memberCount*100)+'%';
-        renderParishStatsFirebase(stats.byParish || {}, myCount);
+        renderParishStatsFirebase(stats.byParish || testByParish, total);
+        document.getElementById('dMyScore').textContent = myCount+'회';
         return;
       }
     } catch(e) {
@@ -192,15 +202,16 @@ async function renderDashboard(){
     }
   }
 
-  // Firebase 미연결 시 로컬 데이터 사용
-  renderParishStats(myCount);
-  const base = 188+(myCount>0?1:0);
+  // 🧪 로컬/테스트 데이터 사용 (Firebase 미연결)
+  console.log('[PAT-DASHBOARD] 테스트 데이터 사용');
+  renderParishStatsFirebase(testByParish, 1);
+  const totalParticipation = 1; // 1교구 1명
   document.getElementById('dChurch').textContent =
-    `참여율 ${Math.round(base/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${base}명`;
-  document.getElementById('dChurchBar').style.width = Math.round(base/DB.church.memberCount*100)+'%';
+    `참여율 ${Math.round(totalParticipation/DB.church.memberCount*100)}% · ${DB.church.memberCount}명 중 ${totalParticipation}명`;
+  document.getElementById('dChurchBar').style.width = Math.round(totalParticipation/DB.church.memberCount*100)+'%';
   document.getElementById('dMyScore').textContent = myCount+'회';
 }
-function renderParishStatsFirebase(byParish, myCount){
+function renderParishStatsFirebase(byParish, totalDone){
   const profile = loadFamilyProfile();
 
   // 교구별 기본 인원 (실제 데이터)
@@ -217,7 +228,7 @@ function renderParishStatsFirebase(byParish, myCount){
       // 정확한 키 찾기 (예: "1교구", "1교구 " 등)
       const trimmedKey = String(key).trim();
       if(trimmedKey.match(/^[1-3]교구$/)) {
-        normalizedData[trimmedKey] = count;
+        normalizedData[trimmedKey] = Number(count) || 0;
       }
     });
   }
@@ -231,7 +242,9 @@ function renderParishStatsFirebase(byParish, myCount){
   });
 
   console.log('[PAT-PARISH] 정규화된 데이터:', normalizedData);
+  console.log('[PAT-PARISH] 전체 완료:', totalDone);
 
+  // 교구별 진도율 렌더링
   const rows = parishKeys.map(key=>{
     const done  = normalizedData[key] || 0;
     const total = PARISH_TOTALS[key];
@@ -246,7 +259,6 @@ function renderParishStatsFirebase(byParish, myCount){
   });
 
   // 블레싱 진도표 (전체 교회)
-  const totalDone = Object.values(normalizedData).reduce((a,b)=>a+b,0);
   const totalPct  = DB.church.memberCount > 0 ? Math.round(totalDone/DB.church.memberCount*100) : 0;
   rows.push(`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);margin-top:4px">
     <span style="min-width:48px;font-weight:700">블레싱 진도표</span>
@@ -255,6 +267,7 @@ function renderParishStatsFirebase(byParish, myCount){
     <small style="min-width:36px;text-align:right;font-weight:700">${totalPct}%</small>
   </div>`);
 
+  console.log('[PAT-PARISH] HTML 렌더링 완료');
   document.getElementById('dParishList').innerHTML = rows.join('');
 }
 
