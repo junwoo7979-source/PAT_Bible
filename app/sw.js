@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pat-bible-app-v59';
+const CACHE_NAME = 'pat-bible-app-v60';
 const APP_SHELL = [
   './',
   './index.html',

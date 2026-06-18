@@ -14,6 +14,41 @@ let voiceMicPermissionReady=false;
 let globalMicStream=null;
 let micPermissionRequestedThisSession=false;
 
+// ── 날짜 기반 세션 관리 ────────────────────────────────────
+let _memorizeSessionDate = null;  // 현재 암송 세션이 시작된 날짜
+function getTodayDateString(){ return new Date().toISOString().slice(0, 10); }
+function checkAndResetByDate(){
+  const today = getTodayDateString();
+  if(_memorizeSessionDate !== today){
+    // 날짜가 변경되었으면 암송 진행 상태 초기화
+    console.log(`[DATE-RESET] 날짜 변경 감지: ${_memorizeSessionDate} → ${today}`);
+    resetMemorizeProgress();
+    _memorizeSessionDate = today;
+  }
+}
+function resetMemorizeProgress(){
+  // 음성 인식 초기화
+  voiceStage = 1;
+  voiceScore1 = 0;
+  voiceScore2 = 0;
+  voiceInput1 = '';
+  voiceInput2 = '';
+
+  // 텍스트 입력 초기화
+  typeStage = 1;
+  typeScore1 = 0;
+  typeScore2 = 0;
+  typeCurrentScore = 0;
+  typeInput1 = '';
+  typeInput2 = '';
+
+  // 진행 상태 초기화
+  memorizeCompleted = false;
+  reviewMode = false;
+
+  console.log('[DATE-RESET] ✅ 암송 진행 상태 초기화 완료');
+}
+
 // ── 환경 감지 ─────────────────────────────────────────────
 function isMobileBrowser(){
   const ua = (typeof navigator!=='undefined'?navigator.userAgent:'')||'';

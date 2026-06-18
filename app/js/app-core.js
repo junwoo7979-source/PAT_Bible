@@ -56,6 +56,11 @@ function applyCloudConfig(config){
 function applyStoredData(){
   console.log('[PAT-STARTUP] applyStoredData 시작');
 
+  // ★ 날짜 기반 암송 세션 초기화 (페이지 로드 시 실행)
+  if(typeof checkAndResetByDate === 'function'){
+    checkAndResetByDate();
+  }
+
   // ✨ 최적화: localStorage 동기적 확인 후 바로 최종 화면으로 이동
   // (로그인 페이지 스킵, 저장된 상태면 즉시 복원)
   const initialScreen = determineInitialScreen();
@@ -359,6 +364,12 @@ function go(id, resetScroll=true, animate=false){
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);
   });
+
+  // ★ 암송 화면 진입 시 날짜 체크 후 필요하면 초기화
+  if(id === 's-voice' || id === 's-typing'){
+    if(typeof checkAndResetByDate === 'function') checkAndResetByDate();
+  }
+
   if(id==='s-verse'){ renderVerse(); }
   else if(id==='s-family'){ renderFamily(); }
   else if(id==='s-dashboard'){
