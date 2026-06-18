@@ -98,13 +98,13 @@ function acquireGlobalMicStream(){
       return true;
     }catch(err){
       voiceMicPermissionReady = false;
+      // ★ 권한 요청 실패 시 showManual() 호출하지 않음
+      // 토스트 메시지만 표시 → toggleMic()에서 재시도 가능
       if(err.name==='NotAllowedError'||err.name==='PermissionDeniedError'){
-        toast('마이크 권한을 허용해야 음성 암송을 시작할 수 있습니다');
+        toast('마이크 권한이 차단되었습니다 — 다시 시도해주세요');
       }else{
         toast('마이크를 사용할 수 없습니다 — 장치를 확인해주세요');
       }
-      document.getElementById('voiceRestart').style.display='block';
-      showManual();
       return false;
     }finally{ globalMicStreamPromise=null; }
   })();
@@ -148,14 +148,8 @@ async function ensureMicrophonePermission(){
   const ok = await acquireGlobalMicStream();
   if(ok) return true;
 
-  // 권한 요청 실패
-  document.getElementById('voiceRestart').style.display = 'block';
-  if(micPermissionRequestedThisSession){
-    toast('마이크 권한이 차단되었습니다 — 주소창 사이트 설정에서 마이크를 허용해주세요');
-  }else{
-    toast('암송 시작 버튼에서 마이크를 처음 한 번 허용해주세요');
-  }
-  showManual();
+  // ★ 권한 요청 실패 시 showManual() 호출 금지!
+  // toggleMic()에서 재시도 가능하도록 유지
   return false;
 }
 async function prewarmMicPermission(){ return; } // 자동 권한 요청 금지
@@ -205,11 +199,16 @@ async function toggleMic(){
   const micBtn = document.getElementById('micBtn');
   // ★ 모든 경로에서 버튼을 반드시 활성화하도록 보장
   try{
-    // 권한이 이미 확보된 경우 disabled/힌트 처리 생략 → 즉각 반응
+    // ★ 마이크 실패 후 재시도 시 권한 상태 초기화 (문제 해결)
+    // 이전 실패로 voiceMicPermissionReady=false인 경우, 다시 요청하도록 강제
     const alreadyReady = voiceMicPermissionReady && (isMobileBrowser() || hasLiveGlobalMicStream());
     if(!alreadyReady){
       micBtn.disabled = true;
       document.getElementById('micHint').textContent = '마이크 권한 확인 중...';
+      // ★ globalMicStream 무효화 시 권한 상태 리셋
+      if(!hasLiveGlobalMicStream()){
+        voiceMicPermissionReady = false;  // 강제 리셋 → 재요청 유도
+      }
     }
     const hasMicPermission = await ensureMicrophonePermission();
     if(!hasMicPermission){
