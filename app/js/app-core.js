@@ -361,8 +361,15 @@ function go(id, resetScroll=true, animate=false){
   });
   if(id==='s-verse'){ renderVerse(); }
   else if(id==='s-family'){ renderFamily(); }
-  else if(id==='s-dashboard'){ renderDashboard(); }
+  else if(id==='s-dashboard'){
+    // 현황 대시보드: 자동 갱신 폴링 시작
+    if(typeof startDashboardPolling === 'function') startDashboardPolling();
+  }
   else if(id==='s-prayer'){ renderPrayer(); }
+  else if(id !== 's-dashboard' && typeof stopDashboardPolling === 'function'){
+    // 다른 화면으로 이동 시 폴링 중지
+    stopDashboardPolling();
+  }
   if(resetScroll) window.scrollTo(0,0);
 
   // 브라우저 히스토리 관리 — 모바일 대응: 해시(#id)로 URL 구분

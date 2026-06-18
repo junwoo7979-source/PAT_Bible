@@ -153,61 +153,122 @@ const TEST_DATA_PARISH = {
   '3교구': 0,
 };
 
+// 현황 대시보드 자동 갱신 폴링
+let dashboardPollTimer = null;
+const DASHBOARD_POLL_INTERVAL = 5000; // 5초마다 갱신
+
+// 현황 대시보드 데이터 계산 (모든 데이터 통합)
+async function computeDashboardData(){
+  console.log('[PAT-DASHBOARD] 데이터 계산 시작');
+
+  const result = {
+    myCount: 0,
+    familyDone: 0,
+    familyTotal: 0,
+    parishData: { ...TEST_DATA_PARISH },
+    totalDone: 1,
+  };
+
+  // 1️⃣ 로컬 기록 (내 암송 횟수)
+  try {
+    const recs = loadRec();
+    result.myCount = recs.length;
+    console.log('[PAT-DASHBOARD] 로컬 기록:', result.myCount, '회');
+  } catch(e) {
+    console.error('[PAT-DASHBOARD] 로컬 기록 로드 실패:', e.message);
+  }
+
+  // 2️⃣ 가족방 데이터 (우리 가족 달성률)
+  try {
+    const profile = loadFamilyProfile();
+    const familyId = localStorage.getItem('pat_family_id');
+
+    if(profile && familyId && window.PAT_DB && PAT_DB.ready()){
+      const members = await PAT_DB.getFamilyProgress(DB.church.code, familyId, DB.verse.ref);
+      if(Array.isArray(members)){
+        result.familyTotal = members.length;
+        result.familyDone = members.filter(m => m.done).length;
+        console.log('[PAT-DASHBOARD] 가족 진도:', result.familyDone, '/', result.familyTotal);
+      }
+    }
+  } catch(e) {
+    console.error('[PAT-DASHBOARD] 가족방 데이터 로드 실패:', e.message);
+  }
+
+  // 3️⃣ 교구별 현황 (Firebase 또는 테스트)
+  try {
+    if(window.PAT_DB && PAT_DB.ready()){
+      const stats = await PAT_DB.getDashboardStats(DB.church.code, DB.verse.ref);
+      if(stats && stats.byParish){
+        result.parishData = stats.byParish;
+        result.totalDone = stats.total || 1;
+        console.log('[PAT-DASHBOARD] Firebase 교구 데이터:', result.parishData, '총', result.totalDone, '명');
+      } else {
+        console.log('[PAT-DASHBOARD] Firebase 데이터 없음, 테스트 데이터 사용');
+      }
+    }
+  } catch(e) {
+    console.error('[PAT-DASHBOARD] Firebase 조회 실패:', e.message);
+  }
+
+  return result;
+}
+
+// 현황 대시보드 렌더링 (계산된 데이터 기반)
 async function renderDashboard(){
   console.log('[PAT-DASHBOARD] ===== 현황 페이지 렌더링 시작 =====');
 
+  const data = await computeDashboardData();
+
   // 1️⃣ 개인 통계
-  const recs    = loadRec();
-  const myCount = recs.length;
-  document.getElementById('dMyCount').textContent = myCount;
-  document.getElementById('dStreak').textContent  = myCount>0?1:0;
-  document.getElementById('dBadge').textContent   = myCount;
-  document.getElementById('dMyScore').textContent = myCount+'회';
+  document.getElementById('dMyCount').textContent = data.myCount;
+  document.getElementById('dStreak').textContent = data.myCount > 0 ? 1 : 0;
+  document.getElementById('dBadge').textContent = data.myCount;
+  document.getElementById('dMyScore').textContent = data.myCount + '회';
 
-  const me = DB.members.find(m=>m.me);
-  if(myCount>0) me.done=true;
-  const doneCount = DB.members.filter(m=>m.done).length;
-  document.getElementById('dFamily').textContent = Math.round(doneCount/DB.members.length*100)+'%';
+  // 2️⃣ 가족 달성률
+  const familyPct = data.familyTotal > 0 ? Math.round(data.familyDone / data.familyTotal * 100) : 0;
+  document.getElementById('dFamily').textContent = familyPct + '%';
+  console.log('[PAT-DASHBOARD] 가족 달성률:', familyPct, '%');
 
-  console.log('[PAT-DASHBOARD] 개인 통계:', { myCount, family: doneCount+'/'+DB.members.length });
-
-  // 2️⃣ Firebase에서 현황 데이터 시도
-  let parishData = null;
-  let totalDone = 1;
-
-  if(window.PAT_DB && PAT_DB.ready()){
-    try {
-      console.log('[PAT-DASHBOARD] Firebase 조회 중...');
-      const stats = await PAT_DB.getDashboardStats(DB.church.code, DB.verse.ref);
-      console.log('[PAT-DASHBOARD] Firebase 응답:', stats);
-
-      if(stats && stats.byParish){
-        parishData = stats.byParish;
-        totalDone = stats.total || 1;
-        console.log('[PAT-DASHBOARD] Firebase 데이터 사용:', { parishData, totalDone });
-      } else {
-        console.log('[PAT-DASHBOARD] Firebase 데이터 없음, 테스트 데이터로 대체');
-        parishData = TEST_DATA_PARISH;
-      }
-    } catch(e) {
-      console.error('[PAT-DASHBOARD] Firebase 에러:', e.message);
-      parishData = TEST_DATA_PARISH;
-    }
-  } else {
-    console.log('[PAT-DASHBOARD] Firebase 미연결, 테스트 데이터 사용');
-    parishData = TEST_DATA_PARISH;
-  }
-
-  // 3️⃣ 교구별 현황 렌더링
-  renderParishStatsDisplay(parishData, totalDone);
+  // 3️⃣ 교구별 현황
+  renderParishStatsDisplay(data.parishData, data.totalDone);
 
   // 4️⃣ 교회 전체 현황
-  const churchPct = DB.church.memberCount > 0 ? Math.round(totalDone/DB.church.memberCount*100) : 0;
+  const churchPct = DB.church.memberCount > 0 ? Math.round(data.totalDone / DB.church.memberCount * 100) : 0;
   document.getElementById('dChurch').textContent =
-    `참여율 ${churchPct}% · ${DB.church.memberCount}명 중 ${totalDone}명`;
-  document.getElementById('dChurchBar').style.width = churchPct+'%';
+    `참여율 ${churchPct}% · ${DB.church.memberCount}명 중 ${data.totalDone}명`;
+  document.getElementById('dChurchBar').style.width = churchPct + '%';
 
   console.log('[PAT-DASHBOARD] ===== 현황 페이지 렌더링 완료 =====');
+}
+
+// 현황 대시보드 폴링 시작 (5초마다 자동 갱신)
+function startDashboardPolling(){
+  if(dashboardPollTimer) clearInterval(dashboardPollTimer);
+
+  console.log('[PAT-DASHBOARD] 폴링 시작 (5초 간격)');
+
+  // 즉시 한 번 렌더링
+  renderDashboard();
+
+  // 5초마다 자동 갱신
+  dashboardPollTimer = setInterval(() => {
+    const activeScreen = document.querySelector('.screen.active')?.id;
+    if(activeScreen === 's-dashboard'){
+      console.log('[PAT-DASHBOARD] 자동 갱신');
+      renderDashboard();
+    }
+  }, DASHBOARD_POLL_INTERVAL);
+}
+
+// 현황 대시보드 폴링 중지
+function stopDashboardPolling(){
+  if(dashboardPollTimer){
+    clearInterval(dashboardPollTimer);
+    dashboardPollTimer = null;
+    console.log('[PAT-DASHBOARD] 폴링 중지');
+  }
 }
 
 // 교구별 현황 UI 렌더링 (통합 함수)
