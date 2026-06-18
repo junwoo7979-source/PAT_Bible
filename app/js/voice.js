@@ -143,7 +143,12 @@ function destroyGlobalMicStream(){
 }
 async function ensureMicrophonePermission(){
   if(voiceMicPermissionReady && (isMobileBrowser() || hasLiveGlobalMicStream())) return true;
-  voiceMicPermissionReady = false;
+
+  // ★ 마이크 권한이 없으면 요청해야 함!
+  const ok = await acquireGlobalMicStream();
+  if(ok) return true;
+
+  // 권한 요청 실패
   document.getElementById('voiceRestart').style.display = 'block';
   if(micPermissionRequestedThisSession){
     toast('마이크 권한이 차단되었습니다 — 주소창 사이트 설정에서 마이크를 허용해주세요');
@@ -198,20 +203,22 @@ async function toggleMic(){
     return;
   }
   const micBtn = document.getElementById('micBtn');
-  // 권한이 이미 확보된 경우 disabled/힌트 처리 생략 → 즉각 반응
-  const alreadyReady = voiceMicPermissionReady && (isMobileBrowser() || hasLiveGlobalMicStream());
-  if(!alreadyReady){
-    micBtn.disabled = true;
-    document.getElementById('micHint').textContent = '마이크 권한 확인 중...';
-  }
+  // ★ 모든 경로에서 버튼을 반드시 활성화하도록 보장
   try{
+    // 권한이 이미 확보된 경우 disabled/힌트 처리 생략 → 즉각 반응
+    const alreadyReady = voiceMicPermissionReady && (isMobileBrowser() || hasLiveGlobalMicStream());
+    if(!alreadyReady){
+      micBtn.disabled = true;
+      document.getElementById('micHint').textContent = '마이크 권한 확인 중...';
+    }
     const hasMicPermission = await ensureMicrophonePermission();
     if(!hasMicPermission){
-      micBtn.disabled = false;  // ★ 실패해도 버튼 활성화해야 다시 시도 가능
       return;
     }
+  }catch(err){
+    console.error('[VOICE-ERROR] toggleMic catch:', err);
   }finally{
-    micBtn.disabled = false;  // ★ 모든 경로에서 확실히 활성화
+    micBtn.disabled = false;  // ★ 모든 경로에서 반드시 활성화
   }
   // 새 인식 시작 — 이전 통과 상태 초기화 (재시도 시 다음 단계 잠금)
   document.getElementById('voiceNext').disabled = true;
