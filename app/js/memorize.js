@@ -194,31 +194,43 @@ async function computeAggregatedData(){
 
   // ✅ 3️⃣ 교구별 현황 (Firebase getDashboardStats - 실제 데이터만)
   try {
+    console.log('[PAT-DASHBOARD-AGGREGATE] 📡 Firebase 교구 데이터 조회 시작');
+
     if(window.PAT_DB && PAT_DB.ready()){
       const stats = await PAT_DB.getDashboardStats(DB.church.code, DB.verse.ref);
+      console.log('[PAT-DASHBOARD-AGGREGATE] 📥 Firebase 응답:', stats);
 
       if(stats && typeof stats.byParish === 'object'){
+        console.log('[PAT-DASHBOARD-AGGREGATE] ✅ byParish 객체 존재:', stats.byParish);
+
         // 실제 Firebase 데이터로 집계
         Object.keys(PARISH_INFO).forEach(parish => {
-          result.byParish[parish] = stats.byParish[parish] || 0;
+          const firebaseValue = stats.byParish[parish];
+          result.byParish[parish] = typeof firebaseValue === 'number' ? firebaseValue : 0;
+          console.log(`[PAT-DASHBOARD-AGGREGATE]   ${parish}: Firebase=${firebaseValue} → 결과=${result.byParish[parish]}`);
         });
-        result.totalDone = stats.total || 0;
 
-        console.log('[PAT-DASHBOARD-AGGREGATE] ✅ Firebase 교구 데이터 수집:');
+        result.totalDone = typeof stats.total === 'number' ? stats.total : 0;
+        console.log('[PAT-DASHBOARD-AGGREGATE] ✅ Firebase 교구 데이터 수집 완료:');
         console.log('  1교구:', result.byParish['1교구'], '명');
         console.log('  2교구:', result.byParish['2교구'], '명');
         console.log('  3교구:', result.byParish['3교구'], '명');
         console.log('  총합:', result.totalDone, '명');
       } else {
-        console.log('[PAT-DASHBOARD-AGGREGATE] ⚠️ Firebase 데이터 수집 불가능');
+        console.warn('[PAT-DASHBOARD-AGGREGATE] ⚠️ byParish 객체 없음:');
+        console.warn('  stats:', stats);
+        console.warn('  typeof stats.byParish:', typeof stats?.byParish);
         result.totalDone = 0;
       }
     } else {
-      console.log('[PAT-DASHBOARD-AGGREGATE] ⚠️ Firebase 미연결 (오프라인 모드)');
+      console.warn('[PAT-DASHBOARD-AGGREGATE] ⚠️ Firebase 미연결 (오프라인 모드)');
+      console.warn('  PAT_DB:', window.PAT_DB);
+      console.warn('  PAT_DB.ready():', window.PAT_DB?.ready?.());
       result.totalDone = 0;
     }
   } catch(e) {
     console.error('[PAT-DASHBOARD-AGGREGATE] ❌ Firebase 조회 오류:', e.message);
+    console.error('  스택:', e.stack);
     result.totalDone = 0;
   }
 

@@ -316,19 +316,55 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
     const { churchCode, verseRef } = req.query;
     if (!assertChurchCode(churchCode, res)) return;
     if (!verseRef) { res.status(400).json({ error: 'verseRef required' }); return; }
+
     const snap = await db.collection(`churches/${churchCode}/records`)
       .where('verseRef', '==', verseRef).get();
-    const byParish = {};
+
+    console.log(`[PAT-DASHBOARD] 조회 시작: ${churchCode}/${verseRef}, 문서: ${snap.size}개`);
+
+    // 1️⃣ 교구별 초기화 (1교구, 2교구, 3교구 모두 0으로 시작)
+    const byParish = {
+      '1교구': 0,
+      '2교구': 0,
+      '3교구': 0,
+    };
+
+    // 2️⃣ deviceId별 중복 제거 (한 사람당 1회만 집계)
     const seen = new Set();
+    let processedCount = 0;
+
     snap.docs.forEach(d => {
       const r = d.data();
-      const key = r.deviceId + '_' + r.verseRef;
-      if (seen.has(key)) return;
-      seen.add(key);
-      const p = r.parish || 'unknown';
-      byParish[p] = (byParish[p] || 0) + 1;
+      const deviceId = r.deviceId || 'unknown';
+
+      // 3️⃣ deviceId별로 처음 나온 기록만 처리
+      if (seen.has(deviceId)) {
+        console.log(`[PAT-DASHBOARD] 중복 제거: deviceId=${deviceId}`);
+        return;
+      }
+      seen.add(deviceId);
+      processedCount++;
+
+      // 4️⃣ parish 정규화
+      const parish = (r.parish || '').trim();
+      const validParish = ['1교구', '2교구', '3교구'].includes(parish) ? parish : null;
+
+      if (validParish) {
+        byParish[validParish] += 1;
+        console.log(`[PAT-DASHBOARD] 집계: ${validParish}, deviceId=${deviceId}`);
+      } else {
+        console.warn(`[PAT-DASHBOARD] ⚠️ 유효하지 않은 교구: "${parish}", deviceId=${deviceId}`);
+      }
     });
-    res.json({ total: seen.size, byParish });
+
+    const total = seen.size;
+    console.log(`[PAT-DASHBOARD] ✅ 최종 집계:`, {
+      처리됨: processedCount,
+      중복제거후: total,
+      byParish,
+    });
+
+    res.json({ total, byParish });
   } catch (e) { errRes(res, e); }
 });
 

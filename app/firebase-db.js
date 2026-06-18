@@ -287,18 +287,40 @@ window.PAT_DB = (() => {
       const profile = (() => {
         try { return JSON.parse(localStorage.getItem('pat_family_profile') || 'null'); } catch { return null; }
       })();
-      await apiPost('saveRecord', {
+
+      console.log('[PAT_DB] saveRecord 디버깅:');
+      console.log('  churchCode:', churchCode);
+      console.log('  deviceId:', deviceId);
+      console.log('  familyId:', familyId);
+      console.log('  profile:', profile);
+      console.log('  profile.parish:', profile?.parish);
+      console.log('  record.ref:', record.ref);
+
+      const payload = {
         churchCode, deviceId, familyId,
-        parish: profile?.parish || '', district: profile?.district || '',
+        parish: profile?.parish || '',
+        district: profile?.district || '',
         leaderName: profile?.leaderName || '',
-        memberName: profile?.memberName || '',  // ← 추가: 개인 이름 저장
+        memberName: profile?.memberName || '',
         verseRef: record.ref,
-        voiceScore1: record.voiceScore1 || 0, voiceScore2: record.voiceScore2 || 0,
-        typeScore1: record.typeScore1 || 0, typeScore2: record.typeScore2 || 0,
+        voiceScore1: record.voiceScore1 || 0,
+        voiceScore2: record.voiceScore2 || 0,
+        typeScore1: record.typeScore1 || 0,
+        typeScore2: record.typeScore2 || 0,
         badge: record.badge || 'weekly_complete',
-      });
+      };
+
+      console.log('[PAT_DB] saveRecord 전송할 데이터:', payload);
+
+      await apiPost('saveRecord', payload);
+
+      console.log('[PAT_DB] ✅ saveRecord 저장 성공');
       return true;
-    } catch (e) { console.warn('[PAT_DB] saveRecord:', e.message); return false; }
+    } catch (e) {
+      console.error('[PAT_DB] ❌ saveRecord 오류:', e.message);
+      console.error('  전체 에러:', e);
+      return false;
+    }
   }
 
   async function hasRecord(churchCode, verseRef) {
