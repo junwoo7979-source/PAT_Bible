@@ -1,51 +1,57 @@
 ﻿<!DOCTYPE html>
-<html lang="ko" data-theme="dark" data-fontsize="normal">
+<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v51-mic-retry-fix-20260618">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="theme-color" content="#16213e">
+<meta name="theme-color" content="#e8ecf1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="PAT Bible">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="light">
 <title>PAT Bible — 성경 암송</title>
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json?t=20260617-v46">
 <link rel="apple-touch-icon" href="icons/pat-icon-192.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2316213e'/%3E%3Cpath d='M18 14h28a4 4 0 0 1 4 4v34H20a6 6 0 0 1-6-6V18a4 4 0 0 1 4-4z' fill='%2316c784'/%3E%3Cpath d='M22 22h20M22 30h20M22 38h14' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231a2332'/%3E%3Cpath d='M18 14h28a4 4 0 0 1 4 4v34H20a6 6 0 0 1-6-6V18a4 4 0 0 1 4-4z' fill='%2300d4aa'/%3E%3Cpath d='M22 22h20M22 30h20M22 38h14' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- Cloud Firestore REST API 연동 -->
 <script src="firebase-config.js"></script>
 <script src="firebase-db.js"></script>
 <style>
+/* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
-  --bg:#1a1a2e; --surface:#16213e; --accent:#16c784; --accent-d:#0fa066;
-  --text:#e8e8e8; --muted:#8b93a7; --line:#2a3a5e; --danger:#ff5d5d;
-  --fs:16px; --fs-lg:20px; --fs-xl:26px; --radius:14px;
+  --bg:#e8ecf1; --surface:#f8fafb; --accent:#00a854; --accent-d:#008f45;
+  --text:#0f1419; --muted:#5f6b7c; --line:#d9dfe8; --danger:#ef4444;
+  --fs:16px; --fs-lg:20px; --fs-xl:26px; --radius:14px; --lh:1.8; --lh-title:1.4;
 }
 [data-theme="cream"]{
-  --bg:#faf7f0; --surface:#ffffff; --accent:#16c784; --accent-d:#0fa066;
-  --text:#2d2d2d; --muted:#7a7a7a; --line:#e5e0d5; --danger:#e23d3d;
+  --bg:#fafbfc; --surface:#ffffff; --accent:#0891b2; --accent-d:#0369a1;
+  --text:#1a202c; --muted:#6b7280; --line:#e5e7eb; --danger:#ef4444;
 }
 [data-fontsize="large"]{ --fs:20px; --fs-lg:25px; --fs-xl:32px; }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);
-  color:var(--text);font-size:var(--fs);line-height:1.6;transition:background .3s,color .3s;}
+  color:var(--text);font-size:var(--fs);line-height:var(--lh);transition:background .3s,color .3s;}
 .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
-.screen{flex:1;padding:24px 20px 90px;display:none;animation:fade .25s;}
+.screen{flex:1;padding:24px 20px 120px;display:none;}
 .screen.active{display:flex;flex-direction:column;}
-.screen.no-motion{animation:none;}
-@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-h1{font-size:var(--fs-xl);margin-bottom:6px;}
-h2{font-size:var(--fs-lg);margin-bottom:4px;}
+.screen.no-motion{}
+h1{font-size:var(--fs-xl);line-height:var(--lh-title);margin-bottom:6px;}
+h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 .muted{color:var(--muted);font-size:calc(var(--fs) - 2px);}
-.logo{font-size:46px;text-align:center;margin:40px 0 8px;}
+.logo{font-size:32px;text-align:center;margin:20px 0 8px;}
 .center{text-align:center;}
 .spacer{flex:1;}
 .field{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
   padding:16px;font-size:var(--fs);color:var(--text);margin-bottom:14px;outline:none;font-family:inherit;}
 .field:focus{border-color:var(--accent);}
+.pw-wrap{position:relative;display:block;}
+.pw-wrap .field{padding-right:52px;margin-bottom:14px;}
+.pw-toggle{position:absolute;right:4px;top:50%;transform:translateY(-60%);
+  background:none;border:none;cursor:pointer;padding:8px 10px;
+  font-size:20px;color:var(--muted);line-height:1;transition:color .2s;}
+.pw-toggle:hover,.pw-toggle.on{color:var(--accent);}
 .code-input{font-size:var(--fs-xl);text-align:center;letter-spacing:10px;font-weight:700;}
 .btn{width:100%;background:var(--accent);color:#04231a;font-weight:700;text-align:center;
   padding:16px;border-radius:var(--radius);font-size:var(--fs);border:none;cursor:pointer;
@@ -57,7 +63,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
 .verse{background:var(--surface);border-left:4px solid var(--accent);border-radius:10px;padding:20px;margin:14px 0;}
 .ref{color:var(--accent);font-weight:700;font-size:calc(var(--fs) - 1px);margin-bottom:10px;}
-.verse-text{font-size:var(--fs-lg);line-height:1.8;}
+.verse-text{font-size:var(--fs-lg);line-height:2.0;}
 .verse-blurred .verse-text{filter:blur(9px);transition:filter .25s;cursor:pointer;user-select:none;-webkit-user-select:none;}
 .verse-blurred .verse-text:active{filter:blur(0);}
 .row{display:flex;gap:12px;}
@@ -141,6 +147,20 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
 /* ===== 홈 화면 리디자인 (church-bible-challenge 스타일) ===== */
 .hm-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.hm-menu-wrap{position:relative;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.hm-menu-btn{background:rgba(15,20,25,.08);border:none;cursor:pointer;
+  width:36px;height:36px;border-radius:10px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;padding:0;flex-shrink:0;}
+.hm-menu-btn:active,.hm-menu-btn:focus{background:rgba(15,20,25,.15);outline:none;}
+.hm-menu-dot{width:5px;height:5px;border-radius:50%;background:#0f1419;display:block;}
+.hm-dropdown{position:absolute;right:0;top:28px;background:var(--surface);
+  border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.14);
+  min-width:168px;z-index:200;overflow:hidden;animation:fadeIn .15s ease;}
+.hm-dropdown button{display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;
+  text-align:left;background:none;border:none;cursor:pointer;
+  font-size:calc(var(--fs) - 1px);color:var(--text);}
+.hm-dropdown button:active{background:var(--line);}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
 .hm-date{color:var(--muted);font-size:calc(var(--fs) - 3px);margin-bottom:3px;}
 .hm-greeting{font-size:var(--fs-xl);font-weight:700;margin:0;}
 .hm-circle{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a855f7);
@@ -182,13 +202,26 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 .hm-verse-card{background:linear-gradient(135deg,rgba(22,199,132,.1),rgba(168,85,247,.1));
   border:1px solid rgba(22,199,132,.3);border-radius:18px;padding:18px;margin-bottom:12px;}
 .hm-verse-label{font-size:calc(var(--fs) - 3px);font-weight:700;color:var(--accent);margin-bottom:8px;}
-.hm-verse-text{color:var(--text);font-size:calc(var(--fs));line-height:1.8;font-style:italic;margin-bottom:8px;}
+.hm-verse-text{color:var(--text);font-size:calc(var(--fs));line-height:1.8;margin-bottom:8px;}
 .hm-verse-ref{color:var(--accent);font-size:calc(var(--fs) - 2px);font-weight:700;text-align:right;}
 .hm-family-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .hm-logout-btn{background:transparent;border:1px solid var(--line);color:var(--muted);
   border-radius:10px;padding:6px 12px;font-size:calc(var(--fs) - 4px);cursor:pointer;font-family:inherit;}
 /* 로고 이미지 */
-.logo-img{width:130px;margin:28px auto 4px;display:block;}
+.logo-img{width:100px;margin:20px auto 4px;display:block;}
+/* 관리자 탭 메뉴 */
+.admin-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);
+  padding:10px 16px;font-size:calc(var(--fs) - 1px);cursor:pointer;font-family:inherit;
+  transition:color .2s,border-color .2s;white-space:nowrap;}
+.admin-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.admin-tab:hover:not(.active){color:var(--text);}
+/* 시상 순위 리스트 */
+.award-rank{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
+.award-rank-num{min-width:32px;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--accent);}
+.award-rank-info{flex:1;}
+.award-rank-family{font-weight:700;color:var(--text);}
+.award-rank-detail{font-size:calc(var(--fs) - 2px);color:var(--muted);margin-top:2px;}
+.award-rank-rate{min-width:60px;text-align:right;font-weight:700;color:var(--accent);font-size:calc(var(--fs) + 1px);}
 </style>
 </head>
 <body>
@@ -196,18 +229,47 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
   <!-- S1: 로그인/교회입장 -->
   <section class="screen active" id="s-login">
+    <!-- 홈화면 추가 버튼 (PWA) -->
+    <button class="install-btn" id="installBtn" style="display:none;margin-bottom:12px;width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-weight:700;cursor:pointer;font-family:inherit;font-size:var(--fs)" onclick="installApp()">
+      📱 홈화면에 추가하기
+    </button>
+
     <img src="icons/pat-logo.png" class="logo-img" alt="PAT Bible 로고">
     <h1 class="center" id="loginAppTitle" style="font-size:var(--fs-lg);margin-bottom:4px">PAT Bible</h1>
-    <p class="center muted">교회·가족·개인 성경 암송</p>
+    <p class="center" style="line-height:1.8;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--text)">말씀과 기도로 가족의 신앙을 세워가요.<br>매일 작은 실천이 큰 변화를 만듭니다</p>
     <div class="spacer"></div>
     <p class="muted center" style="margin-bottom:12px">교회 코드 또는 가족 비밀번호를 입력하세요</p>
     <input class="field code-input" id="churchCode" maxlength="20" placeholder="· · · · ·" autocomplete="off" style="letter-spacing:4px">
     <button class="btn" onclick="enterChurch()">시작하기</button>
-    <p class="center muted" style="margin-top:14px">체험용 교회 코드: <b style="color:var(--accent)">11111</b></p>
-    <button class="btn ghost" id="installAppBtn" onclick="installPatApp()" style="margin-top:12px">📱 PAT 아이콘 설치</button>
-    <p class="center muted" style="margin-top:8px;font-size:calc(var(--fs) - 4px)">모바일에서는 홈 화면 아이콘으로 실행하면 카톡 브라우저 문제를 피할 수 있습니다</p>
-    <button class="back" style="margin:18px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
+    <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-reset-pw')">🔑 교회 관리자 초기화</button>
+    <button class="back" style="margin:8px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
+    <button class="back" style="margin:8px auto 0;display:block;color:var(--muted);font-size:calc(var(--fs)-3px)" onclick="window.location.href='?reset=1'">🔄 캐시 초기화 (데모 테스트용)</button>
     <div class="spacer"></div>
+  </section>
+
+  <!-- S-reset-pw: 가족 비밀번호 재설정 -->
+  <section class="screen" id="s-reset-pw">
+    <button class="back" onclick="go('s-login')">‹ 처음으로</button>
+    <div class="logo">🔑</div>
+    <h1 class="center">비밀번호 재설정</h1>
+    <p class="center muted">가족방 등록 시 입력한 정보로 본인을 확인합니다</p>
+    <div class="card" style="margin-top:16px">
+      <label class="lbl">교회 코드</label>
+      <input class="field" id="rpChurchCode" placeholder="예: 11111" autocomplete="off">
+      <label class="lbl">대표자 이름</label>
+      <input class="field" id="rpLeaderName" placeholder="가족방 대표자 이름" autocomplete="off">
+      <label class="lbl">교구</label>
+      <input class="field" id="rpParish" placeholder="예: 1교구" autocomplete="off">
+      <label class="lbl">구역</label>
+      <input class="field" id="rpDistrict" placeholder="예: 3구역" autocomplete="off">
+    </div>
+    <div class="card" style="margin-top:8px">
+      <label class="lbl">새 비밀번호</label>
+      <div class="pw-wrap"><input class="field" id="rpNewPw" type="password" placeholder="새 비밀번호 (4자 이상)" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+      <label class="lbl">새 비밀번호 확인</label>
+      <div class="pw-wrap"><input class="field" id="rpNewPw2" type="password" placeholder="새 비밀번호 다시 입력" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+    </div>
+    <button class="btn" onclick="doResetFamilyPassword()">🔑 비밀번호 재설정</button>
   </section>
 
   <!-- S2-admin: 관리자 로그인 -->
@@ -218,7 +280,7 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <p class="center muted">교회 관리자 전용 페이지</p>
     <div class="spacer"></div>
     <input class="field" id="adminId" placeholder="관리자 아이디" autocomplete="off">
-    <input class="field" id="adminPw" type="password" placeholder="비밀번호" autocomplete="off">
+    <div class="pw-wrap"><input class="field" id="adminPw" type="password" placeholder="비밀번호" autocomplete="off"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
     <button class="btn" onclick="adminLogin()">관리자 입장</button>
     <p class="center muted" style="margin-top:14px">체험용: <b style="color:var(--accent)">admin / 1234</b></p>
     <div class="spacer"></div>
@@ -226,11 +288,22 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
   <!-- S-admin: 관리자 페이지 (성경 구절 입력이 메인) -->
   <section class="screen" id="s-admin">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <h1>📖 구절 등록</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h1 id="adminTabTitle">📖 구절 등록</h1>
       <button class="back" style="margin:0" onclick="adminLogout()">로그아웃</button>
     </div>
     <p class="muted" id="adminChurchLabel">관리 교회: 세광교회</p>
+
+    <!-- 관리자 탭 메뉴 -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:8px;overflow-x:auto">
+      <button class="admin-tab active" onclick="switchAdminTab('verse')">📖 구절 등록</button>
+      <button class="admin-tab" onclick="switchAdminTab('church')">⛪ 교회 정보</button>
+      <button class="admin-tab" onclick="switchAdminTab('award')">🏆 시상 관리</button>
+      <button class="admin-tab" onclick="switchAdminTab('password')">🔑 비밀번호</button>
+    </div>
+
+    <!-- 탭 1: 구절 등록 -->
+    <div id="adminTabVerse">
 
     <!-- 메인: 성경 구절 입력 -->
     <div class="card" style="margin-top:14px">
@@ -279,6 +352,16 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <label class="lbl">교회 이름</label>
       <input class="field" id="inChurchName" placeholder="교회 이름">
       <button class="btn ghost" onclick="saveChurchName()">교회 이름 저장</button>
+      <label class="lbl" style="margin-top:12px">교회 로고 앱 로고</label>
+      <p class="muted" style="margin:4px 0 8px;font-size:calc(var(--fs) - 3px)">SVG 파일 (권장) • 권장 사이즈: 200×200px 이상 • 최대 500KB</p>
+      <div style="display:flex;gap:8px">
+        <input type="file" id="churchLogoFile" class="field" style="flex:1;padding:12px;cursor:pointer" accept=".svg" onchange="handleLogoUpload(event)">
+        <button class="btn ghost" style="width:auto;padding:12px 16px" onclick="removeChurchLogo()">삭제</button>
+      </div>
+      <div id="logoPreview" style="margin-top:12px;padding:12px;background:var(--bg);border-radius:var(--radius);text-align:center;display:none">
+        <p class="muted" style="margin-bottom:8px">로고 미리보기:</p>
+        <img id="logoPreviewImg" style="max-width:100px;max-height:100px;margin:0 auto">
+      </div>
     </div>
 
     <!-- 등록된 구절 목록 -->
@@ -286,18 +369,101 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <h2>📋 등록된 구절</h2>
       <div id="verseList" style="margin-top:8px"></div>
     </div>
+    </div><!-- end adminTabVerse -->
+
+    <!-- 탭 2: 교회 정보 -->
+    <div id="adminTabChurch" style="display:none">
+
+    <!-- 교회 정보 -->
+    <div class="card" style="margin-top:14px">
+      <h2>⛪ 교회 정보 관리</h2>
+      <p class="muted" style="margin:6px 0 10px">교회 이름과 로그인 화면 제목 등록·수정 권한</p>
+      <label class="lbl">앱 상단 제목</label>
+      <input class="field" id="inAppTitle" placeholder="예: PAT Bible">
+      <button class="btn ghost" onclick="saveAppTitle()">앱 제목 저장</button>
+      <label class="lbl">교회 이름</label>
+      <input class="field" id="inChurchName" placeholder="교회 이름">
+      <button class="btn ghost" onclick="saveChurchName()">교회 이름 저장</button>
+      <label class="lbl" style="margin-top:12px">교회 로고 앱 로고</label>
+      <p class="muted" style="margin:4px 0 8px;font-size:calc(var(--fs) - 3px)">SVG 파일 (권장) • 권장 사이즈: 200×200px 이상 • 최대 500KB</p>
+      <div style="display:flex;gap:8px">
+        <input type="file" id="churchLogoFile" class="field" style="flex:1;padding:12px;cursor:pointer" accept=".svg" onchange="handleLogoUpload(event)">
+        <button class="btn ghost" style="width:auto;padding:12px 16px" onclick="removeChurchLogo()">삭제</button>
+      </div>
+      <div id="logoPreview" style="margin-top:12px;padding:12px;background:var(--bg);border-radius:var(--radius);text-align:center;display:none">
+        <p class="muted" style="margin-bottom:8px">로고 미리보기:</p>
+        <img id="logoPreviewImg" style="max-width:100px;max-height:100px;margin:0 auto">
+      </div>
+    </div>
+    </div><!-- end adminTabChurch -->
+
+    <!-- 탭 3: 시상 관리 -->
+    <div id="adminTabAward" style="display:none">
+    <div class="card" style="margin-top:14px">
+      <h2>🏆 1년 가족 실천율 순위</h2>
+      <p class="muted" style="margin:6px 0 12px">1년간의 암송 완료율을 기준으로 한 가족별 실천율</p>
+      <div id="awardRankingList" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 개인별 실천율 조회</h2>
+      <p class="muted" style="margin:6px 0 12px">가족을 선택하면 각 구성원의 실천율을 확인할 수 있습니다</p>
+      <label class="lbl">가족 검색</label>
+      <input class="field" id="awardFamilySearch" placeholder="가족 대표자 이름 입력" oninput="searchFamilyForAward()">
+      <div id="awardFamilyList" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h2>🎯 시상 대상 (기준: 실천율)</h2>
+      <p class="muted" style="margin:6px 0 12px">기준 실천율을 조정하면 자동으로 시상 대상이 업데이트됩니다</p>
+      <label class="lbl">기준 실천율 (%)</label>
+      <input class="field" id="awardMinRate" type="number" placeholder="예: 85" value="85">
+      <p class="muted" style="font-size:calc(var(--fs)-3px);margin-top:6px">이 이상의 실천율을 가진 가족들이 시상 대상입니다</p>
+      <div id="awardFinalList" style="margin-top:12px"></div>
+    </div>
+    </div><!-- end adminTabAward -->
+
+    <!-- 탭 4: 비밀번호 초기화 -->
+    <div id="adminTabPassword" style="display:none">
+
+    <!-- 가족 비밀번호 초기화 (관리자용) -->
+    <div class="card" style="margin-top:14px">
+      <h2>🔑 가족 비밀번호 초기화</h2>
+      <p class="muted" style="margin:6px 0 12px">대표자 이름 + 교구 + 구역으로 가족방을 찾아 비밀번호를 초기화합니다</p>
+      <label class="lbl">대표자 이름</label>
+      <input class="field" id="adminRpLeader" placeholder="가족방 대표자 이름" autocomplete="off">
+      <label class="lbl">교구</label>
+      <input class="field" id="adminRpParish" placeholder="예: 1교구" autocomplete="off">
+      <label class="lbl">구역</label>
+      <input class="field" id="adminRpDistrict" placeholder="예: 3구역" autocomplete="off">
+      <label class="lbl">새 비밀번호</label>
+      <div class="pw-wrap"><input class="field" id="adminRpNewPw" type="password" placeholder="새 비밀번호 (4자 이상)" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+      <button class="btn ghost" style="margin-top:4px" onclick="doAdminResetFamilyPassword()">🔑 비밀번호 초기화</button>
+    </div>
+    </div><!-- end adminTabPassword -->
   </section>
 
   <!-- S3: 가족방 (church-bible-challenge 디자인) -->
   <section class="screen" id="s-family">
 
-    <!-- 상단 헤더: 날짜 + 달성률 원 (인사 제거) -->
+    <!-- 상단 헤더: 날짜 + 달성률 원 + 메뉴 -->
     <div class="hm-header">
       <div>
         <p class="hm-date" id="hmDate"></p>
         <p id="churchName" style="color:var(--muted);font-size:calc(var(--fs) - 2px);margin-top:2px"></p>
       </div>
-      <div class="hm-circle" id="hmCircle">0%</div>
+      <div class="hm-menu-wrap">
+        <button class="hm-menu-btn" onclick="toggleHmMenu(event)" aria-label="메뉴">
+          <span class="hm-menu-dot"></span>
+          <span class="hm-menu-dot"></span>
+          <span class="hm-menu-dot"></span>
+        </button>
+        <div class="hm-dropdown" id="hmDropdown" style="display:none">
+          <button onclick="installPatApp();closeHmMenu()">📱 홈 화면에 추가</button>
+          <button onclick="memberLogout()" style="color:var(--danger)">🚪 로그아웃</button>
+        </div>
+        <div class="hm-circle" id="hmCircle">0%</div>
+      </div>
     </div>
 
     <!-- 오늘의 달성률 카드 -->
@@ -319,68 +485,14 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       </div>
     </div>
 
-    <!-- 예운이와 함께하는 PAT 배너 -->
-    <div style="text-align:center;margin-bottom:12px">
-      <p style="font-size:calc(var(--fs) - 1px);color:var(--muted);font-weight:600;letter-spacing:.3px">✨ 예운이와 함께하는 PAT ✨</p>
-    </div>
-
-    <!-- 오늘의 과제 카드 (암송 · 쓰기 · 기도) -->
-    <div class="hm-card">
-      <h2 class="hm-card-title">📋 오늘의 과제</h2>
-      <div class="hm-tasks">
-
-        <!-- 암송 (주간 구절 — 완료 시 자동 체크) -->
-        <div class="hm-task" id="hmTaskMemorize">
-          <div class="hm-task-icon">💬</div>
-          <div class="hm-task-info">
-            <p class="hm-task-label">암송</p>
-            <p class="hm-task-desc">주간 암송 구절</p>
-          </div>
-          <button class="hm-check-btn" id="hmCheckMemorize" onclick="tabGo('s-verse')">○</button>
-        </div>
-
-        <!-- 성경 쓰기 (최대 2회) -->
-        <div class="hm-task" id="hmTaskWriting">
-          <div class="hm-task-icon">✍️</div>
-          <div class="hm-task-info">
-            <p class="hm-task-label">성경 쓰기</p>
-            <p class="hm-task-desc">하루 2회</p>
-          </div>
-          <div class="hm-task-counter">
-            <button class="hm-cnt-btn" id="btnWritingMinus" onclick="changeTask('writing',-1)">−</button>
-            <div class="hm-dots">
-              <span class="hm-dot" id="hmDotW0"></span>
-              <span class="hm-dot" id="hmDotW1"></span>
-            </div>
-            <button class="hm-cnt-btn plus" id="btnWritingPlus" onclick="changeTask('writing',1)">+</button>
-          </div>
-        </div>
-
-        <!-- 기도 (하루 1회 체크) -->
-        <div class="hm-task" id="hmTaskPrayer">
-          <div class="hm-task-icon">🙏</div>
-          <div class="hm-task-info">
-            <p class="hm-task-label">기도</p>
-            <p class="hm-task-desc">하루 1회</p>
-          </div>
-          <button class="hm-check-btn" id="hmCheckPrayer" onclick="toggleDailyTask('prayer')">○</button>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- 이번 주 암송 구절 카드 -->
-    <div class="hm-verse-card" id="hmVerseCard">
-      <p class="hm-verse-label">📜 이번 주 암송 구절</p>
-      <p class="hm-verse-text" id="hmVerseText">구절을 불러오는 중...</p>
-      <p class="hm-verse-ref" id="hmVerseRef"></p>
-    </div>
-
     <!-- 가족방 카드 -->
     <div class="hm-card">
       <div class="hm-family-header">
         <h2 id="familyRoomTitle">👨‍👩‍👧 우리 가족방</h2>
-        <button class="hm-logout-btn" onclick="memberLogout()">로그아웃</button>
+        <div style="display:flex;gap:6px">
+          <button class="hm-logout-btn" style="font-size:calc(var(--fs) - 2px);padding:6px 10px" onclick="location.reload()" title="Firebase에서 최신 데이터 새로고침">🔄</button>
+          <button class="hm-logout-btn" onclick="memberLogout()">로그아웃</button>
+        </div>
       </div>
       <p class="muted" id="familyProfile">가족방을 등록해주세요</p>
       <p class="muted" id="familyProgress" style="margin-top:8px">이번 주 달성률</p>
@@ -391,14 +503,33 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <!-- 등록 버튼 -->
     <div style="display:flex;gap:8px;margin:8px 0">
       <button class="btn" style="flex:1;margin:0" onclick="openFamilyRegister('leader')">👑 대표 등록</button>
-      <button class="btn ghost" style="flex:1;margin:0" onclick="openFamilyRegister('member')">🙋 가족 등록</button>
+      <button class="btn" style="flex:1;margin:0" onclick="openFamilyJoinManual()">👨‍👩‍👧 가족 등록</button>
     </div>
     <button class="btn ghost" id="inviteLinkBtn" onclick="copyInviteLink()" style="display:none">📎 초대 링크 복사</button>
+    <button class="btn ghost" onclick="goResetPwFromFamily()" style="margin-top:8px;color:var(--muted);border-color:var(--line)">🔑 비밀번호 재설정</button>
 
     <!-- JS 호환용 숨김 요소 -->
     <p id="weekLabel" style="display:none"></p>
     <p id="familyToday" style="display:none"></p>
     <div style="display:none"><span id="famVerseRef"></span><span id="famVerseText"></span></div>
+  </section>
+
+  <!-- S3b: 가족 등록 (구성원 자가 입력) -->
+  <section class="screen" id="s-family-join-manual">
+    <button class="back" onclick="go('s-family')">‹ 가족방</button>
+    <h1>가족 등록</h1>
+
+    <div class="card" style="margin-top:16px">
+      <p class="muted" style="margin-bottom:12px">가족방에 참여하시려면 다음 정보를 입력하세요</p>
+
+      <label class="lbl">내 이름 또는 닉네임</label>
+      <input class="field" id="joinMemberNameInput" placeholder="예: 김민수" autocomplete="off">
+
+      <label class="lbl">가족 비밀번호</label>
+      <div class="pw-wrap"><input class="field" id="joinPasswordInput" type="password" placeholder="가족장에게 비밀번호를 물어보세요"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+
+      <button class="btn" onclick="submitFamilyJoinManual()" style="margin-top:12px">가족에 등록하기</button>
+    </div>
   </section>
 
   <!-- S3c: 초대장 -->
@@ -412,8 +543,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
       <p class="muted">교구/구역: <span id="inviteParish"></span></p>
     </div>
     <div class="card" style="margin-top:12px">
-      <label class="lbl">가족 비밀번호 입력</label>
-      <input class="field" id="invitePasswordInput" type="password" placeholder="가족장에게 비밀번호를 물어보세요">
+      <label class="lbl">내 이름</label>
+      <input class="field" id="inviteNameInput" type="text" placeholder="예: 김민수" autocomplete="off">
+      <label class="lbl" style="margin-top:12px">가족 비밀번호 입력</label>
+      <div class="pw-wrap"><input class="field" id="invitePasswordInput" type="password" placeholder="가족장에게 비밀번호를 물어보세요"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
     </div>
     <button class="btn" onclick="joinFamilyFromInvite()">참여하기</button>
     <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-login')">취소</button>
@@ -423,15 +556,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
   <section class="screen" id="s-family-register">
     <button class="back" onclick="go('s-family')">‹ 가족방</button>
     <h1>가족방 등록</h1>
-    <!-- 탭 -->
-    <div class="reg-tabs" style="display:flex;gap:8px;margin:12px 0 0">
-      <button class="reg-tab active" id="tabLeader" onclick="switchRegTab('leader')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--accent);color:#fff">👑 대표 등록</button>
-      <button class="reg-tab" id="tabMember" onclick="switchRegTab('member')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--surface);color:var(--text)">🙋 가족 등록</button>
-    </div>
 
     <!-- 대표 등록 폼 -->
     <div id="panelLeader">
-      <p class="muted" style="margin:10px 0 4px">가족방 정보와 구성원 이름을 입력하세요</p>
+      <p class="muted" style="margin:10px 0 4px">가족방 기본 정보를 입력하세요</p>
       <div class="card" style="margin-top:8px">
         <label class="lbl">가족방 이름</label>
         <input class="field" id="familyRoomName" placeholder="예: 믿음 가족방">
@@ -442,45 +570,32 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
         <label class="lbl">구역</label>
         <input class="field" id="familyDistrict" placeholder="예: 3구역">
         <label class="lbl">가족 비밀번호</label>
-        <input class="field" id="familyPassword" type="password" placeholder="가족방 전용 비밀번호">
+        <div class="pw-wrap"><input class="field" id="familyPassword" type="password" placeholder="가족방 전용 비밀번호"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
         <p class="muted" style="font-size:calc(var(--fs) - 5px);margin:-4px 2px 10px">
           가족 구성원이 참여할 때 사용하는 비밀번호입니다.</p>
       </div>
-      <!-- 가족 구성원 등록 -->
-      <div class="card" style="margin-top:0">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-weight:700">👨‍👩‍👧 가족 구성원</span>
-          <button onclick="addMemberRow()" style="background:var(--accent);color:#04231a;border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:calc(var(--fs)-2px);cursor:pointer">+ 추가</button>
-        </div>
-        <div id="memberRows"></div>
-        <p class="muted" style="font-size:calc(var(--fs)-5px);margin-top:4px">대표 포함 가족 구성원 이름을 입력하세요</p>
-      </div>
-      <button class="btn" onclick="saveFamilyProfile()">가족방 등록 저장</button>
+
+      <button class="btn" onclick="saveFamilyProfileAsLeader()">가족방 설정 저장</button>
     </div>
 
-    <!-- 가족 등록 폼 -->
-    <div id="panelMember" style="display:none">
-      <p class="muted" style="margin:10px 0 4px">내 이름과 대표에게 받은 비밀번호를 입력하세요</p>
-      <div class="card" id="registeredFamilyRoomCard" style="margin-top:8px">
-        <p class="muted" style="margin:0 0 6px">등록된 가족방</p>
-        <h2 id="registeredFamilyRoomName" style="margin:0"></h2>
-        <p class="muted" id="registeredFamilyRoomMeta" style="margin:6px 0 0"></p>
-        <div id="registeredFamilyMembers" style="margin-top:10px"></div>
-      </div>
-      <div class="card" style="margin-top:8px">
-        <label class="lbl">내 이름</label>
-        <input class="field" id="joinMemberName" placeholder="예: 이영희">
-        <label class="lbl">가족 비밀번호</label>
-        <input class="field" id="joinPassword" type="password" placeholder="대표에게 받은 비밀번호">
-        <button class="btn" onclick="joinFamilyManual()" style="margin-top:8px">가족 등록하기</button>
-      </div>
-      <p class="muted center" style="margin-top:14px;font-size:calc(var(--fs)-4px)">또는 대표에게 초대 링크를 받아 접속하세요</p>
+    <!-- 메뉴 바 1 -->
+    <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line)">
+      <nav style="display:flex;justify-content:space-around;gap:6px">
+        <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-family');renderFamily()"><span style="font-size:20px">🏠</span><br>홈</button>
+        <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-verse')"><span style="font-size:20px">📖</span><br>암송</button>
+        <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-prayer')"><span style="font-size:20px">🙏</span><br>기도</button>
+        <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-dashboard');renderDashboard()"><span style="font-size:20px">📊</span><br>현황</button>
+        <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-settings')"><span style="font-size:20px">⚙️</span><br>설정</button>
+      </nav>
     </div>
   </section>
 
   <!-- S4: 구절 보기 -->
   <section class="screen" id="s-verse">
-    <button class="back" onclick="go('s-family')">‹ 가족방</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <button class="back" style="margin:0" onclick="go('s-family')">‹ 가족방</button>
+      <button class="back" style="margin:0;background:var(--danger);color:white;font-size:calc(var(--fs) - 2px);padding:8px 12px" onclick="memberLogout()">로그아웃</button>
+    </div>
     <div id="verseCompletedProgress" style="display:none">
       <div class="steps" id="stepsVerse"></div>
       <p class="center" id="verseCompletedLabel" style="color:var(--accent);font-weight:700">완료!</p>
@@ -577,7 +692,10 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 
   <!-- S7b: 대시보드 -->
   <section class="screen" id="s-dashboard">
-    <h1>성취도</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h1 style="margin:0">📊 실천율</h1>
+      <button class="back" style="margin:0;background:var(--danger);color:white;font-size:calc(var(--fs) - 2px);padding:8px 12px" onclick="memberLogout()">로그아웃</button>
+    </div>
     <p class="muted">개인 · 가족 · 교구 · 교회</p>
     <div class="row" style="margin-top:16px">
       <div class="stat"><b id="dMyCount">0</b><small>내 완료(주)</small></div>
@@ -621,10 +739,61 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
     <button class="btn ghost" onclick="resetData()">기록 초기화 (체험용)</button>
   </section>
 
+  <!-- S-prayer: 기도 -->
+  <section class="screen" id="s-prayer">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h1 style="margin:0">🙏 기도</h1>
+      <button class="back" style="margin:0;background:var(--danger);color:white;font-size:calc(var(--fs) - 2px);padding:8px 12px" onclick="memberLogout()">로그아웃</button>
+    </div>
+    <p class="muted" id="prayerDateLabel"></p>
+
+    <!-- 오늘 기도 상태 -->
+    <div class="hm-card" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="font-size:var(--fs);font-weight:700">오늘의 기도</h2>
+        <span id="prayerDoneBadge" style="display:none;background:var(--accent);color:#04231a;font-size:calc(var(--fs)-4px);font-weight:700;padding:4px 12px;border-radius:20px">✓ 완료</span>
+      </div>
+      <!-- 음성/텍스트 입력 탭 -->
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button id="prayerTabText" class="reg-tab active" onclick="switchPrayerTab('text')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--accent);color:#fff">📝 텍스트</button>
+        <button id="prayerTabVoice" class="reg-tab" onclick="switchPrayerTab('voice')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--surface);color:var(--text)">🎤 음성</button>
+      </div>
+      <!-- 텍스트 입력 -->
+      <div id="prayerTextPanel">
+        <textarea class="field" id="prayerText" rows="6"
+          placeholder="오늘 기도 제목이나 감사한 것을 적어보세요...&#10;&#10;예) 예운이가 말씀을 잘 암송할 수 있도록&#10;건강과 지혜를 주셔서 감사합니다"
+          style="resize:none;line-height:1.7" maxlength="300"></textarea>
+        <small class="muted" style="display:block;margin-top:4px">
+          <span id="prayerTextLength">0</span>/300자
+        </small>
+      </div>
+      <!-- 음성 입력 -->
+      <div id="prayerVoicePanel" style="display:none">
+        <div style="text-align:center;padding:20px 0">
+          <button class="mic" id="prayerMicBtn" onclick="togglePrayerMic()" style="margin:0 auto 12px">🎤</button>
+          <p class="center muted" id="prayerMicHint">탭하여 기도 녹음 시작</p>
+          <p class="center muted" style="font-size:calc(var(--fs)-2px);margin-top:4px" id="prayerTimeLeft">1:30</p>
+        </div>
+        <div class="field" id="prayerRecognized" style="min-height:80px;background:var(--bg);padding:12px;border-radius:10px;word-break:break-all">—</div>
+        <small class="muted" style="display:block;margin-top:4px">
+          <span id="prayerVoiceLength">0</span>/300자 · 최대 1분 30초
+        </small>
+      </div>
+      <button class="btn" id="prayerSaveBtn" onclick="savePrayer()" style="margin-top:8px">🙏 기도 완료</button>
+    </div>
+
+    <!-- 최근 기도 기록 -->
+    <div class="hm-card" style="margin-top:4px">
+      <h2 style="font-size:var(--fs);font-weight:700;margin-bottom:12px">📖 최근 기도 기록</h2>
+      <div id="prayerHistory"></div>
+    </div>
+  </section>
+
   <!-- 하단 탭 -->
   <nav class="tabbar" id="tabbar">
     <button class="tab active" data-screen="s-family" onclick="tabGo('s-family')"><span class="ico">🏠</span>홈</button>
     <button class="tab" data-screen="s-verse" onclick="tabGo('s-verse')"><span class="ico">📖</span>암송</button>
+    <button class="tab" data-screen="s-prayer" onclick="tabGo('s-prayer')"><span class="ico">🙏</span>기도</button>
     <button class="tab" data-screen="s-dashboard" onclick="tabGo('s-dashboard');renderDashboard()"><span class="ico">📊</span>현황</button>
     <button class="tab" data-screen="s-settings" onclick="tabGo('s-settings')"><span class="ico">⚙️</span>설정</button>
   </nav>
@@ -639,11 +808,16 @@ h2{font-size:var(--fs-lg);margin-bottom:4px;}
 <script src="js/voice.js"></script>
 <script src="js/voice-ui.js"></script>
 <script src="js/memorize.js"></script>
+<script src="js/prayer.js"></script>
+<script src="js/reset-pw.js"></script>
+<script src="js/admin.js"></script>
 <script>
 // memorize.js 로드 시 applyStoredData()·churchCode·tabbar 초기화 완료
 // 서비스 워커 등록
 if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js?v=44').catch(()=>{});
+  });
 }
 </script>
 </body>
