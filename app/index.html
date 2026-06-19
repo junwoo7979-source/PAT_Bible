@@ -813,12 +813,12 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <script src="js/admin.js"></script>
 <script>
 // memorize.js 로드 시 applyStoredData()·churchCode·tabbar 초기화 완료
-// 서비스 워커 등록
-if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js?v=44').catch(()=>{});
-  });
-}
+// ★ 서비스 워커 제거: 캐시 배너 오류 해결
+// if('serviceWorker' in navigator){
+//   window.addEventListener('load', ()=>{
+//     navigator.serviceWorker.register('sw.js?v=44').catch(()=>{});
+//   });
+// }
 </script>
 </body>
 </html>
