@@ -46,7 +46,16 @@ function resetMemorizeProgress(){
   memorizeCompleted = false;
   reviewMode = false;
 
-  console.log('[DATE-RESET] ✅ 암송 진행 상태 초기화 완료');
+  // ★ 중요: localStorage의 어제 기록도 초기화
+  try {
+    localStorage.removeItem('pat_records');
+    localStorage.removeItem('pat_daily_tasks');
+    console.log('[DATE-RESET] ✅ localStorage도 초기화됨');
+  } catch(e) {
+    console.error('[DATE-RESET] localStorage 초기화 실패:', e.message);
+  }
+
+  console.log('[DATE-RESET] ✅ 암송 진행 상태 완전 초기화 완료');
 }
 
 // ── 환경 감지 ─────────────────────────────────────────────
