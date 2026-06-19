@@ -1,0 +1,27 @@
+Total messages: 25 (Errors: 0, Warnings: 0)
+
+[LOG] [PAT-INIT] initApp 실행 중, readyState: interactive @ https://pat-bible-app.web.app/js/memorize.js:418
+[LOG] [PAT-STARTUP] applyStoredData 시작 @ https://pat-bible-app.web.app/js/app-core.js:56
+[LOG] [DATE-RESET] 날짜 변경 감지: null → 2026-06-19 @ https://pat-bible-app.web.app/js/voice.js:23
+[LOG] [DATE-RESET] ✅ 암송 진행 상태 초기화 완료 @ https://pat-bible-app.web.app/js/voice.js:48
+[LOG] [PAT-STARTUP] 로그인 페이지 표시 @ https://pat-bible-app.web.app/js/app-core.js:94
+[LOG] [PAT-INIT] 초기화 완료 @ https://pat-bible-app.web.app/js/memorize.js:431
+[VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://pat-bible-app.web.app/:0
+[VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://pat-bible-app.web.app/:0
+[VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://pat-bible-app.web.app/:0
+[VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://pat-bible-app.web.app/:0
+[VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://pat-bible-app.web.app/:0
+[VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://pat-bible-app.web.app/:0
+[VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://pat-bible-app.web.app/:0
+[LOG] [PAT-STARTUP] completeAppInitialization 시작 (백그라운드) @ https://pat-bible-app.web.app/js/app-core.js:99
+[LOG] [PAT-STARTUP] localStorage 상태: {hasFamily: false, hasAdmin: false, church: N/A, keys: Array(2)} @ https://pat-bible-app.web.app/js/app-core.js:137
+[LOG] [PAT-STARTUP] 초기 화면 진입: s-login (초기 상태) @ https://pat-bible-app.web.app/js/app-core.js:173
+[LOG] [PAT_DB] Firebase Functions API 모드 활성화 @ https://pat-bible-app.web.app/firebase-db.js:15
+[LOG] [PAT] Firebase 모드 활성화 @ https://pat-bible-app.web.app/js/app-core.js:186
+[LOG] [PAT-PWA] 설치 프롬프트 대기 중 @ https://pat-bible-app.web.app/js/app-core.js:558
+[LOG] [PAT-PWA] 설치 버튼 표시됨 @ https://pat-bible-app.web.app/js/app-core.js:564
+[INFO] Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner. @ https://pat-bible-app.web.app/:0
+[LOG] [PAT] Cloud appTitle 적용: 세광교회 @ https://pat-bible-app.web.app/js/app-core.js:49
+[LOG] [PAT] Firebase 구절 로드됨: 로마서12장17절 @ https://pat-bible-app.web.app/js/app-core.js:196
+[LOG] [PAT] Cloud appTitle 적용: 세광교회 @ https://pat-bible-app.web.app/js/app-core.js:49
+[LOG] [PAT] 설정 업데이트 감지: {appTitle: 세광교회, verse: Object} @ https://pat-bible-app.web.app/js/app-core.js:207

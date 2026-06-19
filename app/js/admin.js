@@ -6,7 +6,6 @@ function switchAdminTab(tabName) {
   // 모든 탭 숨기기
   document.getElementById('adminTabVerse').style.display = 'none';
   document.getElementById('adminTabAward').style.display = 'none';
-  document.getElementById('adminTabChurch').style.display = 'none';
   document.getElementById('adminTabPassword').style.display = 'none';
 
   // 모든 탭 버튼 비활성화
@@ -15,18 +14,38 @@ function switchAdminTab(tabName) {
   // 선택한 탭 표시
   const tabMap = {
     verse: 'adminTabVerse',
+    church: 'adminTabVerse',  // ★ 교회 정보도 구절 등록 탭의 콘텐츠 사용 (ID 중복 방지)
     award: 'adminTabAward',
-    church: 'adminTabChurch',
     password: 'adminTabPassword'
   };
 
   const tabId = tabMap[tabName];
-  if (document.getElementById(tabId)) {
-    document.getElementById(tabId).style.display = 'block';
+  const tabEl = document.getElementById(tabId);
+  if (tabEl) {
+    tabEl.style.display = 'block';
   }
 
-  // 선택한 버튼 활성화
-  event.target.classList.add('active');
+  // 탭 제목 업데이트
+  const titleMap = {
+    verse: '📖 구절 등록',
+    church: '⛪ 교회 정보',
+    award: '🏆 시상 관리',
+    password: '🔑 비밀번호'
+  };
+  const titleEl = document.getElementById('adminTabTitle');
+  if (titleEl) {
+    titleEl.textContent = titleMap[tabName] || '관리';
+  }
+
+  // 선택한 버튼 활성화 (event.target이 안정적이지 않을 수 있으므로 직접 찾기)
+  const tabButtons = {
+    verse: document.querySelectorAll('.admin-tab')[0],
+    church: document.querySelectorAll('.admin-tab')[1],
+    award: document.querySelectorAll('.admin-tab')[2],
+    password: document.querySelectorAll('.admin-tab')[3]
+  };
+  const btn = tabButtons[tabName];
+  if (btn) btn.classList.add('active');
 
   // 각 탭별 초기화 작업
   if (tabName === 'award') {
