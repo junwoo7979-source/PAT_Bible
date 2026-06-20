@@ -56,13 +56,23 @@ function applyCloudConfig(config){
 function applyStoredData(){
   console.log('[PAT-STARTUP] applyStoredData 시작');
 
+  // BUG-L01 FIX: ?reset=1 을 localStorage 확인보다 먼저 처리
+  const params = new URLSearchParams(window.location.search);
+  if(params.has('reset')){
+    console.log('[PAT] ?reset=1 감지 — localStorage 초기화 → 로그인 화면');
+    localStorage.clear();
+    window.history.replaceState({}, document.title, window.location.pathname);
+    go('s-login');
+    setTimeout(() => completeAppInitialization(), 50);
+    return;
+  }
+
   // ★ 날짜 기반 암송 세션 초기화 (페이지 로드 시 실행)
   if(typeof checkAndResetByDate === 'function'){
     checkAndResetByDate();
   }
 
   // ✨ 최적화: localStorage 동기적 확인 후 바로 최종 화면으로 이동
-  // (로그인 페이지 스킵, 저장된 상태면 즉시 복원)
   const initialScreen = determineInitialScreen();
   go(initialScreen, true, false);
 
@@ -99,15 +109,6 @@ function determineInitialScreen(){
 function completeAppInitialization(){
   console.log('[PAT-STARTUP] completeAppInitialization 시작 (백그라운드)');
 
-  // ?reset=1 파라미터로 localStorage 초기화
-  const params = new URLSearchParams(window.location.search);
-  if(params.has('reset')){
-    console.log('[PAT] localStorage 초기화 요청');
-    localStorage.clear();
-    // 쿼리 제거 (히스토리에 남지 않도록)
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-
   // ── localStorage 접근 가능 여부 확인 ──
   let lsAvailable = false;
   try {
@@ -120,8 +121,6 @@ function completeAppInitialization(){
 
   if(!lsAvailable){
     console.warn('[PAT] localStorage 미사용 가능 — 로컬 모드로 진행');
-    return;
-    initFirebase();
     return;
   }
 

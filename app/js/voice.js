@@ -70,10 +70,12 @@ function isKakaoInAppBrowser(){
 
 // ── 텍스트 정규화 / 유사도 ────────────────────────────────
 // 한국어 발음 유사 문자 매핑 (음성 인식 오류 보정)
+// BUG-V02 FIX: 자기 자신을 가리키는 무의미한 항목 제거, 실제 발음 혼동 쌍만 유지
 const korPhoneticMap={
-  '같':'까','까':'같','지':'치','치':'지',
-  '함':'함','으로':'으로','하므로':'함으로','함으로':'하므로',
-  '롤':'를','를':'롤','게':'게','기':'기','고':'고','어':'어','에':'에'
+  '같':'까','까':'같',
+  '지':'치','치':'지',
+  '하므로':'함으로','함으로':'하므로',
+  '롤':'를','를':'롤',
 };
 function normalizeKorean(s){
   s=(s||'').replace(/[\s.,!?;:'"·…]/g,'');
@@ -288,6 +290,48 @@ async function restartVoiceRecognitionSafely(SR, isRecovery=false){
   startVoiceRecognition(SR, isRecovery);
 }
 
+// ── 중복 n-gram 제거 (모듈 레벨 — BUG-V04 FIX: 클로저 재생성 제거) ──────
+// isFinal 세그먼트 연결 후 중복 n-gram 제거
+// Android Chrome이 반복 패턴을 보내는 경우 처리
+function collapseRepeatedNgrams(text){
+  let result=(text||'').trim();
+  const words=result.split(/\s+/).filter(Boolean);
+  if(words.length<2) return result;
+
+  let changed=true;
+  let iteration=0;
+  while(changed && iteration<10){
+    iteration++;
+    changed=false;
+
+    for(let i=words.length-1;i>0;i--){
+      if(words[i]===words[i-1]){
+        console.log('[VOICE-LOG] collapseRepeatedNgrams iter'+iteration+' — 인접 중복['+i+']:"'+words[i]+'"');
+        words.splice(i,1);
+        changed=true;
+      }
+    }
+
+    if(!changed && words.length>=4){
+      outer: for(let size=Math.min(words.length,8);size>=3;size--){
+        for(let i=0;i<words.length-size;i++){
+          for(let j=i+size;j<=words.length-size;j++){
+            const match=words.slice(i,i+size).every((w,k)=>w===words[j+k]);
+            if(match){
+              console.log('[VOICE-LOG] collapseRepeatedNgrams iter'+iteration+' — n-gram['+j+'] size:'+size);
+              words.splice(j,size);
+              changed=true;
+              break outer;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return words.join(' ');
+}
+
 // ── SpeechRecognition 엔진 ────────────────────────────────
 function startVoiceRecognition(SR, isRecovery=false){
   console.log('[VOICE-LOG] startVoiceRecognition isRecovery:'+isRecovery+' stage:'+voiceStage+' prevRecog:'+(recog?'live':'null')+' recov:'+voiceRecoveryCount);
@@ -307,53 +351,6 @@ function startVoiceRecognition(SR, isRecovery=false){
       if(current.slice(-len)===next.slice(0,len)) return current+next.slice(len);
     }
     return current+' '+next;
-  };
-  // isFinal 세그먼트 연결 후 중복 n-gram 제거
-  // 구절 텍스트와 무관하게 인식 결과 내 반복 어절을 감지·제거
-  // → Android Chrome이 '생각함으로'를 '생각하므로'로 인식해도 반복 패턴을 정확히 잡음
-  // 변경: size>=3 (2글자 이상인 패턴만 제거) → 의도하지 않은 단어 중복 제거 방지
-  const collapseRepeatedNgrams=(text)=>{
-    let result=(text||'').trim();
-    const words=result.split(/\s+/).filter(Boolean);
-    if(words.length<2) return result;
-
-    // 1단계: 정규식을 이용한 강제 중복 제거 (모든 모든 → 모든)
-    // 패턴: 단어 + 공백 + 동일 단어 (연속 반복)
-    let changed=true;
-    let iteration=0;
-    while(changed && iteration<10){
-      iteration++;
-      changed=false;
-      const beforeWords=[...words];
-
-      // 인접한 같은 단어 제거 (역순)
-      for(let i=words.length-1;i>0;i--){
-        if(words[i]===words[i-1]){
-          console.log('[VOICE-LOG] collapseRepeatedNgrams iter'+iteration+' — 인접 중복['+i+']:"'+words[i]+'"');
-          words.splice(i,1);
-          changed=true;
-        }
-      }
-
-      // n-gram 패턴 제거 (3단어 이상)
-      if(!changed && words.length>=4){
-        outer: for(let size=Math.min(words.length,8);size>=3;size--){
-          for(let i=0;i<words.length-size;i++){
-            for(let j=i+size;j<=words.length-size;j++){
-              const match=words.slice(i,i+size).every((w,k)=>w===words[j+k]);
-              if(match){
-                console.log('[VOICE-LOG] collapseRepeatedNgrams iter'+iteration+' — n-gram['+j+'] size:'+size);
-                words.splice(j,size);
-                changed=true;
-                break outer;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return words.join(' ');
   };
   const recover=(msg)=>{
     console.log('[VOICE-LOG] recover mobile:'+isMobileBrowser()+' stopReq:'+voiceStopRequested+' count:'+voiceRecoveryCount+'/'+VOICE_RECOVERY_LIMIT+' msg:'+(msg||''));

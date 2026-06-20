@@ -166,20 +166,10 @@ function renderVerse(){
 // ── 음성 결과 미리보기 / 평가 ─────────────────────────────
 function previewVoice(text){
   let sim = similarity(text, DB.verse.text);
-  // 91-99% 범위에서 한국어 발음 유사도 기반 보정 (마지막 9% 향상)
-  if(sim >= 91 && sim < 100){
-    // 한글 초/중/종성 비교로 추가 점수 획득
-    const nInput = normalize(text);
-    const nTarget = normalize(DB.verse.text);
-    // 길이 차이 작으면 (1글자 이내) 추가 점수 부여
-    if(Math.abs(nInput.length - nTarget.length) <= 1){
-      sim = Math.min(100, sim + 2);
-    }
-    // 공통 부분 문자열 비율이 90% 이상이면 100으로 올림
-    const common = Array.from(nTarget).filter((c,i) => nInput[i]===c).length;
-    const ratio = Math.round((common / nTarget.length) * 100);
-    if(ratio >= 90) sim = 100;
-  }
+  // BUG-V01 FIX: 발음 보정 적용 — normalizeKorean 기반 점수와 비교해 높은 값 사용
+  // BUG-V03 FIX: 91-99% 임의 보정 제거 (일관성 없는 점수 조작 제거)
+  const simPhonetic = similarity(normalizeKorean(text), DB.verse.text);
+  if(simPhonetic > sim) sim = simPhonetic;
   const pass = sim >= TH().voice;
   document.getElementById('simBar').style.width = sim+'%';
   document.getElementById('simLabel').innerHTML =
