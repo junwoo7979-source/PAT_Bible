@@ -145,6 +145,7 @@ async function getRankedFamilies(churchCode) {
 
   // 임시: 로컬 저장된 가족 정보 사용
   const profile = loadFamilyProfile();
+  if(!profile) return [];
   const currentFamily = calculateFamilyPracticeRate(profile.familyId, churchCode);
 
   // 실제는 Firebase에서 여러 가족 데이터를 받아야 함

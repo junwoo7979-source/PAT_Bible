@@ -288,6 +288,11 @@ function renderAdmin(){
   renderVerseList();
   renderPreview();
   loadChurchLogoPreview();
+  if(typeof computeAggregatedData === 'function'){
+    computeAggregatedData().then(data => {
+      if(data?.byParish !== undefined) renderParishStatsFromAggregated(data.byParish, data.totalDone);
+    }).catch(()=>{});
+  }
 }
 
 // ── 저장된 교회 로고 미리보기 로드 ──

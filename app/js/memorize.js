@@ -382,13 +382,16 @@ function renderParishStatsFromAggregated(byParish, totalDone){
   console.log(`[PAT-PARISH-RENDER]   블레싱 진도표: ${totalDone}/${totalFamilies}개 가정 (${totalPct}%)`);
 
   // DOM 업데이트
+  const html = rows.join('');
   const element = document.getElementById('dParishList');
   if(element){
-    element.innerHTML = rows.join('');
+    element.innerHTML = html;
     console.log('[PAT-PARISH-RENDER] ✅ DOM 업데이트 완료\n');
   } else {
     console.error('[PAT-PARISH-RENDER] ❌ dParishList 요소를 찾을 수 없음!');
   }
+  const adminEl = document.getElementById('adminParishList');
+  if(adminEl) adminEl.innerHTML = html;
 }
 
 // ── 설정 ─────────────────────────────────────────────────
