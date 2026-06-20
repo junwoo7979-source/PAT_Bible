@@ -93,7 +93,10 @@ class FakeSpeechRecognition {
 
 const context = {
   ...baseContext,
-  Date: { now() { return now; } },
+  Date: Object.assign(
+    function (...args) { return args.length ? new Date(...args) : new Date(now); },
+    { now() { return now; } }
+  ),
   setTimeout(fn, delay) {
     const timer = { fn, at: now + delay, cleared: false };
     timers.push(timer);

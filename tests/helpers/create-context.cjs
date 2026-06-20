@@ -60,6 +60,9 @@ function createTestContext(customElements = {}, customStorage = {}) {
       documentElement: { getAttribute() { return 'dark'; }, setAttribute() {} },
       getElementById: getElement,
       querySelectorAll() { return []; },
+      querySelector() { return null; },
+      addEventListener() {},
+      removeEventListener() {},
     },
     window: {
       scrollTo() {},
