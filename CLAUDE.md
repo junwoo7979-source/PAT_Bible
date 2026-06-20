@@ -50,10 +50,11 @@ When the user gives a modification request:
 
 ## 작업 시작 순서
 
-1. `docs\CLAUDE_CODE_인수인계.md`를 읽는다.
-2. `docs\실행내역서.md`를 읽는다.
-3. 변경 전 `git status --short`를 확인한다.
-4. 변경 후 아래 검증 명령을 실행한다.
+1. `docs\WORKFLOW.md`를 읽어 전체 구조·사용자 여정·데이터 흐름을 파악한다. (아키텍처 단일 진실 공급원)
+2. `docs\CLAUDE_CODE_인수인계.md`를 읽는다.
+3. `docs\실행내역서.md`를 읽는다.
+4. 변경 전 `git status --short`를 확인한다.
+5. 변경 후 아래 검증 명령을 실행한다.
 
 ```powershell
 node tests\week-period.test.cjs
@@ -86,6 +87,77 @@ git diff --check
 - 완료 후 재검수는 새 완료 기록을 중복 저장하지 않는다.
 - 음성 암송은 일반/관대 모드 모두 유사도 `100%`일 때만 통과한다.
 - 음성 인식 결과가 원문과 다르면 초록/빨강/점선 표시로 다른 위치를 보여준다.
+
+## 프로젝트 아키텍처 (요약)
+
+> 전체 상세 구조·사용자 여정·데이터 흐름은 `docs\WORKFLOW.md`가 단일 진실 공급원이다. 구조를 바꾸는 작업을 하면 `docs\WORKFLOW.md`도 함께 갱신한다.
+
+### 기술 스택
+- **프론트엔드**: Web PWA (HTML5 + Vanilla JS), Service Worker 캐싱
+- **백엔드**: Firebase Functions (Node.js 22), 11개 엔드포인트
+- **DB**: Firestore
+- **인증**: Firebase Auth + Kakao OAuth (교회코드 + 가족 비밀번호 기반)
+- **배포**: Firebase Hosting (`pat-bible-app.web.app`)
+- **현재 버전**: v62 (Service Worker도 v62)
+
+### 디렉토리 핵심
+```
+app/                  프론트엔드 PWA
+  index.html          전체 UI 템플릿 (화면 = s-* prefix)
+  sw.js               Service Worker (캐싱, 버전 관리)
+  manifest.json       PWA 매니페스트
+  firebase-config.js  Firebase 초기화
+  firebase-db.js      Firestore CRUD 함수
+  js/                 비즈니스 로직 모듈 (아래)
+functions/            Firebase Cloud Functions
+  index.js            11개 엔드포인트
+  password.js         bcrypt 비밀번호 해싱
+  security.js         보안 미들웨어 (CORS·헤더·uid·bcrypt 검증)
+database/             Firestore 스키마·규칙 (firestore-schema.json, firestore.rules)
+docs/                 문서 (WORKFLOW.md = 아키텍처 기준 문서)
+tests/                *.test.cjs 단위 테스트
+```
+
+### JS 모듈 책임 (app/js/)
+| 파일 | 책임 |
+|------|------|
+| `app-core.js` | 앱 초기화, 라우팅, 전역 상태, 대시보드 폴링 |
+| `family.js` | 가족방 생성·구성원 등록/초대·본인 선택 |
+| `memorize.js` | 암송 4단계 UI (showStage1~4) |
+| `voice.js` | Web Speech API, 음성 인식, 유사도 계산, 중복 제거 |
+| `voice-ui.js` | 음성 UI 컴포넌트 (마이크 토글, 인식 결과 표시) |
+| `verse.js` | 주간 구절 조회/등록 |
+| `admin.js` | 관리자 탭 (구절/교회정보/시상/비번) |
+| `prayer.js` | 기도 (음성 최대 1분30초 / 텍스트 최대 300자, 유사도 검사 없음) |
+| `reset-pw.js` | 비밀번호 초기화 |
+
+### Firestore 컬렉션
+`churches`, `families`, `verses`, `records`, `prayers`
+- 비밀번호류는 모두 bcrypt 해시로 저장 (`adminPassword`, 가족 `password`)
+- `records.completedStages: [1,2,3,4]`, `voiceSimilarity`, `typingAccuracy` 기록
+- 진행률은 `records` + `families` 데이터를 정규화해 산출 (개인/가족/교구/교회)
+
+### 핵심 사용자 여정
+1. 교회코드 입장 → 가족방 입장 또는 관리자 로그인
+2. 가족방: 대표 등록(가족방 생성) → 구성원 링크 입장(본인 선택)
+3. 주간 구절 조회/등록 (관리자만 등록)
+4. **음성 암송 4단계**: ① 음성 녹음 → ② 유사도 검사 → ③ 타이핑 100% 일치 → ④ 기록 저장
+5. 기도 (음성/텍스트, 자유 표현)
+6. 현황 대시보드 (📊 실천율, 실시간 폴링)
+7. 관리자 페이지 (구절 등록·교회 정보·시상 관리·비밀번호 변경)
+
+### 데이터 흐름 원칙
+```
+사용자 액션 → app-core.js(라우팅/상태) → 모듈 로직 → firebase-db.js(CRUD)
+→ functions/index.js(비즈니스/보안) → Firestore → 실시간 리스너 → DOM 업데이트
+```
+- 모든 외부 요청은 `functions/security.js` 미들웨어를 거친다.
+- 등록된 가족 구성원은 공유 Firestore 데이터로 동일한 가족/교구/교회 진행률을 본다.
+
+### 배포·캐싱 규칙
+- 정적 에셋 변경 시 `app/sw.js` 캐시 버전(v숫자)을 반드시 올려야 캐시 무효화가 된다.
+- 배포: `firebase deploy --only hosting` (함수는 `functions/`에서 `npm run deploy`).
+- 버전 변경 시 `VERSION` 핀과 `docs\실행내역서.md`, MEMORY.md를 함께 갱신한다.
 
 <!-- START_TTAPP_RULES:1.0.3 -->
 <!-- ⚠️ DO NOT EDIT THIS BLOCK - AUTOMATICALLY MANAGED BY TTAPP -->
