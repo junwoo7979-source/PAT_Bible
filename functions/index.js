@@ -81,6 +81,7 @@ exports.getConfig = onRequest({ cors: true, region: 'us-central1' }, async (req,
       config: {
         appTitle: data.appTitle || '',
         verse: data.verse || null,
+        parishTotals: data.parishTotals || null,
       }
     });
   } catch (e) {
@@ -97,14 +98,18 @@ exports.saveConfig = onRequest({ cors: true, region: 'us-central1' }, async (req
     return;
   }
   try {
-    const { churchCode, appTitle, verse } = req.body;
-    console.log('[PAT] saveConfig 수신:', { churchCode, appTitle, verseRef: verse?.ref, verseText: verse?.text?.substring(0, 20) });
+    const { churchCode, appTitle, verse, parishTotals } = req.body;
+    console.log('[PAT] saveConfig 수신:', { churchCode, appTitle, verseRef: verse?.ref, parishTotals });
     if (!assertChurchCode(churchCode, res)) return;
-    await db.doc(`churches/${churchCode}/config/current`).set({
+    const update = {
       appTitle: appTitle || '',
       verse: verse || null,
       updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
+    };
+    if (parishTotals && typeof parishTotals === 'object') {
+      update.parishTotals = parishTotals;
+    }
+    await db.doc(`churches/${churchCode}/config/current`).set(update, { merge: true });
     console.log('[PAT] saveConfig 저장 성공');
     res.json({ ok: true });
   } catch (e) {
