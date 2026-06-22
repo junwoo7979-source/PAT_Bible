@@ -368,16 +368,18 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div class="card" style="margin-top:16px">
       <h2>🧭 교구별 현황 관리</h2>
       <div id="adminParishListEdit" style="margin-top:6px;display:flex;flex-direction:column;gap:12px">
+        <p class="muted" style="font-size:13px;margin:0 0 2px">완료 인원은 성도 참여 데이터로 <b>자동 집계</b>됩니다. 교구별 <b>전체 인원</b>만 설정하세요.</p>
         <!-- 1교구 -->
         <div style="padding:12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--line)">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <span style="font-weight:700;min-width:56px">1교구</span>
             <span style="flex:1;text-align:right;color:var(--accent);font-weight:700;font-size:calc(var(--fs)+2px);min-width:40px" id="pct1">0%</span>
           </div>
-          <div style="display:flex;gap:4px;align-items:center">
-            <input type="number" id="p1_done" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="완료" oninput="updateParishPct('1')">
-            <span style="align-self:center;color:var(--muted)">/</span>
-            <input type="number" id="p1_total" value="80" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체" oninput="updateParishPct('1')">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="color:var(--muted);font-size:13px">완료</span>
+            <b id="p1_done" style="min-width:28px;text-align:center">0</b>
+            <span style="align-self:center;color:var(--muted)">/ 전체</span>
+            <input type="number" id="p1_total" value="80" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체 인원" oninput="updateParishPct('1')">
             <span style="align-self:center;color:var(--muted);min-width:32px">명</span>
           </div>
         </div>
@@ -388,10 +390,11 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
             <span style="font-weight:700;min-width:56px">2교구</span>
             <span style="flex:1;text-align:right;color:var(--accent);font-weight:700;font-size:calc(var(--fs)+2px);min-width:40px" id="pct2">0%</span>
           </div>
-          <div style="display:flex;gap:4px;align-items:center">
-            <input type="number" id="p2_done" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="완료" oninput="updateParishPct('2')">
-            <span style="align-self:center;color:var(--muted)">/</span>
-            <input type="number" id="p2_total" value="72" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체" oninput="updateParishPct('2')">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="color:var(--muted);font-size:13px">완료</span>
+            <b id="p2_done" style="min-width:28px;text-align:center">0</b>
+            <span style="align-self:center;color:var(--muted)">/ 전체</span>
+            <input type="number" id="p2_total" value="72" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체 인원" oninput="updateParishPct('2')">
             <span style="align-self:center;color:var(--muted);min-width:32px">명</span>
           </div>
         </div>
@@ -402,10 +405,11 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
             <span style="font-weight:700;min-width:56px">3교구</span>
             <span style="flex:1;text-align:right;color:var(--accent);font-weight:700;font-size:calc(var(--fs)+2px);min-width:40px" id="pct3">0%</span>
           </div>
-          <div style="display:flex;gap:4px;align-items:center">
-            <input type="number" id="p3_done" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="완료" oninput="updateParishPct('3')">
-            <span style="align-self:center;color:var(--muted)">/</span>
-            <input type="number" id="p3_total" value="68" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체" oninput="updateParishPct('3')">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="color:var(--muted);font-size:13px">완료</span>
+            <b id="p3_done" style="min-width:28px;text-align:center">0</b>
+            <span style="align-self:center;color:var(--muted)">/ 전체</span>
+            <input type="number" id="p3_total" value="68" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체 인원" oninput="updateParishPct('3')">
             <span style="align-self:center;color:var(--muted);min-width:32px">명</span>
           </div>
         </div>
@@ -416,16 +420,17 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
             <span style="font-weight:700;min-width:80px">블레싱 진도표</span>
             <span style="flex:1;text-align:right;color:var(--accent);font-weight:700;font-size:calc(var(--fs)+2px);min-width:40px" id="pctBlessing">0%</span>
           </div>
-          <div style="display:flex;gap:4px;align-items:center">
-            <input type="number" id="blessing_done" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="완료" oninput="updateParishPct('blessing')">
-            <span style="color:var(--muted)">/</span>
-            <input type="number" id="blessing_total" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체" oninput="updateParishPct('blessing')">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="color:var(--muted);font-size:13px">완료</span>
+            <b id="blessing_done" style="min-width:28px;text-align:center">0</b>
+            <span style="align-self:center;color:var(--muted)">/ 전체</span>
+            <input type="number" id="blessing_total" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체 가정" oninput="updateParishPct('blessing')">
             <span style="color:var(--muted);min-width:28px">개</span>
           </div>
         </div>
 
         <!-- 저장 버튼 -->
-        <button class="btn" onclick="saveAdminParishData()" style="margin-top:8px">💾 교구별 현황 저장</button>
+        <button class="btn" onclick="saveAdminParishData()" style="margin-top:8px">💾 교구별 전체 인원 저장</button>
       </div>
     </div>
 
@@ -610,7 +615,12 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         <label class="lbl">가족 대표 이름</label>
         <input class="field" id="familyLeaderName" placeholder="예: 김민수">
         <label class="lbl">교구</label>
-        <input class="field" id="familyParish" placeholder="예: 1교구">
+        <select class="field" id="familyParish">
+          <option value="">교구를 선택하세요</option>
+          <option value="1교구">1교구</option>
+          <option value="2교구">2교구</option>
+          <option value="3교구">3교구</option>
+        </select>
         <label class="lbl">구역</label>
         <input class="field" id="familyDistrict" placeholder="예: 3구역">
         <label class="lbl">가족 비밀번호</label>
@@ -856,123 +866,97 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <script src="js/reset-pw.js"></script>
 <script src="js/admin.js"></script>
 <script>
-// 관리자: 교구별 현황 백분율 계산 및 업데이트
+// 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
+const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';
+
+// 숫자 읽기 헬퍼: input은 .value, 표시용 <b>는 textContent
+function _parishNum(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  const v = (el.value !== undefined && el.value !== '') ? el.value : el.textContent;
+  return parseInt(v) || 0;
+}
+
+// 입력/표시 요소 id 베이스 (블레싱은 p 접두사 없음)
+function _parishBase(parish) { return parish === 'blessing' ? 'blessing' : 'p' + parish; }
+
+// 관리자: 교구별 백분율 계산 (완료=자동집계, 전체=관리자입력)
 function updateParishPct(parish) {
-  const doneInput = document.getElementById(`p${parish}_done`);
-  const totalInput = document.getElementById(`p${parish}_total`);
+  const base = _parishBase(parish);
+  const done = _parishNum(`${base}_done`);
+  const total = _parishNum(`${base}_total`);
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const pctEl = document.getElementById(`pct${parish === 'blessing' ? 'Blessing' : parish}`);
-
-  if (!doneInput || !totalInput || !pctEl) return;
-
-  const done = parseInt(doneInput.value) || 0;
-  const total = parseInt(totalInput.value) || 1;
-  const pct = Math.round((done / total) * 100);
-
-  pctEl.textContent = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
 }
 
-// 관리자: 교구별 현황 렌더링 (직접 HTML 생성)
-function renderAdminParishEditor() {
-  const container = document.getElementById('adminParishListEdit');
-  if(!container) return;
-
-  const html = `
-    <div style="display:flex;gap:4px;align-items:center;margin-bottom:12px">
-      <span style="font-weight:700;min-width:56px">1교구</span>
-      <input type="number" id="admin_p1_done" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="완료" oninput="updateAdminPct('1')">
-      <span style="color:var(--muted)">/</span>
-      <input type="number" id="admin_p1_total" value="80" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체" oninput="updateAdminPct('1')">
-      <span style="color:var(--muted);min-width:32px">명</span>
-      <span style="min-width:40px;text-align:right;color:var(--accent);font-weight:700" id="admin_pct1">0%</span>
-    </div>
-    <div style="display:flex;gap:4px;align-items:center;margin-bottom:12px">
-      <span style="font-weight:700;min-width:56px">2교구</span>
-      <input type="number" id="admin_p2_done" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="완료" oninput="updateAdminPct('2')">
-      <span style="color:var(--muted)">/</span>
-      <input type="number" id="admin_p2_total" value="72" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체" oninput="updateAdminPct('2')">
-      <span style="color:var(--muted);min-width:32px">명</span>
-      <span style="min-width:40px;text-align:right;color:var(--accent);font-weight:700" id="admin_pct2">0%</span>
-    </div>
-    <div style="display:flex;gap:4px;align-items:center;margin-bottom:12px">
-      <span style="font-weight:700;min-width:56px">3교구</span>
-      <input type="number" id="admin_p3_done" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="완료" oninput="updateAdminPct('3')">
-      <span style="color:var(--muted)">/</span>
-      <input type="number" id="admin_p3_total" value="68" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체" oninput="updateAdminPct('3')">
-      <span style="color:var(--muted);min-width:32px">명</span>
-      <span style="min-width:40px;text-align:right;color:var(--accent);font-weight:700" id="admin_pct3">0%</span>
-    </div>
-    <div style="display:flex;gap:4px;align-items:center;margin-bottom:12px;padding-top:12px;border-top:2px solid var(--accent)">
-      <span style="font-weight:700;min-width:80px">블레싱</span>
-      <input type="number" id="admin_blessing_done" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="완료" oninput="updateAdminPct('blessing')">
-      <span style="color:var(--muted)">/</span>
-      <input type="number" id="admin_blessing_total" value="0" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)" placeholder="전체" oninput="updateAdminPct('blessing')">
-      <span style="color:var(--muted);min-width:28px">개</span>
-      <span style="min-width:40px;text-align:right;color:var(--accent);font-weight:700" id="admin_pctBlessing">0%</span>
-    </div>
-    <button class="btn" onclick="saveAdminParishData()" style="margin-top:8px">💾 교구별 현황 저장</button>
-  `;
-
-  container.innerHTML = html;
-  console.log('[ADMIN-PARISH] 에디터 렌더링 완료');
-}
-
-// 관리자: 교구별 현황 저장
+// 관리자: 교구별 전체 인원 저장 (완료 인원은 성도 데이터로 자동 집계되므로 저장 안 함)
 function saveAdminParishData() {
+  const get = id => parseInt(document.getElementById(id)?.value) || 0;
   const data = {
-    p1_done: parseInt(document.getElementById('admin_p1_done').value) || 0,
-    p1_total: parseInt(document.getElementById('admin_p1_total').value) || 80,
-    p2_done: parseInt(document.getElementById('admin_p2_done').value) || 0,
-    p2_total: parseInt(document.getElementById('admin_p2_total').value) || 72,
-    p3_done: parseInt(document.getElementById('admin_p3_done').value) || 0,
-    p3_total: parseInt(document.getElementById('admin_p3_total').value) || 68,
-    blessing_done: parseInt(document.getElementById('admin_blessing_done').value) || 0,
-    blessing_total: parseInt(document.getElementById('admin_blessing_total').value) || 0
+    p1_total: get('p1_total'),
+    p2_total: get('p2_total'),
+    p3_total: get('p3_total'),
+    blessing_total: get('blessing_total')
   };
-
-  localStorage.setItem('pat_admin_parish_edit', JSON.stringify(data));
-  toast('✅ 교구별 현황이 저장되었습니다');
+  localStorage.setItem(ADMIN_PARISH_KEY, JSON.stringify(data));
+  // ★ 서버(config.parishTotals)에도 저장 → 전 성도 기기와 동기화 (localStorage는 즉시 반영용 캐시)
+  if(window.PAT_DB && PAT_DB.ready()){
+    PAT_DB.saveConfig(DB.church.code, undefined, undefined, data)
+      .then(ok => console.log('[ADMIN-PARISH-SAVE] 서버 동기화', ok ? '성공' : '실패(로컬만)'))
+      .catch(e => console.warn('[ADMIN-PARISH-SAVE] 서버 저장 오류:', e.message));
+    toast('✅ 교구별 전체 인원 저장 — 전 성도 기기와 동기화됩니다');
+  } else {
+    toast('✅ 저장됨 (오프라인: 이 기기에만 반영)');
+  }
   console.log('[ADMIN-PARISH-SAVE]', data);
 }
 
-// 관리자: 교구별 현황 백분율 계산
-function updateAdminPct(parish) {
-  const doneId = `admin_p${parish}_done`;
-  const totalId = `admin_p${parish}_total`;
-  const pctId = parish === 'blessing' ? 'admin_pctBlessing' : `admin_pct${parish}`;
-
-  const done = parseInt(document.getElementById(doneId).value) || 0;
-  const total = parseInt(document.getElementById(totalId).value) || 1;
-  const pct = Math.round((done / total) * 100);
-
-  const pctEl = document.getElementById(pctId);
-  if(pctEl) pctEl.textContent = pct + '%';
-}
-
-// 관리자 페이지 로드 시 저장된 데이터 복원
+// 저장된 전체 인원(전체 칸) 복원
 function loadAdminParishData() {
-  try {
-    const data = JSON.parse(localStorage.getItem('pat_admin_parish_data') || '{}');
-    if (data.p1) { document.getElementById('p1_done').value = data.p1.done; document.getElementById('p1_total').value = data.p1.total; updateParishPct('1'); }
-    if (data.p2) { document.getElementById('p2_done').value = data.p2.done; document.getElementById('p2_total').value = data.p2.total; updateParishPct('2'); }
-    if (data.p3) { document.getElementById('p3_done').value = data.p3.done; document.getElementById('p3_total').value = data.p3.total; updateParishPct('3'); }
-    if (data.blessing) { document.getElementById('blessing_done').value = data.blessing.done; document.getElementById('blessing_total').value = data.blessing.total; updateParishPct('blessing'); }
-  } catch (e) {}
+  let data = {};
+  try { data = JSON.parse(localStorage.getItem(ADMIN_PARISH_KEY) || '{}'); } catch (e) {}
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
+  set('p1_total', data.p1_total);
+  set('p2_total', data.p2_total);
+  set('p3_total', data.p3_total);
+  set('blessing_total', data.blessing_total);
 }
 
-// 관리자 화면 진입 시 데이터 로드
+// 집계된 실제 성도 데이터를 관리자 화면의 완료 칸에 반영 (자동 등록)
+function applyAggregatedToAdmin(data) {
+  if (!document.getElementById('adminParishListEdit') || !data) return;
+  const setDone = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (v ?? 0); };
+  if (data.byParish) {
+    setDone('p1_done', data.byParish['1교구']);
+    setDone('p2_done', data.byParish['2교구']);
+    setDone('p3_done', data.byParish['3교구']);
+  }
+  setDone('blessing_done', data.totalDone);
+  ['1', '2', '3', 'blessing'].forEach(updateParishPct);
+}
+
+// 관리자 화면 진입 시: 전체 인원 복원 + 완료 인원 자동 집계
 function renderAdminParishFromStorage() {
-  if (document.getElementById('adminParishList')) {
-    loadAdminParishData();
+  if (!document.getElementById('adminParishListEdit')) return;
+  loadAdminParishData();
+  ['1', '2', '3', 'blessing'].forEach(updateParishPct);
+  if (typeof computeAggregatedData === 'function') {
+    computeAggregatedData().then(d => applyAggregatedToAdmin(d)).catch(() => {});
   }
 }
 
 // memorize.js 로드 시 applyStoredData()·churchCode·tabbar 초기화 완료
-// ★ 서비스 워커 제거: 캐시 배너 오류 해결
-// if('serviceWorker' in navigator){
-//   window.addEventListener('load', ()=>{
-//     navigator.serviceWorker.register('sw.js?v=44').catch(()=>{});
-//   });
-// }
+// ★ 서비스 워커 완전 제거: 과거에 등록된 SW가 옛 JS를 캐시로 서빙해
+//   "저장이 안 됨" 같은 stale 버그를 유발하므로, 남은 SW와 캐시를 자동 정리한다.
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations()
+    .then(regs => regs.forEach(r => r.unregister()))
+    .catch(()=>{});
+  if(window.caches && caches.keys){
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k))).catch(()=>{});
+  }
+}
 
 // 관리자 페이지 초기화 후크
 if(typeof window !== 'undefined') {
@@ -980,7 +964,7 @@ if(typeof window !== 'undefined') {
   window.go = function(id, resetScroll, animate) {
     originalGo(id, resetScroll, animate);
     if(id === 's-admin') {
-      setTimeout(() => renderAdminParishEditor(), 100);
+      setTimeout(() => renderAdminParishFromStorage(), 100);
     }
   };
 }

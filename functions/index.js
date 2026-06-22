@@ -26,6 +26,9 @@ function errRes(res, e, code = 500) {
   res.status(code).json({ error: e.message || 'Internal server error' });
 }
 
+// 교구별 집계 — 별도 모듈(테스트 가능)
+const { countParishMembers, countCompletedMembersByParish } = require('./aggregate');
+
 function requireClientWrite(req, res) {
   return assertToken(req, res, {
     envName: 'PAT_CLIENT_TOKEN',
@@ -101,11 +104,10 @@ exports.saveConfig = onRequest({ cors: true, region: 'us-central1' }, async (req
     const { churchCode, appTitle, verse, parishTotals } = req.body;
     console.log('[PAT] saveConfig 수신:', { churchCode, appTitle, verseRef: verse?.ref, parishTotals });
     if (!assertChurchCode(churchCode, res)) return;
-    const update = {
-      appTitle: appTitle || '',
-      verse: verse || null,
-      updatedAt: FieldValue.serverTimestamp(),
-    };
+    // 부분 업데이트: 전달된 필드만 갱신 (교구 인원만 저장 시 verse/제목 보존)
+    const update = { updatedAt: FieldValue.serverTimestamp() };
+    if (appTitle !== undefined) update.appTitle = appTitle || '';
+    if (verse !== undefined) update.verse = verse || null;
     if (parishTotals && typeof parishTotals === 'object') {
       update.parishTotals = parishTotals;
     }
@@ -335,68 +337,44 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
       .where('verseRef', '==', verseRef).get();
     console.log(`[PAT-DASHBOARD] ✅ 암송 기록 수집: ${recordsSnap.size}개 기록\n`);
 
-    // ✅ 3️⃣ familyId → parish 매핑
+    // ✅ 3️⃣ 가정별 등록 인원(헤드카운트) + 가정→교구 매핑
+    //    각 가정의 인원 = 선언 members + 입장 members(서브컬렉션) 이름 합집합.
+    const families = await Promise.all(familiesSnap.docs.map(async doc => {
+      const data = doc.data();
+      const joinedSnap = await doc.ref.collection('members').get();
+      return {
+        id: doc.id,
+        parish: (data.parish || '').trim(),
+        members: data.members,
+        joinedMembers: joinedSnap.docs.map(d => d.data()),
+      };
+    }));
+    const { totalMembers } = countParishMembers(families);   // 등록 전체 인원(참고용)
     const familyToParish = {};
-    familiesSnap.docs.forEach(doc => {
-      const family = doc.data();
-      const familyId = doc.id;
-      const parish = (family.parish || '').trim();
+    families.forEach(f => { familyToParish[f.id] = f.parish; });
 
-      if (['1교구', '2교구', '3교구'].includes(parish)) {
-        familyToParish[familyId] = parish;
-        console.log(`[PAT-DASHBOARD]   가정: ${familyId.slice(0, 8)}... → ${parish}`);
-      } else {
-        console.warn(`[PAT-DASHBOARD]   ⚠️ 유효하지 않은 교구: familyId=${familyId}, parish="${parish}"`);
-      }
-    });
+    // ✅ 4️⃣ 교구별 "진도" 집계 — 현재 구절을 실제 완료한 멤버 수 (records 기반)
+    //    등록만 하고 암송 안 한 사람은 0. 진도가 없으면 byParish 도 0.
+    const records = recordsSnap.docs.map(doc => doc.data());
+    const { byParish, completedMembers } = countCompletedMembersByParish(records, familyToParish);
 
-    // ✅ 4️⃣ 교구별 데이터 초기화
-    const byParish = {
-      '1교구': 0,
-      '2교구': 0,
-      '3교구': 0,
-    };
-
-    // ✅ 5️⃣ 각 가정이 현재 구절을 완료했는지 확인
-    console.log(`\n[PAT-DASHBOARD] 가정별 완료 상태 확인:`);
+    // 완료한 가정 수 (교회 전체/블레싱 현황용)
     const completedFamilies = new Set();
-
-    recordsSnap.docs.forEach(doc => {
-      const record = doc.data();
-      const familyId = record.familyId || '';
-
-      // ⚠️ 중요: familyId가 빈 문자열이면 skip (가족방 미등록)
-      if (!familyId) {
-        console.warn(`  ⚠️ familyId 없음: 가족방 미등록 사용자의 기록 (무시)`);
-        return;
-      }
-
-      const parish = familyToParish[familyId];
-
-      if (parish && !completedFamilies.has(familyId)) {
-        completedFamilies.add(familyId);
-        byParish[parish] += 1;
-        console.log(`  ✅ ${parish}: ${familyId.slice(0, 8)}... 완료 → ${byParish[parish]}명`);
-      } else if (!parish && familyId) {
-        console.warn(`  ⚠️ 교구 정보 없음: familyId=${familyId.slice(0, 8)}...`);
-      }
-    });
-
+    records.forEach(r => { if (r.familyId) completedFamilies.add(r.familyId); });
     const completedTotal = completedFamilies.size;  // 완료한 가정 수
     const totalFamilies = familiesSnap.size;        // 등록된 모든 가정 수
 
     console.log(`\n[PAT-DASHBOARD] ===== 최종 결과 =====`);
-    console.log(`  등록된 가정: ${totalFamilies}개`);
-    console.log(`  완료한 가정: ${completedTotal}개`);
-    console.log(`  1교구: ${byParish['1교구']}개 가정`);
-    console.log(`  2교구: ${byParish['2교구']}개 가정`);
-    console.log(`  3교구: ${byParish['3교구']}개 가정`);
-    console.log(`  교회 전체: ${completedTotal}/${totalFamilies} (${totalFamilies > 0 ? Math.round(completedTotal/totalFamilies*100) : 0}%)\n`);
+    console.log(`  등록 가정: ${totalFamilies}개, 등록 인원: ${totalMembers}명`);
+    console.log(`  완료 가정: ${completedTotal}개, 완료 멤버: ${completedMembers}명`);
+    console.log(`  교구별 진도(완료 멤버) → 1교구:${byParish['1교구']} 2교구:${byParish['2교구']} 3교구:${byParish['3교구']}명\n`);
 
     res.json({
-      total: completedTotal,           // 완료한 가정 수
-      totalFamilies: totalFamilies,     // 등록된 모든 가정 수 (새로 추가)
-      byParish
+      total: completedTotal,           // 완료한 가정 수 (교회 전체/블레싱용)
+      totalFamilies: totalFamilies,     // 등록된 모든 가정 수
+      totalMembers: totalMembers,       // 등록된 전체 인원 수(참고)
+      completedMembers: completedMembers, // 완료한 전체 멤버 수
+      byParish                          // 교구별 진도(현재 구절 완료 멤버 수)
     });
   } catch (e) { errRes(res, e); }
 });

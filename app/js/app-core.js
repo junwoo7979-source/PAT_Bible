@@ -41,6 +41,11 @@ function applyCloudConfig(config){
     DB.verse = { ref:config.verse.ref, text:config.verse.text, weekOf:config.verse.weekOf };
     saveVerses([DB.verse]);
   }
+  // ★ 교구별 전체인원: 서버(config)가 단일 진실 소스 → 모든 기기 localStorage 에 미러링.
+  //   (관리자/성도 어느 기기든 동일한 분모를 보게 되어 관리자↔대시보드 불일치 해소)
+  if(config.parishTotals && typeof config.parishTotals === 'object'){
+    try { localStorage.setItem('pat_admin_parish_edit', JSON.stringify(config.parishTotals)); } catch(e){}
+  }
   if(Object.prototype.hasOwnProperty.call(config, 'appTitle')) {
     const title = (config.appTitle || '').trim();
     // 깨진 문자(대체 문자 U+FFFD) 확인
@@ -274,7 +279,7 @@ function memberLogout(){
 function syncAdminVerseFields(){
   document.getElementById('inRef').value = DB.verse.ref || '';
   document.getElementById('inText').value = DB.verse.text || '';
-  document.getElementById('inWeek').value = DB.verse.weekOf || '';
+  // 적용 주차(inWeek)는 기준 날짜(inDate)에서 항상 파생하므로 여기서 설정하지 않음
 }
 function renderAdmin(){
   document.getElementById('adminChurchLabel').textContent = '관리 교회: '+DB.church.name;
@@ -282,23 +287,18 @@ function renderAdmin(){
   document.getElementById('inChurchName').value = DB.church.name;
   if(!document.getElementById('inDate').value){
     document.getElementById('inDate').value = new Date().toISOString().slice(0,10);
-    updateWeekFromDate();
   }
   syncAdminVerseFields();
+  // 적용 주차·기간을 기준 날짜로부터 항상 재계산 (저장된 weekOf로 덮어쓰지 않음)
+  updateWeekFromDate();
   renderVerseList();
   renderPreview();
   loadChurchLogoPreview();
 
-  // ★ 관리자 교구별 현황 편집 페이지 렌더링 (성도 대시보드 전에 먼저)
-  if(typeof renderAdminParishStats === 'function'){
-    renderAdminParishStats();
-  }
-
-  if(typeof computeAggregatedData === 'function'){
-    computeAggregatedData().then(data => {
-      if(data?.byParish !== undefined) renderParishStatsFromAggregated(data.byParish, data.totalDone);
-    }).catch(()=>{});
-  }
+  // 관리자 교구별 현황 편집 폼은 index.html의 renderAdminParishFromStorage()가
+  // s-admin 진입 시 처리 (전체 인원 복원 + 완료 인원 자동 집계).
+  // 성도용 대시보드(dParishList)는 여기서 렌더하지 않는다 — 관리자 화면에서
+  // 비동기로 dParishList를 건드리면 대시보드 렌더와 경쟁(race)이 생기기 때문.
 }
 
 // ── 저장된 교회 로고 미리보기 로드 ──
@@ -702,123 +702,9 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// ── 관리자: 교구별 현황 편집 모드 렌더링 ──────────────────
-function renderAdminParishStats(){
-  const adminParishList = document.getElementById('adminParishList');
-  if(!adminParishList) return;
-
-  // localStorage에서 관리자 설정값 불러오기
-  const key = `pat_admin_parish_${DB.church.code}`;
-  let adminStats = {};
-  try {
-    adminStats = JSON.parse(localStorage.getItem(key) || '{}');
-  } catch(e) {
-    adminStats = {};
-  }
-
-  const parishKeys = ['1교구', '2교구', '3교구'];
-  const parishDefaults = { '1교구': 80, '2교구': 72, '3교구': 68 };
-
-  // 입력 필드 HTML 생성
-  const html = `
-    <div style="display:flex;flex-direction:column;gap:12px">
-      ${parishKeys.map(parish => {
-        const total = adminStats[`${parish}_total`] !== undefined ? adminStats[`${parish}_total`] : parishDefaults[parish];
-        const done = adminStats[`${parish}_done`] !== undefined ? adminStats[`${parish}_done`] : 0;
-        const pct = total > 0 ? Math.round(done / total * 100) : 0;
-
-        return `
-          <div style="padding:12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--line)">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-              <span style="font-weight:700;min-width:56px">${parish}</span>
-              <span style="flex:1;text-align:right;color:var(--accent);font-weight:700;font-size:calc(var(--fs)+2px)">${pct}%</span>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <div style="flex:1;display:flex;gap:4px">
-                <input type="number" id="admin_${parish}_done" value="${done}"
-                  style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)"
-                  placeholder="완료" oninput="updateAdminParishStats('${parish}', 'done', this.value)">
-                <span style="align-self:center;color:var(--muted)">/</span>
-                <input type="number" id="admin_${parish}_total" value="${total}"
-                  style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)"
-                  placeholder="전체" oninput="updateAdminParishStats('${parish}', 'total', this.value)">
-                <span style="align-self:center;color:var(--muted);min-width:32px">명</span>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('')}
-
-      <div style="padding:12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--line);border-top:2px solid var(--accent);margin-top:8px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="font-weight:700;min-width:80px">블레싱 진도표</span>
-          <span style="flex:1;text-align:right;color:var(--accent);font-weight:700;font-size:calc(var(--fs)+2px)" id="blessingPct">0%</span>
-        </div>
-        <div style="display:flex;gap:4px;align-items:center">
-          <input type="number" id="admin_blessing_done" value="${adminStats['blessing_done'] || 0}"
-            style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)"
-            placeholder="완료" oninput="updateAdminParishStats('blessing', 'done', this.value)">
-          <span style="color:var(--muted)">/</span>
-          <input type="number" id="admin_blessing_total" value="${adminStats['blessing_total'] || 0}"
-            style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs)"
-            placeholder="전체" oninput="updateAdminParishStats('blessing', 'total', this.value)">
-          <span style="color:var(--muted);min-width:28px">개</span>
-        </div>
-      </div>
-
-      <button class="btn" onclick="saveAdminParishStats()" style="margin-top:8px">💾 교구별 현황 저장</button>
-    </div>
-  `;
-
-  adminParishList.innerHTML = html;
-}
-
-// ── 관리자: 교구별 현황 실시간 계산 ──────────────────────
-function updateAdminParishStats(parish, type, value){
-  const num = parseInt(value) || 0;
-  const doneInput = document.getElementById(`admin_${parish}_done`);
-  const totalInput = document.getElementById(`admin_${parish}_total`);
-
-  if(!doneInput || !totalInput) return;
-
-  const done = parseInt(doneInput.value) || 0;
-  const total = parseInt(totalInput.value) || 1;
-  const pct = Math.round(done / total * 100);
-
-  // 해당 교구의 퍼센트 업데이트
-  if(parish !== 'blessing'){
-    const container = doneInput.closest('div').parentElement.parentElement;
-    const pctEl = container.querySelector('span[style*="color:var(--accent)"]');
-    if(pctEl) pctEl.textContent = pct + '%';
-  } else {
-    const blessingPct = document.getElementById('blessingPct');
-    if(blessingPct) blessingPct.textContent = pct + '%';
-  }
-}
-
-// ── 관리자: 교구별 현황 저장 ──────────────────────────────
-function saveAdminParishStats(){
-  const key = `pat_admin_parish_${DB.church.code}`;
-  const adminStats = {};
-
-  // 각 교구 데이터 수집
-  ['1교구', '2교구', '3교구'].forEach(parish => {
-    const done = parseInt(document.getElementById(`admin_${parish}_done`).value) || 0;
-    const total = parseInt(document.getElementById(`admin_${parish}_total`).value) || 0;
-    adminStats[`${parish}_done`] = done;
-    adminStats[`${parish}_total`] = total;
-  });
-
-  // 블레싱 데이터 수집
-  adminStats['blessing_done'] = parseInt(document.getElementById('admin_blessing_done').value) || 0;
-  adminStats['blessing_total'] = parseInt(document.getElementById('admin_blessing_total').value) || 0;
-
-  // localStorage 저장
-  localStorage.setItem(key, JSON.stringify(adminStats));
-
-  toast('✅ 교구별 현황이 저장되었습니다');
-  console.log('[ADMIN-PARISH] 저장됨:', adminStats);
-}
+// 관리자 교구별 현황 편집은 index.html 인라인 스크립트로 일원화됨
+// (renderAdminParishFromStorage / saveAdminParishData / applyAggregatedToAdmin)
+// 저장 키: pat_admin_parish_edit (전체 인원만 저장, 완료는 자동 집계)
 
 // ── DOM 이벤트 (body 내 스크립트이므로 DOM 준비 완료) ─────
 document.getElementById('churchCode').addEventListener('keyup',e=>{ if(e.key==='Enter') enterChurch(); });

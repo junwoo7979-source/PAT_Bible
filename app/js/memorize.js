@@ -256,6 +256,10 @@ async function renderDashboard(){
   // 수집된 데이터만 사용 (테스트 데이터 없음!)
   const data = await computeAggregatedData();
 
+  // 관리자 교구별 전체인원 변경도 변경 감지에 포함 → 관리자가 인원을 바꾸면
+  // Firebase 데이터가 그대로여도 대시보드가 즉시 재렌더되어 동기화된다.
+  try { data.adminParish = localStorage.getItem('pat_admin_parish_edit') || ''; } catch(e) {}
+
   // 데이터 변경 감지 (해시 기반) - 불필요한 UI 업데이트 방지
   if(window.SYNC_MANAGER){
     if(!window.SYNC_MANAGER.hasChanged('dashboardStats', data)){
@@ -348,10 +352,18 @@ function renderParishStatsFromAggregated(byParish, totalDone){
   // 프로필 정보 (내 교구 강조용)
   const profile = loadFamilyProfile();
 
+  // 관리자가 설정한 교구별 전체 인원(분모) — 관리자 화면과 동기화
+  let adminTotals = {};
+  try { adminTotals = JSON.parse(localStorage.getItem('pat_admin_parish_edit') || '{}'); } catch(e) {}
+  const TOTAL_KEY = { '1교구': 'p1_total', '2교구': 'p2_total', '3교구': 'p3_total' };
+
   // HTML 생성 (수집된 데이터 기반)
   const rows = parishKeys.map(parish => {
     const done  = normalizedData[parish];           // Firebase에서 수집한 실제 완료자
-    const total = PARISH_INFO[parish].total;        // 교구별 기본 인원
+    const adminTotal = adminTotals[TOTAL_KEY[parish]];
+    const total = (adminTotal !== undefined && adminTotal !== null && adminTotal > 0)
+      ? adminTotal                                   // 관리자 설정 인원 우선
+      : PARISH_INFO[parish].total;                   // 없으면 기본 인원
     const pct   = total > 0 ? Math.round(done / total * 100) : 0;
     const isMine = profile?.parish && (profile.parish === parish || profile.parish.includes(parish));
 
@@ -367,10 +379,11 @@ function renderParishStatsFromAggregated(byParish, totalDone){
     return html;
   });
 
-  // 블레싱 진도표 (등록된 모든 가정 기준)
-  // 주의: renderParishStatsFromAggregated는 byParish와 totalDone만 받음
-  // totalFamilies는 여기서 계산할 수 없으므로 필요시 매개변수 추가 필요
-  const totalFamilies = Object.values(normalizedData).reduce((a, b) => a + b, 0);
+  // 블레싱 진도표 — 완료는 자동 집계(totalDone), 전체는 관리자 설정값 우선
+  const adminBlessingTotal = adminTotals.blessing_total;
+  const totalFamilies = (adminBlessingTotal !== undefined && adminBlessingTotal !== null && adminBlessingTotal > 0)
+    ? adminBlessingTotal
+    : Object.values(normalizedData).reduce((a, b) => a + b, 0);
   const totalPct = totalFamilies > 0 ? Math.round(totalDone / totalFamilies * 100) : 0;
   rows.push(`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);margin-top:4px">
     <span style="min-width:48px;font-weight:700">블레싱 진도표</span>
@@ -390,8 +403,7 @@ function renderParishStatsFromAggregated(byParish, totalDone){
   } else {
     console.error('[PAT-PARISH-RENDER] ❌ dParishList 요소를 찾을 수 없음!');
   }
-  const adminEl = document.getElementById('adminParishList');
-  if(adminEl) adminEl.innerHTML = html;
+  // 관리자 편집 폼(adminParishListEdit)은 별도 입력 UI이므로 여기서 덮어쓰지 않음
 }
 
 // ── 설정 ─────────────────────────────────────────────────
