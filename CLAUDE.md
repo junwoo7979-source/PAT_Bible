@@ -2,6 +2,14 @@
 
 These rules apply to Claude Code, Codex, and any coding assistant working in this project.
 
+## ⚠️ 프로젝트 위치 규칙 (가장 중요)
+
+- **이 프로젝트의 정식 위치는 `C:\projects\PAT_Bible` 단 하나입니다.**
+- ❌ `C:\Users\SAMSUNG\Desktop\...` (OneDrive 동기화 폴더)에서는 **절대 작업하지 말 것.**
+  - 이유: OneDrive가 파일을 클라우드로 올리고 로컬에서 비워, `app/` 폴더가 통째로 사라진 사고가 있었음 (2026-06-22).
+- 작업 시작 시 위치가 `C:\projects\PAT_Bible` 인지 먼저 확인한다. Desktop 경로면 즉시 사용자에게 알리고 중단한다.
+- 모든 읽기/저장은 `C:\projects\PAT_Bible` 안에서만 이뤄져야 한다.
+
 ## User Tone
 
 - The user may speak casually.
