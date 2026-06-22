@@ -92,6 +92,26 @@ function normalizeKorean(s){
   return result.toLowerCase();
 }
 function normalize(s){ return (s||'').replace(/[\s.,!?;:'"·…]/g,'').toLowerCase(); }
+// 자모(음소) 단위 정규화 — 음절 분해 + 무음 초성 ㅇ 제거.
+// "목자시니" ↔ "목자신이" 처럼 ASR 재음절화/띄어쓰기 차이를 음소 레벨에서 동일하게 봄.
+const _JAMO_CHO  = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const _JAMO_JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+const _JAMO_JONG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+function jamoNormalize(s){
+  s=(s||'').replace(/[\s.,!?;:'"·…]/g,'');
+  let out='';
+  for(const ch of s){
+    const code=ch.charCodeAt(0);
+    if(code>=0xAC00 && code<=0xD7A3){
+      const idx=code-0xAC00;
+      const cho=Math.floor(idx/588), jung=Math.floor((idx%588)/28), jong=idx%28;
+      if(cho!==11) out+=_JAMO_CHO[cho];   // 초성 ㅇ(무음) 제거 — 종성 ㅇ(받침)은 유지
+      out+=_JAMO_JUNG[jung];
+      if(jong) out+=_JAMO_JONG[jong];
+    } else { out+=ch.toLowerCase(); }
+  }
+  return out;
+}
 function similarity(a,b){
   a=normalize(a); b=normalize(b);
   if(!a||!b) return 0;

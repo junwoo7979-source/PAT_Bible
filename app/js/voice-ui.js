@@ -170,6 +170,9 @@ function previewVoice(text){
   // BUG-V03 FIX: 91-99% 임의 보정 제거 (일관성 없는 점수 조작 제거)
   const simPhonetic = similarity(normalizeKorean(text), DB.verse.text);
   if(simPhonetic > sim) sim = simPhonetic;
+  // 자모(음소) 단위 비교 — ASR 재음절화/무음 ㅇ 차이를 흡수해 올바른 낭독은 ~100%로 인정
+  const simJamo = similarity(jamoNormalize(text), jamoNormalize(DB.verse.text));
+  if(simJamo > sim) sim = simJamo;
   const pass = sim >= TH().voice;
   document.getElementById('simBar').style.width = sim+'%';
   document.getElementById('simLabel').innerHTML =
