@@ -158,10 +158,13 @@ function completeAppInitialization(){
   let reason = '초기 상태';
 
   // 1️⃣ 저장된 가족방이 있으면 가족방으로 이동
+  // ★ 중대버그 수정: familyId는 프로필 객체가 아니라 별도 키(pat_family_id)에 저장된다.
+  //   기존 조건 savedFamily.familyId 는 항상 undefined → 가족이 있어도 관리자로 튕기던 원인.
+  //   determineInitialScreen 과 동일하게 "프로필 존재"만으로 가족방 우선.
   const savedFamily = loadFamilyProfile();
-  if(savedFamily && savedFamily.familyId){
+  if(savedFamily){
     console.log('[PAT-STARTUP] 가족방 발견:', {
-      familyId: savedFamily.familyId,
+      familyId: localStorage.getItem('pat_family_id') || '(미동기화)',
       roomName: savedFamily.roomName,
       members: savedFamily.members ? savedFamily.members.length : 0
     });
