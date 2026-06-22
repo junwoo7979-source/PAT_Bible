@@ -69,9 +69,14 @@ function normalizeFamilyMemberNames(members){
 }
 async function refreshFamilyProfileByPassword(profile, password){
   if(!profile || !password || !window.PAT_DB || !PAT_DB.ready() || !PAT_DB.findFamilyByPassword) return profile;
+  // ★ 가족방 초기화 버그 수정: 기본 비번이 교회코드로 공유되므로, familyId 없이 비번만으로
+  //   조회하면 "다른 가족"이 매칭되어 내 프로필을 덮어쓴다(등록 직후 familyId 확정 전 특히).
+  //   → familyId가 확정된 경우에만, 그리고 반환된 가족이 내 familyId와 일치할 때만 갱신.
+  const myFamilyId = localStorage.getItem('pat_family_id') || '';
+  if(!myFamilyId) return profile;
   try{
-    const found = await PAT_DB.findFamilyByPassword(DB.church.code, password);
-    if(!found || !found.id) return profile;
+    const found = await PAT_DB.findFamilyByPassword(DB.church.code, password, myFamilyId);
+    if(!found || !found.id || found.id !== myFamilyId) return profile;
     const members = normalizeFamilyMemberNames(found.members);
     const nextProfile = {
       ...profile,
@@ -473,25 +478,27 @@ let familyProgressNonce = 0;   // 단조 증가 nonce — 경쟁 요청 방지
 let familyProgressPollKey = '';
 let familyProgressPollTimer = null;
 
-// ── 가족 구성원 목록 렌더링 (자동 완료, 순서 번호, 버튼 없음) ──
+// ── 가족 구성원 목록 렌더링 (실제 완료 여부 기준, 순서 번호) ──
 function renderFamilyMemberList(members){
-  const safeMembers = members.length ? members : [{ name:'나', me:true }];
+  const safeMembers = members.length ? members : [{ name:'나', me:true, done:false }];
   DB.members = safeMembers;
 
-  // ★ 자동 완료: 모든 구성원이 이미 ✓ 완료 상태
-  const confirmedCount = safeMembers.length;
-  const pct = 100; // 모두 자동 완료
+  // ★ 실제 완료(실천)한 구성원만 카운트 — 등록만으로 완료 처리하지 않음
+  const confirmedCount = safeMembers.filter(m => m.done).length;
+  const pct = safeMembers.length ? Math.round(confirmedCount / safeMembers.length * 100) : 0;
   document.getElementById('familyProgress').textContent = `이번 주 달성률 ${confirmedCount}/${safeMembers.length}명`;
   document.getElementById('familyBar').style.width = pct+'%';
 
   const list = safeMembers.map((m, idx) => {
     const orderNum = idx + 1; // ★ 등록 순서 번호
-
+    const status = m.done
+      ? '<span style="margin-left:8px;font-size:calc(var(--fs)-2px);color:var(--accent)">✓ 완료</span>'
+      : '<span style="margin-left:8px;font-size:calc(var(--fs)-2px);color:var(--muted)">· 미완료</span>';
     return `<div class="member" style="display:flex;justify-content:space-between;align-items:center">
               <div style="flex:1">
                 <span style="color:var(--muted);margin-right:8px;font-weight:700;font-size:calc(var(--fs)-2px)">${orderNum}.</span>
                 <span>${esc(m.name)}</span>
-                <span style="margin-left:8px;font-size:calc(var(--fs)-2px);color:var(--accent)">✓ 완료</span>
+                ${status}
               </div>
             </div>`;
   }).join('');
@@ -611,16 +618,17 @@ function renderFamily(){
   // memberName(이 기기 사용자 이름)으로 "나" 판별 — 없으면 leaderName, 없으면 첫 번째
   const myName  = (profile?.memberName || profile?.leaderName || '').trim();
   const familyId = localStorage.getItem('pat_family_id')||'';
+  // ★ 본인 완료 여부는 로컬 기록(현재 구절)으로 판정 — 등록만으로 완료 처리하지 않음
+  const myVerseDone = loadRec().some(r => r.ref === DB.verse.ref);
   if(profileMembers.length){
-    DB.members = profileMembers.map((name,i)=>({
-      name,
-      me: myName ? name === myName : i===0,
-      done: true  // ★ 자동 완료로 변경
-    }));
-    if(!DB.members.find(m=>m.me)) DB.members[0].me = true;
+    DB.members = profileMembers.map((name,i)=>{
+      const isMe = myName ? name === myName : i===0;
+      return { name, me: isMe, done: isMe ? myVerseDone : false };
+    });
+    if(!DB.members.find(m=>m.me)){ DB.members[0].me = true; DB.members[0].done = myVerseDone; }
   }
   const me = DB.members.find(m=>m.me);
-  // ★ 자동 완료: 렌더링 시 모든 구성원이 ✓ 완료 상태
+  // 구성원 목록 렌더 — 완료 여부는 실제 기록 기준(이후 클라우드 동기화로 보정)
   renderFamilyMemberList(DB.members);
   const syncPromise = (profile?.familyPassword
     ? refreshFamilyProfileByPassword(profile, profile.familyPassword)
@@ -630,12 +638,12 @@ function renderFamily(){
       const names = familyMemberNames(freshProfile);
       const currentName = (freshProfile.memberName || freshProfile.leaderName || '').trim();
       if(names.length){
-        DB.members = names.map((name,i)=>({
-          name,
-          me: currentName ? name === currentName : i===0,
-          done: true  // ★ 자동 완료로 변경
-        }));
-        if(!DB.members.find(m=>m.me)) DB.members[0].me = true;
+        const myDone2 = loadRec().some(r => r.ref === DB.verse.ref);
+        DB.members = names.map((name,i)=>{
+          const isMe = currentName ? name === currentName : i===0;
+          return { name, me: isMe, done: isMe ? myDone2 : false };
+        });
+        if(!DB.members.find(m=>m.me)){ DB.members[0].me = true; DB.members[0].done = myDone2; }
         renderFamilyMemberList(DB.members);
       }
       renderFamilyProfile();

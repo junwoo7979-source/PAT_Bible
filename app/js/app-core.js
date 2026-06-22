@@ -7,7 +7,7 @@ const DB = {
   verse: { ref:'요한복음 3:16', weekOf:'2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 일요일',
     text:'하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라' },
   members: [
-    { name:'아빠', done:true }, { name:'엄마', done:true },
+    { name:'아빠', done:false }, { name:'엄마', done:false },
     { name:'나', done:false, me:true }, { name:'동생', done:false }
   ]
 };

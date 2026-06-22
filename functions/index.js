@@ -276,14 +276,29 @@ exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, asy
       if(name) memberMap.set(name, member);
     });
     const members = Array.from(memberMap.values());
-    // ★ members에 있으면 "입장 완료(done=true)" 기본값으로 설정
-    // (가족방에 입장했다는 뜻 = 가족 등록이 완료됨)
+    // ★ done = 현재 구절을 실제로 완료(기록 존재)한 멤버만 true.
+    //   등록/입장만으로 done 처리하지 않는다(발생하지 않은 데이터 반영 금지).
+    const doneByName = {}, doneByDevice = {};
+    if (verseRef) {
+      const recSnap = await db.collection(`churches/${churchCode}/records`)
+        .where('familyId', '==', familyId).get();
+      recSnap.docs.forEach(doc => {
+        const r = doc.data();
+        if (r.verseRef !== verseRef) return;
+        if (r.memberName) doneByName[String(r.memberName).trim()] = true;
+        if (r.deviceId) doneByDevice[r.deviceId] = true;
+      });
+    }
     res.json({
       roomName: familyData.roomName || '',
       leaderName: familyData.leaderName || '',
       parish: familyData.parish || '',
       district: familyData.district || '',
-      members: members.map(m => ({ ...m, done: true }))
+      members: members.map(m => {
+        const name = (m.displayName || m.name || '').trim();
+        const done = !!(doneByName[name] || (m.deviceId && doneByDevice[m.deviceId]));
+        return { ...m, done };
+      })
     });
   } catch (e) { errRes(res, e); }
 });
