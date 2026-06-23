@@ -173,6 +173,9 @@ function previewVoice(text){
   // 자모(음소) 단위 비교 — ASR 재음절화/무음 ㅇ 차이를 흡수해 올바른 낭독은 ~100%로 인정
   const simJamo = similarity(jamoNormalize(text), jamoNormalize(DB.verse.text));
   if(simJamo > sim) sim = simJamo;
+  // 포함 채점(자모) — 녹음에 여분/반복이 섞여도 구절을 제대로 읽었으면 ~100%로 인정
+  const simContain = containmentSimilarity(jamoNormalize(DB.verse.text), jamoNormalize(text));
+  if(simContain > sim) sim = simContain;
   const pass = sim >= TH().voice;
   document.getElementById('simBar').style.width = sim+'%';
   document.getElementById('simLabel').innerHTML =

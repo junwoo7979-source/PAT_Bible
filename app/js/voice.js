@@ -123,6 +123,29 @@ function similarity(a,b){
   const dist=dp[m][n]; const maxL=Math.max(m,n);
   return Math.round((1-dist/maxL)*100);
 }
+// 포함(containment) 유사도 — target(구절)이 transcript 안에 얼마나 들어있나.
+// transcript 앞/뒤 여분(잡음·Whisper 반복 생성)은 무료(자유 시작/종료), target 누락·치환만 감점.
+// → 올바로 낭독하면 뒤에 반복이 붙어도 ~100% 유지.
+function containmentSimilarity(target, transcript){
+  const a=normalize(target), b=normalize(transcript);
+  if(!a || !b) return 0;
+  const m=a.length, n=b.length;
+  let prev=new Array(n+1).fill(0);     // dp[0][j]=0 → b 어디서든 시작 무료
+  for(let i=1;i<=m;i++){
+    const cur=new Array(n+1);
+    cur[0]=i;                          // target i글자가 transcript에 전혀 없음 → i 감점
+    for(let j=1;j<=n;j++){
+      cur[j]=Math.min(
+        prev[j-1] + (a[i-1]===b[j-1]?0:1), // 매치/치환
+        prev[j] + 1,                        // target 글자 누락
+        cur[j-1] + 1                         // transcript 중간 여분
+      );
+    }
+    prev=cur;
+  }
+  let best=Infinity; for(let j=0;j<=n;j++) if(prev[j]<best) best=prev[j]; // dp[m][*] 최소 → 종료 무료
+  return Math.round((1 - best/m)*100);
+}
 
 // ── Recognition 정리 ─────────────────────────────────────
 function clearVoiceRecognition(cancel=false){

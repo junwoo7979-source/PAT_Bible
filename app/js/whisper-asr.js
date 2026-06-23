@@ -4,11 +4,12 @@
 // 모델은 최초 1회만 다운로드되고 이후 브라우저 캐시에서 즉시 로드됨.
 
 const WHISPER_CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.2';
-const WHISPER_MODEL = 'Xenova/whisper-small';  // 다국어(한국어 정확도↑), q8 양자화. 가벼움 우선이면 whisper-base로 교체
+const WHISPER_MODEL = 'Xenova/whisper-base';   // 속도/정확도 균형(자모·포함 채점으로 정확도 보완). 더 정확히 필요시 whisper-small
 
 let _whisperPipe = null;
 let _whisperLoadingP = null;
 let _wRec = null, _wChunks = [], _wRecording = false;
+let _whLastPct = -1, _whBackend = '';
 
 function _whHint(t){ const e = document.getElementById('micHint'); if(e) e.textContent = t; }
 
@@ -20,17 +21,21 @@ async function loadWhisper(){
     _whHint('🧠 음성엔진 준비 중...');
     const { pipeline, env } = await import(WHISPER_CDN);
     env.allowLocalModels = false;                       // HuggingFace Hub에서 로드
-    try { if(env.backends?.onnx?.wasm) env.backends.onnx.wasm.numThreads = 1; } catch(e){}
-    let lastPct = -1;
-    _whisperPipe = await pipeline('automatic-speech-recognition', WHISPER_MODEL, {
-      dtype: 'q8',
-      progress_callback: (p) => {
-        if(p && p.status === 'progress' && typeof p.progress === 'number'){
-          const pct = Math.round(p.progress);
-          if(pct !== lastPct){ lastPct = pct; _whHint('🧠 음성엔진 다운로드 ' + pct + '%'); }
-        }
-      },
-    });
+    // ★ WASM 멀티스레드로 속도 확보(WebGPU는 일부 기기/헤드리스에서 추론이 행(hang)되어 미사용)
+    try {
+      if(env.backends?.onnx?.wasm){
+        env.backends.onnx.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 2);
+      }
+    } catch(_){}
+    const onProg = (p) => {
+      if(p && p.status === 'progress' && typeof p.progress === 'number'){
+        const pct = Math.round(p.progress);
+        if(pct !== _whLastPct){ _whLastPct = pct; _whHint('🧠 음성엔진 다운로드 ' + pct + '%'); }
+      }
+    };
+    _whisperPipe = await pipeline('automatic-speech-recognition', WHISPER_MODEL, { dtype: 'q8', progress_callback: onProg });
+    _whBackend = 'wasm';
+    console.log('[WHISPER] 백엔드:', _whBackend, '/ threads:', (env.backends?.onnx?.wasm?.numThreads));
     _whHint('탭하여 녹음 시작');
     return _whisperPipe;
   })();
@@ -61,7 +66,11 @@ async function _blobToFloat32(blob){
 async function transcribeBlob(blob){
   const pipe = await loadWhisper();
   const audio = await _blobToFloat32(blob);
-  const out = await pipe(audio, { language: 'korean', task: 'transcribe', chunk_length_s: 30, return_timestamps: false });
+  const out = await pipe(audio, {
+    language: 'korean', task: 'transcribe',
+    chunk_length_s: 30, return_timestamps: false,
+    no_repeat_ngram_size: 3,   // 침묵 구간 반복 생성 억제
+  });
   return (((out && out.text) || '')).replace(/\s+/g, ' ').trim();
 }
 
