@@ -568,16 +568,18 @@ function startFamilyProgressPolling(profile){
       const shouldUpdate = {};
 
       // 1. roomName, leaderName, parish, district 동기화
-      if(fbInfo.roomName !== undefined && fbInfo.roomName !== freshProfile.roomName) {
+      // ★ 중대버그 수정: 서버가 빈 값(가족 doc 누락·타이밍·일시 오류)을 줄 때
+      //   로컬 등록정보를 빈 값으로 덮어써 "초기화"되던 문제 → 값이 있을 때만 갱신.
+      if(fbInfo.roomName && fbInfo.roomName !== freshProfile.roomName) {
         shouldUpdate.roomName = fbInfo.roomName;
       }
-      if(fbInfo.leaderName !== undefined && fbInfo.leaderName !== freshProfile.leaderName) {
+      if(fbInfo.leaderName && fbInfo.leaderName !== freshProfile.leaderName) {
         shouldUpdate.leaderName = fbInfo.leaderName;
       }
-      if(fbInfo.parish !== undefined && fbInfo.parish !== freshProfile.parish) {
+      if(fbInfo.parish && fbInfo.parish !== freshProfile.parish) {
         shouldUpdate.parish = fbInfo.parish;
       }
-      if(fbInfo.district !== undefined && fbInfo.district !== freshProfile.district) {
+      if(fbInfo.district && fbInfo.district !== freshProfile.district) {
         shouldUpdate.district = fbInfo.district;
       }
 
