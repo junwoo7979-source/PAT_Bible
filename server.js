@@ -20,7 +20,12 @@ http.createServer((req, res) => {
   }
   const ext = path.extname(filePath);
   const type = (mime[ext] || 'text/plain') + ';charset=utf-8';
-  res.writeHead(200, { 'Content-Type': type });
+  // ★ 교차출처 격리(WASM 멀티스레드용 SharedArrayBuffer 활성화)
+  res.writeHead(200, {
+    'Content-Type': type,
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Embedder-Policy': 'credentialless',
+  });
   fs.createReadStream(filePath).pipe(res);
 }).listen(8000, '0.0.0.0', () => {
   console.log('서버 시작: http://localhost:8000/app/index.html');
