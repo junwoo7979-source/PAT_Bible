@@ -4,7 +4,7 @@
 
 // ★ Groq 활성화 스위치 — API 키(시크릿)+함수 배포가 끝나면 true로 바꾸면 즉시 Groq(1~2초) 사용.
 //   false면 그대로 브라우저 Whisper 사용(성능 저하 없음).
-const GROQ_ENABLED = false;
+const GROQ_ENABLED = true;
 
 let _gRec = null, _gChunks = [], _gRecording = false;
 let _groqDown = false;   // Groq(함수/키) 미준비 감지 → 이후 곧장 Whisper 폴백
