@@ -1,4 +1,5 @@
 const { onRequest } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { applyCors, assertChurchCode, assertToken } = require('./security');
@@ -11,6 +12,9 @@ const {
 
 initializeApp();
 const db = getFirestore();
+
+// Groq(클라우드 Whisper) API 키 — Firebase Secret으로 관리(코드/깃에 노출 안 됨)
+const GROQ_API_KEY = defineSecret('GROQ_API_KEY');
 
 function begin(req, res) {
   if (!applyCors(req, res)) return false;
@@ -426,5 +430,40 @@ exports.resetFamilyPassword = onRequest({ cors: true, region: 'us-central1' }, a
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     res.json({ ok: true, familyId: snap.docs[0].id });
+  } catch (e) { errRes(res, e); }
+});
+
+// ── 음성 전사 프록시 (Groq Whisper large-v3) — 폰 부담 0, ~1~2초 ──
+//    프론트가 녹음 오디오(base64)를 보내면 서버가 Groq로 전사해 텍스트 반환.
+//    키는 Secret(GROQ_API_KEY)으로만 보관 → 노출 없음.
+exports.transcribeAudio = onRequest({ cors: true, region: 'us-central1', secrets: [GROQ_API_KEY], memory: '512MiB', timeoutSeconds: 60 }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const { audioBase64, mimeType, language, model } = req.body || {};
+    if (!audioBase64) { res.status(400).json({ error: 'audioBase64 required' }); return; }
+    const key = GROQ_API_KEY.value();
+    if (!key) { res.status(500).json({ error: 'GROQ_API_KEY 미설정' }); return; }
+
+    const buf = Buffer.from(audioBase64, 'base64');
+    const form = new FormData();
+    form.append('file', new Blob([buf], { type: mimeType || 'audio/webm' }), 'audio.webm');
+    form.append('model', model || 'whisper-large-v3-turbo');
+    form.append('language', language || 'ko');
+    form.append('response_format', 'json');
+    form.append('temperature', '0');
+
+    const r = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + key },
+      body: form,
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      console.error('[GROQ] 오류:', r.status, JSON.stringify(data).slice(0, 300));
+      res.status(502).json({ error: 'groq_failed', status: r.status, detail: data });
+      return;
+    }
+    res.json({ text: ((data.text || '')).replace(/\s+/g, ' ').trim() });
   } catch (e) { errRes(res, e); }
 });

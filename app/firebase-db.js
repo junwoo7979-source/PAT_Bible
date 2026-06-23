@@ -349,6 +349,13 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] getDashboardStats:', e.message); return null; }
   }
 
+  // 음성 전사 (Groq Whisper 프록시) — base64 오디오 → 한국어 텍스트
+  async function transcribeAudio(audioBase64, mimeType, language) {
+    if (!ready()) return null;
+    const data = await apiPost('transcribeAudio', { audioBase64, mimeType, language: language || 'ko' });
+    return (data && data.text) || '';
+  }
+
   async function getFamilyStats(churchCode, familyId, verseRef) {
     if (!ready() || !familyId) return null;
     try {
@@ -389,7 +396,7 @@ window.PAT_DB = (() => {
     saveVerse, getLatestVerse, subscribeVerse,
     saveFamily, findFamilyByPassword, joinFamily, getFamilyMembers, getFamilyInfo, subscribeFamily,
     saveRecord, hasRecord,
-    getDashboardStats, getFamilyStats, getFamilyProgress,
+    getDashboardStats, getFamilyStats, getFamilyProgress, transcribeAudio,
     resetFamilyPassword,
     getConfig, saveConfig, subscribeConfig,
     unsubscribeAll,
