@@ -4,7 +4,8 @@
 // 모델은 최초 1회만 다운로드되고 이후 브라우저 캐시에서 즉시 로드됨.
 
 const WHISPER_CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.2';
-const WHISPER_MODEL = 'Xenova/whisper-base';   // 속도/정확도 균형(자모·포함 채점으로 정확도 보완). 더 정확히 필요시 whisper-small
+const WHISPER_MODEL = 'Xenova/whisper-base';    // WASM 환경 최적(속도/정확도 균형). large-v3-turbo는 WASM에서 728MB·전사 68s로 사용 불가 확인
+const WHISPER_DTYPE = 'q8';
 
 let _whisperPipe = null;
 let _whisperLoadingP = null;
@@ -33,7 +34,7 @@ async function loadWhisper(){
         if(pct !== _whLastPct){ _whLastPct = pct; _whHint('🧠 음성엔진 다운로드 ' + pct + '%'); }
       }
     };
-    _whisperPipe = await pipeline('automatic-speech-recognition', WHISPER_MODEL, { dtype: 'q8', progress_callback: onProg });
+    _whisperPipe = await pipeline('automatic-speech-recognition', WHISPER_MODEL, { dtype: WHISPER_DTYPE, progress_callback: onProg });
     _whBackend = 'wasm';
     console.log('[WHISPER] 백엔드:', _whBackend, '/ threads:', (env.backends?.onnx?.wasm?.numThreads));
     _whHint('탭하여 녹음 시작');

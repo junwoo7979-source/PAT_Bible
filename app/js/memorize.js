@@ -154,7 +154,12 @@ async function computeAggregatedData(){
     myCount: 0,           // 내 암송 횟수 (로컬)
     familyDone: 0,        // 우리 가족 완료자
     familyTotal: 0,       // 우리 가족 총인원
-    byParish: {           // 교구별 완료 가정 수 (실제 데이터)
+    byParish: {           // 교구별 완료(실천) 멤버 수
+      '1교구': 0,
+      '2교구': 0,
+      '3교구': 0,
+    },
+    registeredByParish: { // 교구별 참가인원(등록 멤버 수)
       '1교구': 0,
       '2교구': 0,
       '3교구': 0,
@@ -213,6 +218,13 @@ async function computeAggregatedData(){
 
         result.totalDone = typeof stats.total === 'number' ? stats.total : 0;
         result.totalFamilies = typeof stats.totalFamilies === 'number' ? stats.totalFamilies : 0;
+        // 교구별 참가인원(등록) — 시뮬레이션 형식: 완료/전체 + 실천율 + 참가인원
+        if(stats.registeredByParish && typeof stats.registeredByParish === 'object'){
+          Object.keys(PARISH_INFO).forEach(parish => {
+            const v = stats.registeredByParish[parish];
+            result.registeredByParish[parish] = typeof v === 'number' ? v : 0;
+          });
+        }
 
         console.log('[PAT-DASHBOARD-AGGREGATE] ✅ Firebase 교구 데이터 수집 완료:');
         console.log('  등록된 가정:', result.totalFamilies, '개');
@@ -288,8 +300,8 @@ async function renderDashboard(){
     console.log('[PAT-DASHBOARD] ✅ 가족 달성률:', data.familyDone, '/', data.familyTotal, '=', familyPct, '%');
   }
 
-  // 3️⃣ 교구별 현황 (실제 수집 데이터)
-  renderParishStatsFromAggregated(data.byParish, data.totalDone);
+  // 3️⃣ 교구별 현황 (실제 수집 데이터) — 완료/전체 + 실천율 + 참가인원
+  renderParishStatsFromAggregated(data.byParish, data.totalDone, data.registeredByParish);
 
   // 4️⃣ 교회 전체 현황 (등록된 가정 기준)
   const churchPct = data.totalFamilies > 0 ? Math.round(data.totalDone / data.totalFamilies * 100) : 0;
@@ -334,7 +346,7 @@ function stopDashboardPolling(){
 }
 
 // 교구별 현황 UI 렌더링 (수집된 실제 데이터만 사용)
-function renderParishStatsFromAggregated(byParish, totalDone){
+function renderParishStatsFromAggregated(byParish, totalDone, registeredByParish){
   console.log('[PAT-PARISH-RENDER] 교구별 현황 렌더링 시작');
   console.log('  입력 데이터:', { byParish, totalDone });
 
@@ -364,13 +376,14 @@ function renderParishStatsFromAggregated(byParish, totalDone){
     const total = (adminTotal !== undefined && adminTotal !== null && adminTotal > 0)
       ? adminTotal                                   // 관리자 설정 인원 우선
       : PARISH_INFO[parish].total;                   // 없으면 기본 인원
-    const pct   = total > 0 ? Math.round(done / total * 100) : 0;
+    const pct   = total > 0 ? Math.round(done / total * 100) : 0;  // 실천율
+    const reg   = (registeredByParish && Number(registeredByParish[parish])) || 0; // 참가인원
     const isMine = profile?.parish && (profile.parish === parish || profile.parish.includes(parish));
 
-    // 실제 데이터 표시
+    // 실제 데이터 표시: 완료/전체 · 참가인원 · 실천율
     const html = `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)">
-      <span style="min-width:48px;font-weight:700;${isMine?'color:var(--accent)':''}">${parish} 진도표${isMine?' ★':''}</span>
-      <small class="muted" style="min-width:74px">${done}/${total}명</small>
+      <span style="min-width:48px;font-weight:700;${isMine?'color:var(--accent)':''}">${parish} 실천표${isMine?' ★':''}</span>
+      <small class="muted" style="min-width:104px">완료 ${done}/${total} · 참가 ${reg}</small>
       <div class="bar" style="flex:1;margin:0"><span style="width:${pct}%"></span></div>
       <small style="min-width:36px;text-align:right;font-weight:700">${pct}%</small>
     </div>`;
@@ -379,20 +392,20 @@ function renderParishStatsFromAggregated(byParish, totalDone){
     return html;
   });
 
-  // 블레싱 진도표 — 완료는 자동 집계(totalDone), 전체는 관리자 설정값 우선
+  // 블레싱 실천표 — 완료는 자동 집계(totalDone), 전체는 관리자 설정값 우선
   const adminBlessingTotal = adminTotals.blessing_total;
   const totalFamilies = (adminBlessingTotal !== undefined && adminBlessingTotal !== null && adminBlessingTotal > 0)
     ? adminBlessingTotal
     : Object.values(normalizedData).reduce((a, b) => a + b, 0);
   const totalPct = totalFamilies > 0 ? Math.round(totalDone / totalFamilies * 100) : 0;
   rows.push(`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);margin-top:4px">
-    <span style="min-width:48px;font-weight:700">블레싱 진도표</span>
+    <span style="min-width:48px;font-weight:700">블레싱 실천표</span>
     <small class="muted" style="min-width:74px">${totalDone}/${totalFamilies}개</small>
     <div class="bar" style="flex:1;margin:0"><span style="width:${totalPct}%"></span></div>
     <small style="min-width:36px;text-align:right;font-weight:700">${totalPct}%</small>
   </div>`);
 
-  console.log(`[PAT-PARISH-RENDER]   블레싱 진도표: ${totalDone}/${totalFamilies}개 가정 (${totalPct}%)`);
+  console.log(`[PAT-PARISH-RENDER]   블레싱 실천표: ${totalDone}/${totalFamilies}개 가정 (${totalPct}%)`);
 
   // DOM 업데이트
   const html = rows.join('');

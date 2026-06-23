@@ -364,7 +364,8 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
         joinedMembers: joinedSnap.docs.map(d => d.data()),
       };
     }));
-    const { totalMembers } = countParishMembers(families);   // 등록 전체 인원(참고용)
+    const reg = countParishMembers(families);                // {byParish: 교구별 참가인원, totalMembers}
+    const totalMembers = reg.totalMembers;
     const familyToParish = {};
     families.forEach(f => { familyToParish[f.id] = f.parish; });
 
@@ -389,7 +390,8 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
       totalFamilies: totalFamilies,     // 등록된 모든 가정 수
       totalMembers: totalMembers,       // 등록된 전체 인원 수(참고)
       completedMembers: completedMembers, // 완료한 전체 멤버 수
-      byParish                          // 교구별 진도(현재 구절 완료 멤버 수)
+      byParish,                         // 교구별 진도(현재 구절 완료 멤버 수)
+      registeredByParish: reg.byParish  // 교구별 참가인원(등록 멤버 헤드카운트)
     });
   } catch (e) { errRes(res, e); }
 });
