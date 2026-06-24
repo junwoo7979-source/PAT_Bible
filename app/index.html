@@ -372,37 +372,43 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         <p class="muted" style="font-size:13px;margin:0 0 2px">완료 인원은 성도 참여 데이터로 <b>자동 집계</b>됩니다. 교구별 <b>전체 인원</b>만 설정하세요.</p>
         <!-- 교구별 현황 표 (등록가정과 동일 격자 형식) -->
         <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:calc(var(--fs) - 2px)">
+          <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:calc(var(--fs) - 2px)">
+            <colgroup>
+              <col style="width:18%">
+              <col style="width:30%">
+              <col style="width:28%">
+              <col style="width:24%">
+            </colgroup>
             <thead><tr>
-              <th style="padding:8px 6px;text-align:left;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg)">교구</th>
-              <th style="padding:8px 6px;text-align:center;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg)">완료</th>
-              <th style="padding:8px 6px;text-align:center;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg)">전체 인원</th>
-              <th style="padding:8px 6px;text-align:right;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg)">실천율</th>
+              <th style="padding:8px 6px;text-align:left;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg);white-space:nowrap">교구</th>
+              <th style="padding:8px 6px;text-align:center;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg);white-space:nowrap">완료</th>
+              <th style="padding:8px 6px;text-align:center;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg);white-space:nowrap">전체 인원</th>
+              <th style="padding:8px 6px;text-align:right;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg);white-space:nowrap">실천율</th>
             </tr></thead>
             <tbody>
               <tr>
                 <td style="padding:8px 6px;border:1px solid var(--line);font-weight:700;white-space:nowrap">1교구</td>
-                <td style="padding:8px 6px;border:1px solid var(--line);text-align:center"><b id="p1_done" style="color:var(--accent)">0</b><span class="muted" style="font-size:11px"> 명</span></td>
-                <td style="padding:6px 6px;border:1px solid var(--line)"><input type="number" id="p1_total" value="80" style="width:100%;min-width:60px;padding:6px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs);text-align:center;font-weight:700" placeholder="인원" oninput="updateParishPct('1')"></td>
-                <td style="padding:8px 6px;border:1px solid var(--line);text-align:right"><span id="pct1" style="color:var(--accent);font-weight:800;font-size:calc(var(--fs)+1px)">0%</span></td>
+                <td style="padding:8px 4px;border:1px solid var(--line);text-align:center;white-space:nowrap"><b id="p1_done" style="color:var(--accent)">0</b><span class="muted" style="font-size:11px"> 명</span></td>
+                <td style="padding:6px 6px;border:1px solid var(--line)"><input type="number" id="p1_total" value="80" style="width:100%;min-width:0;padding:5px 2px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs);text-align:center;font-weight:700" placeholder="인원" oninput="updateParishPct('1')"></td>
+                <td style="padding:8px 4px;border:1px solid var(--line);text-align:right;white-space:nowrap"><span id="pct1" style="color:var(--accent);font-weight:800;font-size:calc(var(--fs)+1px)">0%</span></td>
               </tr>
               <tr>
                 <td style="padding:8px 6px;border:1px solid var(--line);font-weight:700;white-space:nowrap">2교구</td>
-                <td style="padding:8px 6px;border:1px solid var(--line);text-align:center"><b id="p2_done" style="color:var(--accent)">0</b><span class="muted" style="font-size:11px"> 명</span></td>
-                <td style="padding:6px 6px;border:1px solid var(--line)"><input type="number" id="p2_total" value="72" style="width:100%;min-width:60px;padding:6px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs);text-align:center;font-weight:700" placeholder="인원" oninput="updateParishPct('2')"></td>
-                <td style="padding:8px 6px;border:1px solid var(--line);text-align:right"><span id="pct2" style="color:var(--accent);font-weight:800;font-size:calc(var(--fs)+1px)">0%</span></td>
+                <td style="padding:8px 4px;border:1px solid var(--line);text-align:center;white-space:nowrap"><b id="p2_done" style="color:var(--accent)">0</b><span class="muted" style="font-size:11px"> 명</span></td>
+                <td style="padding:6px 6px;border:1px solid var(--line)"><input type="number" id="p2_total" value="72" style="width:100%;min-width:0;padding:5px 2px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs);text-align:center;font-weight:700" placeholder="인원" oninput="updateParishPct('2')"></td>
+                <td style="padding:8px 4px;border:1px solid var(--line);text-align:right;white-space:nowrap"><span id="pct2" style="color:var(--accent);font-weight:800;font-size:calc(var(--fs)+1px)">0%</span></td>
               </tr>
               <tr>
                 <td style="padding:8px 6px;border:1px solid var(--line);font-weight:700;white-space:nowrap">3교구</td>
-                <td style="padding:8px 6px;border:1px solid var(--line);text-align:center"><b id="p3_done" style="color:var(--accent)">0</b><span class="muted" style="font-size:11px"> 명</span></td>
-                <td style="padding:6px 6px;border:1px solid var(--line)"><input type="number" id="p3_total" value="68" style="width:100%;min-width:60px;padding:6px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs);text-align:center;font-weight:700" placeholder="인원" oninput="updateParishPct('3')"></td>
-                <td style="padding:8px 6px;border:1px solid var(--line);text-align:right"><span id="pct3" style="color:var(--accent);font-weight:800;font-size:calc(var(--fs)+1px)">0%</span></td>
+                <td style="padding:8px 4px;border:1px solid var(--line);text-align:center;white-space:nowrap"><b id="p3_done" style="color:var(--accent)">0</b><span class="muted" style="font-size:11px"> 명</span></td>
+                <td style="padding:6px 6px;border:1px solid var(--line)"><input type="number" id="p3_total" value="68" style="width:100%;min-width:0;padding:5px 2px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs);text-align:center;font-weight:700" placeholder="인원" oninput="updateParishPct('3')"></td>
+                <td style="padding:8px 4px;border:1px solid var(--line);text-align:right;white-space:nowrap"><span id="pct3" style="color:var(--accent);font-weight:800;font-size:calc(var(--fs)+1px)">0%</span></td>
               </tr>
               <tr style="border-top:2px solid var(--accent)">
                 <td style="padding:8px 6px;border:1px solid var(--line);font-weight:700;white-space:nowrap">🙌 블레싱</td>
-                <td style="padding:8px 6px;border:1px solid var(--line);text-align:center"><b id="blessing_done" style="color:var(--accent)">0</b><span class="muted" style="font-size:11px"> 개</span></td>
-                <td style="padding:6px 6px;border:1px solid var(--line)"><input type="number" id="blessing_total" value="0" style="width:100%;min-width:60px;padding:6px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs);text-align:center;font-weight:700" placeholder="가정" oninput="updateParishPct('blessing')"></td>
-                <td style="padding:8px 6px;border:1px solid var(--line);text-align:right"><span id="pctBlessing" style="color:var(--accent);font-weight:800;font-size:calc(var(--fs)+1px)">0%</span></td>
+                <td style="padding:8px 4px;border:1px solid var(--line);text-align:center;white-space:nowrap"><b id="blessing_done" style="color:var(--accent)">0</b><span class="muted" style="font-size:11px"> 개</span></td>
+                <td style="padding:6px 6px;border:1px solid var(--line)"><input type="number" id="blessing_total" value="0" style="width:100%;min-width:0;padding:5px 2px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs);text-align:center;font-weight:700" placeholder="가정" oninput="updateParishPct('blessing')"></td>
+                <td style="padding:8px 4px;border:1px solid var(--line);text-align:right;white-space:nowrap"><span id="pctBlessing" style="color:var(--accent);font-weight:800;font-size:calc(var(--fs)+1px)">0%</span></td>
               </tr>
             </tbody>
           </table>
