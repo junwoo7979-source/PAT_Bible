@@ -349,6 +349,14 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] getDashboardStats:', e.message); return null; }
   }
 
+  // 등록가정 목록 (관리자 데이터 관리)
+  async function getFamiliesList(churchCode) {
+    if (!ready()) return null;
+    try {
+      return await apiGet('getFamiliesList', { churchCode });
+    } catch (e) { console.warn('[PAT_DB] getFamiliesList:', e.message); return null; }
+  }
+
   // 시상관리: 가족별 실천율 순위 (교구별 현황과 동일 Firestore 소스)
   async function getAwardRanking(churchCode) {
     if (!ready()) return null;
@@ -404,7 +412,7 @@ window.PAT_DB = (() => {
     saveVerse, getLatestVerse, subscribeVerse,
     saveFamily, findFamilyByPassword, joinFamily, getFamilyMembers, getFamilyInfo, subscribeFamily,
     saveRecord, hasRecord,
-    getDashboardStats, getFamilyStats, getFamilyProgress, transcribeAudio, getAwardRanking,
+    getDashboardStats, getFamilyStats, getFamilyProgress, transcribeAudio, getAwardRanking, getFamiliesList,
     resetFamilyPassword,
     getConfig, saveConfig, subscribeConfig,
     unsubscribeAll,

@@ -7,6 +7,7 @@ function switchAdminTab(tabName) {
   document.getElementById('adminTabVerse').style.display = 'none';
   document.getElementById('adminTabAward').style.display = 'none';
   document.getElementById('adminTabPassword').style.display = 'none';
+  const _famTab = document.getElementById('adminTabFamilies'); if(_famTab) _famTab.style.display = 'none';
 
   // 모든 탭 버튼 비활성화
   document.querySelectorAll('.admin-tab').forEach(btn => btn.classList.remove('active'));
@@ -16,6 +17,7 @@ function switchAdminTab(tabName) {
     verse: 'adminTabVerse',
     church: 'adminTabVerse',  // ★ 교회 정보도 구절 등록 탭의 콘텐츠 사용 (ID 중복 방지)
     award: 'adminTabAward',
+    families: 'adminTabFamilies',
     password: 'adminTabPassword'
   };
 
@@ -30,6 +32,7 @@ function switchAdminTab(tabName) {
     verse: '📖 구절 등록',
     church: '⛪ 교회 정보',
     award: '🏆 시상 관리',
+    families: '📋 등록가정',
     password: '🔑 비밀번호'
   };
   const titleEl = document.getElementById('adminTabTitle');
@@ -42,7 +45,8 @@ function switchAdminTab(tabName) {
     verse: document.querySelectorAll('.admin-tab')[0],
     church: document.querySelectorAll('.admin-tab')[1],
     award: document.querySelectorAll('.admin-tab')[2],
-    password: document.querySelectorAll('.admin-tab')[3]
+    families: document.querySelectorAll('.admin-tab')[3],
+    password: document.querySelectorAll('.admin-tab')[4]
   };
   const btn = tabButtons[tabName];
   if (btn) btn.classList.add('active');
@@ -51,7 +55,49 @@ function switchAdminTab(tabName) {
   if (tabName === 'award') {
     renderAwardRanking();
     updateAwardListOnValueChange();
+  } else if (tabName === 'families') {
+    renderFamiliesList();
   }
+}
+
+// ── 등록가정 목록 렌더링 (교회 전체 가족·대표·구성원 인원) ──
+async function renderFamiliesList() {
+  const churchCode = DB?.church?.code || '11111';
+  const summaryEl = document.getElementById('registeredFamiliesSummary');
+  const listEl = document.getElementById('registeredFamiliesList');
+  if (!listEl) return;
+  listEl.innerHTML = '<p class="muted" style="text-align:center;padding:16px 0">불러오는 중…</p>';
+
+  let data = null;
+  if (window.PAT_DB && PAT_DB.ready && PAT_DB.ready() && PAT_DB.getFamiliesList) {
+    data = await PAT_DB.getFamiliesList(churchCode);
+  }
+  const families = (data && Array.isArray(data.families)) ? data.families : [];
+
+  if (!families.length) {
+    if (summaryEl) summaryEl.textContent = '';
+    listEl.innerHTML = '<p class="muted" style="text-align:center;padding:16px 0">등록된 가정이 없습니다</p>';
+    return;
+  }
+
+  const totalMembers = families.reduce((s, f) => s + (f.memberCount || 0), 0);
+  if (summaryEl) summaryEl.textContent = `총 ${families.length}가정 · ${totalMembers}명`;
+
+  listEl.innerHTML = families.map((f, i) => {
+    const parishLabel = f.parish ? (/교구$/.test(f.parish) ? f.parish : f.parish + '교구') : '';
+    const districtLabel = f.district ? (/구역$/.test(f.district) ? f.district : f.district + '구역') : '';
+    const meta = [parishLabel, districtLabel].filter(Boolean).join(' · ');
+    return `<div class="member" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+      <div style="flex:1">
+        <span style="color:var(--muted);margin-right:6px;font-weight:700;font-size:calc(var(--fs)-2px)">${i + 1}.</span>
+        <b>${esc(f.roomName || '(이름없음)')}</b>
+        ${f.leaderName ? `<span style="color:var(--muted);font-size:calc(var(--fs)-2px)"> · 대표 ${esc(f.leaderName)}</span>` : ''}
+        ${meta ? `<div class="muted" style="font-size:calc(var(--fs)-3px);margin:2px 0 0 18px">${esc(meta)}</div>` : ''}
+        <div class="muted" style="font-size:calc(var(--fs)-3px);margin:2px 0 0 18px">${(f.memberNames || []).map(esc).join(', ')}</div>
+      </div>
+      <span class="tag-ok" style="white-space:nowrap">${f.memberCount || 0}명</span>
+    </div>`;
+  }).join('');
 }
 
 // ── 1년 개인 실천율 계산 ────────────────────────────────────

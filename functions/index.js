@@ -506,3 +506,34 @@ exports.getAwardRanking = onRequest({ cors: true, region: 'us-central1' }, async
     res.json({ ranking, totalVerses });
   } catch (e) { errRes(res, e); }
 });
+
+// ── 등록가정 목록 (관리자 데이터 관리용) ──
+exports.getFamiliesList = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  try {
+    const { churchCode } = req.query;
+    if (!assertChurchCode(churchCode, res)) return;
+    const snap = await db.collection(`churches/${churchCode}/families`).get();
+    const families = await Promise.all(snap.docs.map(async doc => {
+      const d = doc.data();
+      const names = new Set();
+      if (Array.isArray(d.members)) d.members.forEach(m => {
+        const n = (typeof m === 'string' ? m : (m && (m.displayName || m.name)) || '').trim();
+        if (n) names.add(n);
+      });
+      const joined = await doc.ref.collection('members').get();
+      joined.docs.forEach(j => {
+        const n = ((j.data().displayName || j.data().name) || '').trim();
+        if (n) names.add(n);
+      });
+      return {
+        familyId: doc.id,
+        roomName: d.roomName || '', leaderName: d.leaderName || '',
+        parish: d.parish || '', district: d.district || '',
+        memberCount: names.size, memberNames: Array.from(names),
+      };
+    }));
+    families.sort((a, b) => (a.parish || '').localeCompare(b.parish || '') || (a.roomName || '').localeCompare(b.roomName || ''));
+    res.json({ total: families.length, families });
+  } catch (e) { errRes(res, e); }
+});
