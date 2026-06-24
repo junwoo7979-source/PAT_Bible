@@ -83,9 +83,9 @@ async function renderFamiliesList() {
   const totalMembers = families.reduce((s, f) => s + (f.memberCount || 0), 0);
   if (summaryEl) summaryEl.textContent = `총 ${families.length}가정 · ${totalMembers}명`;
 
-  // 표(행열): 번호 · 교구 · 구역 · 가족 이름 · 참여 인원
-  const th = 'padding:7px 6px;text-align:left;color:var(--muted);font-weight:700;border-bottom:2px solid var(--accent)';
-  const td = 'padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top';
+  // 표(행열) — 칸(셀)마다 테두리로 구분: 번호 · 교구 · 구역 · 가족 이름 · 참여 인원
+  const th = 'padding:8px 6px;text-align:left;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg)';
+  const td = 'padding:8px 6px;border:1px solid var(--line);vertical-align:top';
   const rows = families.map((f, i) => {
     const parishLabel = f.parish ? (/교구$/.test(f.parish) ? f.parish : f.parish + '교구') : '-';
     const districtLabel = f.district ? (/구역$/.test(f.district) ? f.district : f.district + '구역') : '-';
