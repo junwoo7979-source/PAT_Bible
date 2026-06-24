@@ -83,21 +83,33 @@ async function renderFamiliesList() {
   const totalMembers = families.reduce((s, f) => s + (f.memberCount || 0), 0);
   if (summaryEl) summaryEl.textContent = `총 ${families.length}가정 · ${totalMembers}명`;
 
-  listEl.innerHTML = families.map((f, i) => {
-    const parishLabel = f.parish ? (/교구$/.test(f.parish) ? f.parish : f.parish + '교구') : '';
-    const districtLabel = f.district ? (/구역$/.test(f.district) ? f.district : f.district + '구역') : '';
-    const meta = [parishLabel, districtLabel].filter(Boolean).join(' · ');
-    return `<div class="member" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-      <div style="flex:1">
-        <span style="color:var(--muted);margin-right:6px;font-weight:700;font-size:calc(var(--fs)-2px)">${i + 1}.</span>
-        <b>${esc(f.roomName || '(이름없음)')}</b>
-        ${f.leaderName ? `<span style="color:var(--muted);font-size:calc(var(--fs)-2px)"> · 대표 ${esc(f.leaderName)}</span>` : ''}
-        ${meta ? `<div class="muted" style="font-size:calc(var(--fs)-3px);margin:2px 0 0 18px">${esc(meta)}</div>` : ''}
-        <div class="muted" style="font-size:calc(var(--fs)-3px);margin:2px 0 0 18px">${(f.memberNames || []).map(esc).join(', ')}</div>
-      </div>
-      <span class="tag-ok" style="white-space:nowrap">${f.memberCount || 0}명</span>
-    </div>`;
+  // 표(행열): 번호 · 교구 · 구역 · 가족 이름 · 참여 인원
+  const th = 'padding:7px 6px;text-align:left;color:var(--muted);font-weight:700;border-bottom:2px solid var(--accent)';
+  const td = 'padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top';
+  const rows = families.map((f, i) => {
+    const parishLabel = f.parish ? (/교구$/.test(f.parish) ? f.parish : f.parish + '교구') : '-';
+    const districtLabel = f.district ? (/구역$/.test(f.district) ? f.district : f.district + '구역') : '-';
+    return `<tr>
+      <td style="${td};text-align:center">${i + 1}</td>
+      <td style="${td}">${esc(parishLabel)}</td>
+      <td style="${td}">${esc(districtLabel)}</td>
+      <td style="${td}"><b>${esc(f.roomName || '(이름없음)')}</b>${f.leaderName ? `<br><small class="muted">대표 ${esc(f.leaderName)}</small>` : ''}</td>
+      <td style="${td};text-align:right;font-weight:700;white-space:nowrap">${f.memberCount || 0}명</td>
+    </tr>`;
   }).join('');
+  listEl.innerHTML = `
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:calc(var(--fs) - 2px)">
+        <thead><tr>
+          <th style="${th};text-align:center">번호</th>
+          <th style="${th}">교구</th>
+          <th style="${th}">구역</th>
+          <th style="${th}">가족 이름</th>
+          <th style="${th};text-align:right">참여 인원</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
 }
 
 // ── 1년 개인 실천율 계산 ────────────────────────────────────
