@@ -14,7 +14,7 @@ const DB = {
 
 // 검증 임계값
 let LENIENT = false;
-const TH = () => LENIENT ? { voice:80, typing:100 } : { voice:90, typing:100 };
+const TH = () => LENIENT ? { voice:80, typing:100 } : { voice:85, typing:100 };
 
 // ── localStorage 헬퍼 ─────────────────────────────────────
 function loadRec(){ try{ return JSON.parse(localStorage.getItem('pat_records')||'[]'); }catch(e){ return []; } }
