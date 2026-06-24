@@ -30,8 +30,8 @@ function errRes(res, e, code = 500) {
   res.status(code).json({ error: e.message || 'Internal server error' });
 }
 
-// 교구별 집계 — 별도 모듈(테스트 가능)
-const { countParishMembers, countCompletedMembersByParish } = require('./aggregate');
+// 교구별 집계 + 시상 순위 — 별도 모듈(테스트 가능)
+const { countParishMembers, countCompletedMembersByParish, rankFamilies } = require('./aggregate');
 
 function requireClientWrite(req, res) {
   return assertToken(req, res, {
@@ -465,5 +465,44 @@ exports.transcribeAudio = onRequest({ cors: true, region: 'us-central1', secrets
       return;
     }
     res.json({ text: ((data.text || '')).replace(/\s+/g, ' ').trim() });
+  } catch (e) { errRes(res, e); }
+});
+
+// ── 시상관리: 가족별 실천율 순위 (교구별 현황과 동일 Firestore 소스) ──
+exports.getAwardRanking = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  try {
+    const { churchCode } = req.query;
+    if (!assertChurchCode(churchCode, res)) return;
+
+    // 총 구절 수(분모)
+    const versesSnap = await db.collection(`churches/${churchCode}/verses`).get();
+    const totalVerses = versesSnap.size;
+
+    // 가족 + 멤버명(선언 members + 입장 members 합집합)
+    const familiesSnap = await db.collection(`churches/${churchCode}/families`).get();
+    const families = await Promise.all(familiesSnap.docs.map(async doc => {
+      const data = doc.data();
+      const names = new Set();
+      if (Array.isArray(data.members)) {
+        data.members.forEach(m => {
+          const n = (typeof m === 'string' ? m : (m && (m.displayName || m.name)) || '').trim();
+          if (n) names.add(n);
+        });
+      }
+      const joined = await doc.ref.collection('members').get();
+      joined.docs.forEach(d => {
+        const n = ((d.data().displayName || d.data().name) || '').trim();
+        if (n) names.add(n);
+      });
+      return { id: doc.id, roomName: data.roomName || '', memberNames: Array.from(names) };
+    }));
+
+    // 전체 기록
+    const recordsSnap = await db.collection(`churches/${churchCode}/records`).get();
+    const records = recordsSnap.docs.map(d => d.data());
+
+    const ranking = rankFamilies(families, records, totalVerses);
+    res.json({ ranking, totalVerses });
   } catch (e) { errRes(res, e); }
 });

@@ -135,22 +135,15 @@ function calculateFamilyPracticeRate(familyId, churchCode) {
   };
 }
 
-// ── 교회 내 모든 가족 순위 (Firebase 연동 필요) ────────────────────────────────────
+// ── 교회 내 모든 가족 순위 (Firestore 통합 — 교구별 현황과 동일 소스) ──
 async function getRankedFamilies(churchCode) {
-  // 현재는 로컬 데이터만 사용 (Firebase 준비 필요)
-  // 실제 구현: Firebase에서 모든 가족 정보 조회
-  //
-  // const families = await PAT_DB.getChurchFamilies(churchCode);
-  // const rankings = families.map(f => calculateFamilyPracticeRate(f.id, churchCode));
-
-  // 임시: 로컬 저장된 가족 정보 사용
-  const profile = loadFamilyProfile();
-  if(!profile) return [];
-  const currentFamily = calculateFamilyPracticeRate(profile.familyId, churchCode);
-
-  // 실제는 Firebase에서 여러 가족 데이터를 받아야 함
-  // 이 함수는 향후 Firebase 통합 시 완성될 예정
-  return [currentFamily];
+  // ★ 시상관리 = 가족별 실천율(완료 구절 수 / 총 구절 수) 순위.
+  //   서버(getAwardRanking)가 가족·멤버·기록·총구절수로 계산 → 교구별 현황과 동일 데이터로 통합.
+  if (window.PAT_DB && PAT_DB.ready && PAT_DB.ready() && PAT_DB.getAwardRanking) {
+    const data = await PAT_DB.getAwardRanking(churchCode);
+    if (data && Array.isArray(data.ranking)) return data.ranking;
+  }
+  return [];
 }
 
 // ── 시상 순위 렌더링 ────────────────────────────────────
@@ -183,33 +176,26 @@ async function renderAwardRanking() {
   `).join('');
 }
 
-// ── 가족 검색 (시상 조회) ────────────────────────────────────
-function searchFamilyForAward() {
+// ── 가족 검색 (시상 조회) — 교회 전체 가족(Firestore)에서 검색 ──
+async function searchFamilyForAward() {
   const query = document.getElementById('awardFamilySearch').value.trim().toLowerCase();
   const churchCode = DB?.church?.code || '11111';
-
-  const profile = loadFamilyProfile();
-  const family = calculateFamilyPracticeRate(profile.familyId, churchCode);
-
   const container = document.getElementById('awardFamilyList');
   if (!container) return;
+  if (!query) { container.innerHTML = ''; return; }
 
-  if (!query) {
-    container.innerHTML = '';
-    return;
-  }
+  const families = await getRankedFamilies(churchCode);
+  const matches = families.filter(f => (f.familyName || '').toLowerCase().includes(query));
 
-  // 현재는 로컬 가족만 검색 가능 (향후 Firebase 통합)
-  if (family.familyName.toLowerCase().includes(query)) {
-    container.innerHTML = `
-      <div style="padding:12px;background:var(--bg);border-radius:var(--radius);cursor:pointer"
-           onclick="selectFamilyForDetail('${family.familyId}')">
+  if (matches.length) {
+    container.innerHTML = matches.map(family => `
+      <div style="padding:12px;background:var(--bg);border-radius:var(--radius)">
         <div style="font-weight:700;margin-bottom:4px">${esc(family.familyName)}</div>
         <div class="muted" style="font-size:calc(var(--fs)-2px)">
-          ${family.memberCount}명 • 평균 ${family.averageRate}%
+          ${family.memberCount}명 • 평균 ${family.averageRate}% • ${family.members.map(m=>esc(m.name)+' '+m.rate+'%').join(' · ')}
         </div>
       </div>
-    `;
+    `).join('');
   } else {
     container.innerHTML = '<p class="muted" style="text-align:center;padding:12px 0">검색 결과 없음</p>';
   }

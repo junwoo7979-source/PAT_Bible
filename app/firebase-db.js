@@ -349,6 +349,14 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] getDashboardStats:', e.message); return null; }
   }
 
+  // 시상관리: 가족별 실천율 순위 (교구별 현황과 동일 Firestore 소스)
+  async function getAwardRanking(churchCode) {
+    if (!ready()) return null;
+    try {
+      return await apiGet('getAwardRanking', { churchCode });
+    } catch (e) { console.warn('[PAT_DB] getAwardRanking:', e.message); return null; }
+  }
+
   // 음성 전사 (Groq Whisper 프록시) — base64 오디오 → 한국어 텍스트
   async function transcribeAudio(audioBase64, mimeType, language) {
     if (!ready()) return null;
@@ -396,7 +404,7 @@ window.PAT_DB = (() => {
     saveVerse, getLatestVerse, subscribeVerse,
     saveFamily, findFamilyByPassword, joinFamily, getFamilyMembers, getFamilyInfo, subscribeFamily,
     saveRecord, hasRecord,
-    getDashboardStats, getFamilyStats, getFamilyProgress, transcribeAudio,
+    getDashboardStats, getFamilyStats, getFamilyProgress, transcribeAudio, getAwardRanking,
     resetFamilyPassword,
     getConfig, saveConfig, subscribeConfig,
     unsubscribeAll,

@@ -61,4 +61,36 @@ function countCompletedMembersByParish(records, familyToParish) {
   return { byParish, completedMembers: seen.size };
 }
 
-module.exports = { countParishMembers, countCompletedMembersByParish, normalizeParish };
+// 시상관리: 가족별 실천율 순위 — 교구별 현황과 동일한 Firestore 데이터(가족·기록) 사용.
+// families: [{ id, roomName, memberNames:[...] }]
+// records:  [{ familyId, memberName, verseRef }]  (전체 구절 기록)
+// totalVerses: 교회에 등록된 총 구절 수 (분모)
+// 멤버 실천율 = 그 멤버가 완료한 구절 수 / 총 구절 수, 가족 평균 = 멤버 평균.
+function rankFamilies(families, records, totalVerses) {
+  const tv = totalVerses > 0 ? totalVerses : 1;
+  // familyId → memberName → Set(verseRef)
+  const map = {};
+  for (const r of (records || [])) {
+    if (!r || !r.familyId || !r.verseRef) continue;
+    const name = String(r.memberName || '').trim();
+    if (!name) continue;
+    if (!map[r.familyId]) map[r.familyId] = {};
+    if (!map[r.familyId][name]) map[r.familyId][name] = new Set();
+    map[r.familyId][name].add(r.verseRef);
+  }
+  const ranked = (families || []).map(f => {
+    const memberMap = map[f.id] || {};
+    const names = Array.isArray(f.memberNames) ? f.memberNames : [];
+    const members = names.map(name => {
+      const done = memberMap[name] ? memberMap[name].size : 0;
+      return { name, rate: Math.min(100, Math.round((done / tv) * 100)) };
+    });
+    const averageRate = members.length
+      ? Math.round(members.reduce((s, m) => s + m.rate, 0) / members.length) : 0;
+    return { familyId: f.id, familyName: f.roomName || '가족', memberCount: members.length, members, averageRate };
+  });
+  ranked.sort((a, b) => b.averageRate - a.averageRate);
+  return ranked;
+}
+
+module.exports = { countParishMembers, countCompletedMembersByParish, normalizeParish, rankFamilies };
