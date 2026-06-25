@@ -280,9 +280,55 @@ exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
       res.json({ familyId });
     } else {
       if (!data.familyPassword) { res.status(400).json({ error: 'familyPassword required' }); return; }
+      // ★ 중복 방지: 같은 (대표+교구)의 기존 가정이 있으면 새로 만들지 않고 그 문서를 갱신.
+      //   familyId 분실 상태(인앱브라우저/다기기/이중제출)에서 재등록해도 중복 문서가
+      //   쌓이지 않게 — "가족방 초기화 → 중복 누적" 근본 차단. (구역은 최신값으로 갱신)
+      const leaderName = String(familyData.leaderName || '').trim();
+      const parish = String(familyData.parish || '').trim();
+      if (leaderName && parish) {
+        const sameLeader = await col.where('leaderName', '==', leaderName).get(); // 단일 equality(인덱스 불필요)
+        const dup = sameLeader.docs.find(d => String((d.data().parish) || '').trim() === parish);
+        if (dup) {
+          const exist = dup.data();
+          const names = new Set();   // 멤버는 합집합으로 보존(기존 + 신규)
+          [exist.members, familyData.members].forEach(arr => {
+            if (Array.isArray(arr)) arr.forEach(m => {
+              const n = String(typeof m === 'string' ? m : (m && (m.displayName || m.name)) || '').trim();
+              if (n) names.add(n);
+            });
+          });
+          await dup.ref.set({
+            ...familyData,
+            members: Array.from(names),
+            familyPassword: FieldValue.delete(),
+            updatedAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
+          res.json({ familyId: dup.id, merged: true });
+          return;
+        }
+      }
       const ref = await col.add({ ...familyData, createdAt: FieldValue.serverTimestamp() });
       res.json({ familyId: ref.id });
     }
+  } catch (e) { errRes(res, e); }
+});
+
+// 가정 삭제 (관리자 전용) — family 문서 + members 서브컬렉션 + 해당 가정 records 정리.
+//   중복 가정 정리/관리자 데이터 관리용. 교회별 admin 인증 필요(레거시 11111 전역 폴백).
+exports.deleteFamily = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const { churchCode, familyId } = req.body || {};
+    if (!assertChurchCode(churchCode, res)) return;
+    if (!familyId) { res.status(400).json({ error: 'familyId required' }); return; }
+    if (!(await assertChurchAdmin(req, res, churchCode))) return;
+    const subs = await db.collection(`churches/${churchCode}/families/${familyId}/members`).get();
+    await Promise.all(subs.docs.map(d => d.ref.delete()));
+    const recs = await db.collection(`churches/${churchCode}/records`).where('familyId', '==', familyId).get();
+    await Promise.all(recs.docs.map(d => d.ref.delete()));
+    await db.doc(`churches/${churchCode}/families/${familyId}`).delete();
+    res.json({ ok: true, familyId, deletedMembers: subs.size, deletedRecords: recs.size });
   } catch (e) { errRes(res, e); }
 });
 
