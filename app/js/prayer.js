@@ -2,7 +2,8 @@
 // 기도 기록 화면
 
 // ── 기도 음성 입력 ────────────────────────────────────
-let prayerRecog=null, prayerRecognizing=false, prayerRecognizedText='';
+// ★ 암송과 동일한 엔진으로 통일: 녹음(MediaRecorder) → Groq Whisper(클라우드) 전사 → 폴백 브라우저 Whisper
+let prayerRec=null, prayerChunks=[], prayerRecording=false, prayerStream=null;
 let prayerStartTime=0, prayerTimeoutId=null;
 const PRAYER_MAX_DURATION=90000; // 1분 30초
 
@@ -19,7 +20,7 @@ function switchPrayerTab(tab){
     btnText.style.color='#fff';
     btnVoice.style.background='var(--surface)';
     btnVoice.style.color='var(--text)';
-    if(prayerRecognizing) stopPrayerMic();
+    if(prayerRecording) stopPrayerMic();
   }else{
     textPanel.style.display='none';
     voicePanel.style.display='block';
@@ -31,125 +32,115 @@ function switchPrayerTab(tab){
 }
 
 function togglePrayerMic(){
-  if(prayerRecognizing) stopPrayerMic();
+  if(prayerRecording) stopPrayerMic();
   else startPrayerMic();
 }
 
-function startPrayerMic(){
-  const SR=window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){
-    toast('음성 인식을 지원하지 않습니다');
+// Blob → base64 (data URL 접두사 제거) — groq-asr.js와 동일
+function _prayerBlobToB64(blob){
+  return new Promise((resolve, reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>{ const s=String(fr.result||''); resolve(s.slice(s.indexOf(',')+1)); };
+    fr.onerror=reject;
+    fr.readAsDataURL(blob);
+  });
+}
+
+function _prayerResetMicUI(){
+  if(prayerTimeoutId){ clearInterval(prayerTimeoutId); prayerTimeoutId=null; }
+  const btn=document.getElementById('prayerMicBtn');
+  if(btn){ btn.classList.remove('rec'); btn.textContent='🎤'; }
+  const tl=document.getElementById('prayerTimeLeft'); if(tl) tl.textContent='1:30';
+}
+
+async function startPrayerMic(){
+  // 마이크 스트림 확보 (TWA/폰 환경)
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+    toast('이 기기에서는 음성 입력을 지원하지 않습니다'); return;
+  }
+  try { prayerStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch(err){
+    console.error('[PRAYER-VOICE] 마이크 권한 오류:', err);
+    toast('마이크 권한을 허용해주세요 (설정 > 권한 > 마이크)');
     return;
   }
 
-  // 마이크 권한 요청 (TWA/폰 환경용)
-  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream=>{
-        // 권한 획득 성공 - 스트림 정지
-        stream.getTracks().forEach(track => track.stop());
-        initiatePrayerRecognition(SR);
-      })
-      .catch(err=>{
-        console.error('[PRAYER-VOICE] 마이크 권한 오류:', err);
-        toast('마이크 권한을 허용해주세요 (설정 > 권한 > 마이크)');
-        stopPrayerMic();
-      });
-  }else{
-    // 권한 요청 지원 안 함 → 바로 인식 시작
-    initiatePrayerRecognition(SR);
-  }
-}
+  prayerChunks=[];
+  let mime='';
+  ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'].some(m=>{
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported(m)){ mime=m; return true; } return false;
+  });
+  try { prayerRec = mime ? new MediaRecorder(prayerStream, { mimeType: mime }) : new MediaRecorder(prayerStream); }
+  catch(e){ prayerRec = new MediaRecorder(prayerStream); }
 
-function initiatePrayerRecognition(SR){
-  prayerRecog=new SR();
-  prayerRecog.lang='ko-KR';
-  prayerRecog.interimResults=true;
-  prayerRecognizing=true;
-  prayerRecognizedText='';
+  prayerRec.ondataavailable = e => { if(e.data && e.data.size) prayerChunks.push(e.data); };
+  prayerRec.onstop = async () => {
+    prayerRecording=false;
+    try { if(prayerStream) prayerStream.getTracks().forEach(t=>t.stop()); } catch(e){}
+    prayerStream=null;
+    _prayerResetMicUI();
+
+    const blob=new Blob(prayerChunks, { type:(prayerRec&&prayerRec.mimeType)||mime||'audio/webm' });
+    if(!blob.size){ toast('녹음이 비어 있습니다 — 다시 시도하세요'); document.getElementById('prayerMicHint').textContent='탭하여 기도 녹음 시작'; return; }
+    const mt=(prayerRec&&prayerRec.mimeType)||mime||'audio/webm';
+
+    let text='';
+    // 1차: Groq(클라우드) Whisper — 암송과 동일 엔진
+    const hint=document.getElementById('prayerMicHint'); if(hint) hint.textContent='☁️ 음성 인식 중...';
+    if(window.PAT_DB && PAT_DB.ready && PAT_DB.ready() && PAT_DB.transcribeAudio){
+      try { const b64=await _prayerBlobToB64(blob); text=await PAT_DB.transcribeAudio(b64, mt, 'ko'); }
+      catch(err){ console.warn('[PRAYER-ASR] Groq 실패 → Whisper 폴백:', err && err.message); }
+    }
+    // 2차(폴백): 브라우저 Whisper (whisper-asr.js의 transcribeBlob)
+    if(!text && typeof transcribeBlob==='function'){
+      if(hint) hint.textContent='🧠 음성 변환 중...';
+      try { text=await transcribeBlob(blob); }
+      catch(err){ console.error('[PRAYER-ASR] 폴백 실패:', err); }
+    }
+    if(hint) hint.textContent='탭하여 기도 녹음 시작';
+
+    if(text){
+      const textEl=document.getElementById('prayerText');
+      const cur=textEl.value.trim();
+      textEl.value=((cur?cur+'\n\n':'')+text).slice(0,300);
+      updatePrayerTextLength();
+      const rec=document.getElementById('prayerRecognized'); if(rec) rec.textContent='';
+      switchPrayerTab('text');
+      toast('🎤 음성 입력 완료');
+    } else {
+      const rec=document.getElementById('prayerRecognized'); if(rec) rec.textContent='';
+      toast('음성이 인식되지 않았습니다 — 다시 시도하세요');
+    }
+  };
+
+  try { prayerRec.start(); }
+  catch(e){ toast('녹음을 시작할 수 없습니다'); try{ prayerStream.getTracks().forEach(t=>t.stop()); }catch(_){} prayerStream=null; return; }
+
+  prayerRecording=true;
   prayerStartTime=Date.now();
-
   document.getElementById('prayerMicBtn').classList.add('rec');
   document.getElementById('prayerMicBtn').textContent='⏹️';
   document.getElementById('prayerMicHint').textContent='기도 중... 탭하여 종료';
-  document.getElementById('prayerRecognized').textContent='';
+  const rec=document.getElementById('prayerRecognized'); if(rec) rec.textContent='🎙️ 녹음 중... 끝나면 종료를 누르면 자동으로 인식됩니다';
 
-  // 시간 업데이트
+  // 90초 제한 타이머
   prayerTimeoutId=setInterval(()=>{
-    const elapsed=Date.now()-prayerStartTime;
-    const remaining=Math.max(0, PRAYER_MAX_DURATION-elapsed);
+    const remaining=Math.max(0, PRAYER_MAX_DURATION-(Date.now()-prayerStartTime));
     const min=Math.floor(remaining/60000);
     const sec=Math.floor((remaining%60000)/1000);
-    document.getElementById('prayerTimeLeft').textContent=min+':'+(sec<10?'0':'')+sec;
-
-    if(remaining<=0){
-      toast('1분 30초 제한에 도달했습니다');
-      stopPrayerMic();
-    }
+    const tl=document.getElementById('prayerTimeLeft'); if(tl) tl.textContent=min+':'+(sec<10?'0':'')+sec;
+    if(remaining<=0){ toast('1분 30초 제한에 도달했습니다'); stopPrayerMic(); }
   }, 100);
-
-  prayerRecog.onstart=()=>{
-    console.log('[PRAYER-VOICE] started');
-  };
-
-  prayerRecog.onresult=(e)=>{
-    let interim='';
-    for(let i=0;i<e.results.length;i++){
-      const transcript=e.results[i][0].transcript.trim();
-      if(e.results[i].isFinal){
-        prayerRecognizedText+=(prayerRecognizedText?' ':'')+transcript;
-      }else{
-        interim=transcript;
-      }
-    }
-    const display=prayerRecognizedText+(interim?' '+interim:'');
-    document.getElementById('prayerRecognized').textContent=display.slice(0,300);
-    document.getElementById('prayerVoiceLength').textContent=display.length;
-  };
-
-  prayerRecog.onend=()=>{
-    console.log('[PRAYER-VOICE] ended');
-  };
-
-  prayerRecog.onerror=(e)=>{
-    console.log('[PRAYER-VOICE] error:', e.error);
-    toast('음성 인식 오류');
-    stopPrayerMic();
-  };
-
-  prayerRecog.start();
 }
 
 function stopPrayerMic(){
-  if(!prayerRecognizing) return;
-  prayerRecognizing=false;
-
-  if(prayerRecog){
-    try{ prayerRecog.abort(); }catch(e){}
-    prayerRecog=null;
-  }
-
-  if(prayerTimeoutId){
-    clearInterval(prayerTimeoutId);
-    prayerTimeoutId=null;
-  }
-
+  if(!prayerRecording) return;
+  // 타이머 정지 + 버튼 즉시 복귀(전사는 onstop에서 비동기 처리)
+  if(prayerTimeoutId){ clearInterval(prayerTimeoutId); prayerTimeoutId=null; }
   const btn=document.getElementById('prayerMicBtn');
-  btn.classList.remove('rec');
-  btn.textContent='🎤';
-  document.getElementById('prayerMicHint').textContent='탭하여 기도 녹음 시작';
-  document.getElementById('prayerTimeLeft').textContent='1:30';
-
-  // 음성 인식 결과를 텍스트 입력란에 추가
-  if(prayerRecognizedText){
-    const textEl=document.getElementById('prayerText');
-    const currentText=textEl.value.trim();
-    const newText=(currentText?(currentText+'\n\n'):'')+prayerRecognizedText.slice(0,300);
-    textEl.value=newText.slice(0,300);
-    updatePrayerTextLength();
-    switchPrayerTab('text');
-    toast('🎤 음성 입력 완료');
-  }
+  if(btn){ btn.classList.remove('rec'); btn.textContent='🎤'; }
+  try { if(prayerRec && prayerRec.state!=='inactive') prayerRec.stop(); }
+  catch(e){ prayerRecording=false; }
 }
 
 function updatePrayerTextLength(){
