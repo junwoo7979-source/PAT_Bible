@@ -159,14 +159,23 @@ function switchRegTab(tab){
   document.getElementById('tabMember').style.color      = isLeader?'var(--text)':'#fff';
   renderRegisteredFamilyRoom();
 }
-function deleteFamilyMember(encodedName){
+async function deleteFamilyMember(encodedName){
   const name    = decodeURIComponent(encodedName);
   const profile = loadFamilyProfile();
   if(!profile || !Array.isArray(profile.members)) return;
   const members     = profile.members.filter(member => member !== name);
   const nextProfile = { ...profile, members };
   setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
-  if(window.PAT_DB && PAT_DB.ready()){ PAT_DB.saveFamily(DB.church.code, nextProfile); }
+  if(window.PAT_DB && PAT_DB.ready()){
+    const familyId = localStorage.getItem('pat_family_id') || '';
+    // ★ #2 수정: 배열 + 입장기록(서브컬렉션) 동시 정리 → 삭제한 멤버가 폴링에서 부활하지 않도록.
+    //   새 엔드포인트 실패(미배포 등) 시 기존 saveFamily로 폴백(최소한 배열은 갱신 — 회귀 방지).
+    let ok = false;
+    if(familyId && PAT_DB.removeFamilyMember){
+      ok = await PAT_DB.removeFamilyMember(DB.church.code, familyId, name);
+    }
+    if(!ok){ PAT_DB.saveFamily(DB.church.code, nextProfile); }
+  }
   renderRegisteredFamilyRoom();
   renderFamilyProfile();
 }

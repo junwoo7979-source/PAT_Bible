@@ -84,6 +84,40 @@ window.PAT_DB = (() => {
   }
 
   // ════════════════════════════════════════════════════════
+  // 멀티 교회 — 등록 / 관리자 로그인 / 코드 확인
+  // ════════════════════════════════════════════════════════
+  async function registerChurch(code, name, adminId, adminPw) {
+    if (!ready()) return { ok: false, error: '서버 연결이 필요합니다' };
+    try {
+      const r = await fetch(`${API}/registerChurch`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({ code, name, adminId, adminPw }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) return { ok: false, error: data.error || ('오류 ' + r.status) };
+      return data;
+    } catch (e) { return { ok: false, error: e.message }; }
+  }
+
+  async function adminLogin(code, adminId, adminPw) {
+    if (!ready()) return { ok: false, error: '서버 연결이 필요합니다' };
+    try {
+      const r = await fetch(`${API}/adminLogin`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({ code, adminId, adminPw }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) return { ok: false, error: data.error || ('오류 ' + r.status) };
+      return data;
+    } catch (e) { return { ok: false, error: e.message }; }
+  }
+
+  async function checkChurchCode(code) {
+    if (!ready()) return null;
+    try { return await apiGet('checkChurchCode', { code }); } catch (e) { return null; }
+  }
+
+  // ════════════════════════════════════════════════════════
   // 구절 (Verse)
   // ════════════════════════════════════════════════════════
 
@@ -239,6 +273,15 @@ window.PAT_DB = (() => {
     try {
       await apiPost('joinFamily', { churchCode, familyId, deviceId: getDeviceId(), displayName });
     } catch (e) { console.warn('[PAT_DB] joinFamily:', e.message); }
+  }
+
+  // 구성원 삭제 — 배열 + 서브컬렉션 동시 정리(합집합 재출현 차단)
+  async function removeFamilyMember(churchCode, familyId, name) {
+    if (!ready() || !familyId || !name) return false;
+    try {
+      await apiPost('removeFamilyMember', { churchCode, familyId, name });
+      return true;
+    } catch (e) { console.warn('[PAT_DB] removeFamilyMember:', e.message); return false; }
   }
 
   async function getFamilyMembers(churchCode, familyId) {
@@ -409,8 +452,9 @@ window.PAT_DB = (() => {
 
   return {
     init, ready, getDeviceId,
+    registerChurch, adminLogin, checkChurchCode,
     saveVerse, getLatestVerse, subscribeVerse,
-    saveFamily, findFamilyByPassword, joinFamily, getFamilyMembers, getFamilyInfo, subscribeFamily,
+    saveFamily, findFamilyByPassword, joinFamily, removeFamilyMember, getFamilyMembers, getFamilyInfo, subscribeFamily,
     saveRecord, hasRecord,
     getDashboardStats, getFamilyStats, getFamilyProgress, transcribeAudio, getAwardRanking, getFamiliesList,
     resetFamilyPassword,

@@ -72,6 +72,12 @@ function applyStoredData(){
     return;
   }
 
+  // ★ 멀티 교회: 저장된 교회 코드 복원 (없으면 기본 11111=세광)
+  try {
+    const savedCode = localStorage.getItem('pat_church_code');
+    if(savedCode) DB.church.code = savedCode;
+  } catch(e) {}
+
   // ★ 날짜 기반 암송 세션 초기화 (페이지 로드 시 실행)
   if(typeof checkAndResetByDate === 'function'){
     checkAndResetByDate();
@@ -88,6 +94,9 @@ function applyStoredData(){
 function determineInitialScreen(){
   // localStorage 빠른 확인
   try {
+    // ★ 로그인 화면에 머무르려는 의도(세션) → 자동 로그인 건너뜀
+    //   (로그인 화면에서 새로고침/당겨서 새로고침 시 가족화면으로 튕기던 오류 방지)
+    if(sessionStorage.getItem('pat_stay_login')) return 's-login';
     const familyProfile = localStorage.getItem('pat_family_profile');
     const adminId = localStorage.getItem('pat_admin_id');
     const adminPw = localStorage.getItem('pat_admin_pw');
@@ -157,12 +166,20 @@ function completeAppInitialization(){
   let initialScreen = 's-login';
   let reason = '초기 상태';
 
+  // ★ 로그인 화면 유지 의도면 자동 라우팅 건너뜀(새로고침 시 가족화면 튕김 방지)
+  let _stayLogin = false;
+  try { _stayLogin = !!sessionStorage.getItem('pat_stay_login'); } catch(e) {}
+
   // 1️⃣ 저장된 가족방이 있으면 가족방으로 이동
   // ★ 중대버그 수정: familyId는 프로필 객체가 아니라 별도 키(pat_family_id)에 저장된다.
   //   기존 조건 savedFamily.familyId 는 항상 undefined → 가족이 있어도 관리자로 튕기던 원인.
   //   determineInitialScreen 과 동일하게 "프로필 존재"만으로 가족방 우선.
   const savedFamily = loadFamilyProfile();
-  if(savedFamily){
+  if(_stayLogin){
+    initialScreen = 's-login';
+    reason = '로그인 화면 유지';
+  }
+  else if(savedFamily){
     console.log('[PAT-STARTUP] 가족방 발견:', {
       familyId: localStorage.getItem('pat_family_id') || '(미동기화)',
       roomName: savedFamily.roomName,
@@ -231,25 +248,113 @@ function setAdminLoggedIn(logged) {
   }
 }
 
-function adminLogin(){
+// ★ 멀티 교회: 현재 교회를 입력 코드로 전환 (코드/이름을 DB + localStorage에 반영)
+function adoptChurch(code, name){
+  if(code){
+    DB.church.code = code;
+    try { localStorage.setItem('pat_church_code', code); } catch(e) {}
+  }
+  if(name){
+    DB.church.name = name;
+    try { localStorage.setItem('pat_church_name', name); } catch(e) {}
+  }
+}
+
+async function adminLogin(){
+  const code = (document.getElementById('adminChurchCode')?.value || '').trim();
   const id = document.getElementById('adminId').value.trim();
   const pw = document.getElementById('adminPw').value.trim();
-  if(id !== ADMIN.id || pw !== ADMIN.pw){ toast('아이디 또는 비밀번호가 올바르지 않습니다'); return; }
-  localStorage.setItem('pat_admin_id', id);
-  localStorage.setItem('pat_admin_pw', pw);
-  // Firebase Admin Token 저장 (Functions 인증용)
-  localStorage.setItem('pat_admin_token', 'fbde1052ecb6da2b9720c096ba8ea047a9327207399802d358dc308299e0d7ac');
-  document.getElementById('adminPw').value = '';
-  setAdminLoggedIn(true);
-  renderAdmin();
-  go('s-admin');
-  toast('✓ 관리자로 로그인되었습니다');
+
+  // ── 레거시 세광교회: 코드 비움 또는 11111 + admin/1234 (테스트 기간 현행 유지) ──
+  if(!code || code === '11111'){
+    if(id === ADMIN.id && pw === ADMIN.pw){
+      adoptChurch('11111', '세광교회');
+      localStorage.setItem('pat_admin_id', id);
+      localStorage.setItem('pat_admin_pw', pw);
+      // Firebase Admin Token 저장 (레거시 전역 인증용)
+      localStorage.setItem('pat_admin_token', 'fbde1052ecb6da2b9720c096ba8ea047a9327207399802d358dc308299e0d7ac');
+      document.getElementById('adminPw').value = '';
+      setAdminLoggedIn(true);
+      renderAdmin();
+      go('s-admin');
+      toast('✓ 관리자로 로그인되었습니다');
+      return;
+    }
+    toast('아이디 또는 비밀번호가 올바르지 않습니다');
+    return;
+  }
+
+  // ── 신규 교회: 백엔드에서 교회별 관리자 검증 ──
+  if(!(window.PAT_DB && PAT_DB.ready())){ toast('서버 연결이 필요합니다'); return; }
+  const r = await PAT_DB.adminLogin(code, id, pw);
+  if(r && r.ok){
+    adoptChurch(code, r.name);
+    localStorage.setItem('pat_admin_id', id);
+    localStorage.setItem('pat_admin_pw', pw);
+    // 교회별 자격(id/pw)으로 인증 → 레거시 전역 토큰 제거
+    localStorage.removeItem('pat_admin_token');
+    document.getElementById('adminPw').value = '';
+    setAdminLoggedIn(true);
+    renderAdmin();
+    go('s-admin');
+    toast('✓ ' + (r.name || '교회') + ' 관리자 로그인');
+    return;
+  }
+  toast((r && r.error) || '로그인 실패');
+}
+
+// ── 교회 신규 등록 (셀프 등록) ──────────────────────────────
+async function registerChurchSubmit(){
+  const name = (document.getElementById('regChurchName')?.value || '').trim();
+  const code = (document.getElementById('regChurchCode')?.value || '').trim();
+  const id   = (document.getElementById('regAdminId')?.value || '').trim();
+  const pw   = (document.getElementById('regAdminPw')?.value || '').trim();
+  const pw2  = (document.getElementById('regAdminPw2')?.value || '').trim();
+
+  if(!name){ toast('교회 이름을 입력하세요'); return; }
+  if(!/^[#@*!_-]\d{6}$/.test(code)){ toast('교회 코드는 특수문자 1개 + 숫자 6자리입니다 (예: #482913)'); return; }
+  if(!/^[A-Za-z][A-Za-z0-9]{2,19}$/.test(id)){ toast('관리자 아이디는 영문으로 시작하는 3~20자입니다'); return; }
+  if(!/^\d{8}$/.test(pw)){ toast('관리자 비밀번호는 숫자 8자리입니다'); return; }
+  if(pw !== pw2){ toast('비밀번호가 일치하지 않습니다'); return; }
+  if(!(window.PAT_DB && PAT_DB.ready())){ toast('서버 연결이 필요합니다'); return; }
+
+  const r = await PAT_DB.registerChurch(code, name, id, pw);
+  if(r && r.ok){
+    // 등록 직후 자동 로그인 → 본인 교회 관리자 화면
+    adoptChurch(code, r.name || name);
+    localStorage.setItem('pat_admin_id', id);
+    localStorage.setItem('pat_admin_pw', pw);
+    localStorage.removeItem('pat_admin_token');
+    setAdminLoggedIn(true);
+    if(document.getElementById('regAdminPw'))  document.getElementById('regAdminPw').value  = '';
+    if(document.getElementById('regAdminPw2')) document.getElementById('regAdminPw2').value = '';
+    renderAdmin();
+    go('s-admin');
+    alert('✓ "' + (r.name || name) + '" 등록 완료!\n\n교인 등록 코드: ' + code + '\n이 코드를 교인들에게 공유하세요.\n교인은 이 코드로 입장 후 본인 가족방 비밀번호를 새로 설정합니다.');
+    return;
+  }
+  toast((r && r.error) || '등록 실패');
+}
+
+async function checkRegChurchCode(){
+  const code = (document.getElementById('regChurchCode')?.value || '').trim();
+  const el = document.getElementById('regCodeStatus');
+  if(!el) return;
+  if(!/^[#@*!_-]\d{6}$/.test(code)){ el.textContent = '형식: 특수문자1 + 숫자6 (예: #482913)'; el.style.color = 'var(--muted)'; return; }
+  if(!(window.PAT_DB && PAT_DB.ready())){ el.textContent = ''; return; }
+  const r = await PAT_DB.checkChurchCode(code);
+  if(r && r.available){ el.textContent = '✓ 사용 가능한 코드입니다'; el.style.color = 'var(--accent)'; }
+  else if(r && !r.available){ el.textContent = '✗ 이미 사용 중인 코드입니다'; el.style.color = 'var(--danger)'; }
+  else { el.textContent = ''; }
 }
 function adminLogout(){
   localStorage.removeItem('pat_admin_id');
   localStorage.removeItem('pat_admin_pw');
   localStorage.removeItem('pat_admin_token');
   setAdminLoggedIn(false);
+  // ★ 새로고침(당겨서 새로고침) 시 이전 화면으로 튕기지 않도록 — go('s-login')과 동일한 보호 플래그.
+  //   (초기화 로직 determineInitialScreen/completeAppInitialization 이 이 플래그를 보면 무조건 로그인 유지)
+  try { sessionStorage.setItem('pat_stay_login', '1'); } catch(e) {}
   // 로그아웃 후 뒤로가기에서 이전 페이지로 돌아가지 않도록 replaceState 사용
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
   const target = document.getElementById('s-login');
@@ -266,10 +371,15 @@ function memberLogout(){
   localStorage.removeItem('pat_family_profile');
   localStorage.removeItem('pat_family_id');
   localStorage.removeItem('pat_device_id');
+  // ★ localStorage 쓰기 실패 시 남았을 수 있는 sessionStorage 백업까지 제거
+  //   (loadFamilyProfile 이 sessionStorage 백업을 읽어 새로고침 시 가족화면 복원 → 튕김 방지)
+  try { sessionStorage.removeItem('pat_family_profile'); } catch(e) {}
   // 폴링 중지
   if(window.familyProgressPollTimer) clearInterval(window.familyProgressPollTimer);
   window.familyProgressPollTimer = null;
   window.familyProgressPollKey = '';
+  // ★ 새로고침(당겨서 새로고침) 시 이전 화면으로 튕기지 않도록 — go('s-login')과 동일한 보호 플래그.
+  try { sessionStorage.setItem('pat_stay_login', '1'); } catch(e) {}
   // 로그아웃 후 뒤로가기에서 이전 페이지로 돌아가지 않도록 replaceState 사용
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
   const target = document.getElementById('s-login');
@@ -366,13 +476,19 @@ function _screenUrl(id){
 }
 
 function go(id, resetScroll=true, animate=false){
+  // ★ 로그인 화면 유지 플래그: s-login 진입 시 세트, 가족/관리자 콘텐츠 진입 시 해제.
+  //   (로그인 화면에서 새로고침해도 가족화면으로 튕기지 않게)
+  try {
+    if(id === 's-login') sessionStorage.setItem('pat_stay_login', '1');
+    else if(id === 's-family' || id === 's-admin') sessionStorage.removeItem('pat_stay_login');
+  } catch(e) {}
   // animate는 항상 false (애니메이션 완전 제거)
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
   const target = document.getElementById(id);
   if(!target) return;
   target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
-  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw'];
+  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register'];
   tabbar.style.display = noTab.includes(id) ? 'none' : 'flex';
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);
@@ -451,6 +567,25 @@ async function enterChurch(){
   const code = document.getElementById('churchCode').value.trim();
   const profile = loadFamilyProfile();
   const famPw = profile?.familyPassword;
+
+  // ★ 멀티 교회: 신규 형식 코드(#482913 등)면 등록된 다른 교회로 전환 후 입장
+  //   (세광 11111·가족 비밀번호는 이 분기를 타지 않아 기존 동작 그대로)
+  if(code && code !== DB.church.code && !(famPw && code === famPw) && /^[#@*!_-]\d{6}$/.test(code)){
+    if(window.PAT_DB && PAT_DB.ready()){
+      const cfg = await PAT_DB.getConfig(code);
+      if(cfg){
+        adoptChurch(code, cfg.appTitle);
+        document.getElementById('churchName').textContent = memberHomeTitle();
+        renderMemberDateLabels();
+        renderFamily();
+        go('s-family');
+        return;
+      }
+      toast('등록되지 않은 교회 코드입니다');
+      return;
+    }
+  }
+
   const hasCustomPw = famPw && famPw !== DB.church.code;
   if(hasCustomPw){
     if(code !== famPw){ toast('가족 비밀번호가 올바르지 않습니다 — 가족 외 접근 불가'); return; }

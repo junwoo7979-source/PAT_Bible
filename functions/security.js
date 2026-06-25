@@ -8,7 +8,9 @@ function envList(name) {
 }
 
 function validChurchCode(code) {
-  return typeof code === 'string' && /^[a-zA-Z0-9_-]{1,30}$/.test(code);
+  // 레거시(11111 등) + 신규 형식(특수문자1 + 숫자6, 예: #482913) 모두 허용.
+  // 경로/URL 안전 문자만: 영숫자, _ - 와 안전 특수문자 # @ * !
+  return typeof code === 'string' && /^[#@*!a-zA-Z0-9_-]{1,30}$/.test(code);
 }
 
 function applyCors(req, res, options = {}) {
