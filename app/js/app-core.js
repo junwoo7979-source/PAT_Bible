@@ -3,7 +3,8 @@
 
 // ── 전역 데이터 ───────────────────────────────────────────
 const DB = {
-  church: { name:'세광교회', code:'11111', memberCount:248 },
+  // ★ 중립 시작: 기본 교회 미선택(브랜딩 "PAT Bible"). 교회는 코드 입력/관리자 로그인으로 선택.
+  church: { name:'', code:'', memberCount:0 },
   verse: { ref:'요한복음 3:16', weekOf:'2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 일요일',
     text:'하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라' },
   members: [
@@ -72,10 +73,14 @@ function applyStoredData(){
     return;
   }
 
-  // ★ 멀티 교회: 저장된 교회 코드 복원 (없으면 기본 11111=세광)
+  // ★ 멀티 교회 + 중립 시작: 저장된 교회 코드 복원.
+  //   - 코드 저장됨(신규 사용자) → 그 교회
+  //   - 코드 없지만 가족/관리자 데이터 있음(멀티교회 이전 기존 사용자) → 세광 11111 폴백(회귀 방지)
+  //   - 그 외(신규 방문자) → 중립(code 빈 값) → "교회 코드를 입력하세요" 화면
   try {
     const savedCode = localStorage.getItem('pat_church_code');
     if(savedCode) DB.church.code = savedCode;
+    else if(loadFamilyProfile() || localStorage.getItem('pat_admin_id')) DB.church.code = '11111';
   } catch(e) {}
 
   // ★ 개발자 통계 숨김 진입: ?dev=1 → 개발자 통계 화면 (일반 라우팅 건너뜀)
@@ -220,8 +225,16 @@ async function initFirebase(){
   if(!ok){ console.log('[PAT] 로컬 모드'); return; }
   console.log('[PAT] Firebase 모드 활성화');
 
-  // 1️⃣ Firebase에서 설정(구절, 앱제목) 로드
+  // ★ 중립 시작: 선택된 교회가 없으면 어떤 교회 설정도 로드하지 않음(세광 자동표시 방지)
+  if(!DB.church.code){ console.log('[PAT] 교회 미선택 — 설정 로드 보류'); return; }
+  await loadChurchConfig();
+}
+
+// 선택된 교회의 설정(구절·제목) 로드 + 폴링 구독 — 교회 선택/전환 시 호출
+async function loadChurchConfig(){
+  if(!window.PAT_DB || !PAT_DB.ready() || !DB.church.code) return;
   const config = await PAT_DB.getConfig(DB.church.code);
+  if(config && config.appTitle) DB.church.name = config.appTitle;
   let cloudVerse = config && config.verse ? config.verse : null;
   if(!cloudVerse && PAT_DB.getLatestVerse) {
     cloudVerse = await PAT_DB.getLatestVerse(DB.church.code);
@@ -229,9 +242,11 @@ async function initFirebase(){
   if(cloudVerse) {
     applyCloudConfig({ appTitle: config ? config.appTitle : undefined, verse: cloudVerse });
     console.log('[PAT] Firebase 구절 로드됨:', DB.verse.ref);
+  } else {
+    // 구절 미등록 교회로 전환 → 이전 교회/샘플 구절이 남지 않도록 비움
+    DB.verse = { ref:'', text:'', weekOf:'' };
   }
-
-  // 2️⃣ 설정 폴링 구독 (구절 + 앱제목)
+  // 설정 폴링 구독 (구절 + 앱제목) — subscribeConfig 가 이전 구독을 정리하므로 전환 시 재호출 안전
   PAT_DB.subscribeConfig(DB.church.code, config => {
     applyCloudConfig(config);
     const activeId = document.querySelector('.screen.active')?.id;
@@ -285,6 +300,7 @@ async function adminLogin(){
       localStorage.setItem('pat_admin_token', 'fbde1052ecb6da2b9720c096ba8ea047a9327207399802d358dc308299e0d7ac');
       document.getElementById('adminPw').value = '';
       setAdminLoggedIn(true);
+      if(typeof loadChurchConfig === 'function') await loadChurchConfig();
       renderAdmin();
       go('s-admin');
       toast('✓ 관리자로 로그인되었습니다');
@@ -305,6 +321,7 @@ async function adminLogin(){
     localStorage.removeItem('pat_admin_token');
     document.getElementById('adminPw').value = '';
     setAdminLoggedIn(true);
+    if(typeof loadChurchConfig === 'function') await loadChurchConfig();
     renderAdmin();
     go('s-admin');
     toast('✓ ' + (r.name || '교회') + ' 관리자 로그인');
@@ -596,44 +613,44 @@ if(typeof window !== 'undefined' && window.history){
 }
 
 // ── 교회 입장 ─────────────────────────────────────────────
-async function enterChurch(){
-  const code = document.getElementById('churchCode').value.trim();
-  const profile = loadFamilyProfile();
-  const famPw = profile?.familyPassword;
-
-  // ★ 멀티 교회: 신규 형식 코드(#482913 등)면 등록된 다른 교회로 전환 후 입장
-  //   (세광 11111·가족 비밀번호는 이 분기를 타지 않아 기존 동작 그대로)
-  if(code && code !== DB.church.code && !(famPw && code === famPw) && /^[#@*!_-]\d{6}$/.test(code)){
-    if(window.PAT_DB && PAT_DB.ready()){
-      const cfg = await PAT_DB.getConfig(code);
-      if(cfg){
-        adoptChurch(code, cfg.appTitle);
-        document.getElementById('churchName').textContent = memberHomeTitle();
-        renderMemberDateLabels();
-        renderFamily();
-        go('s-family');
-        return;
-      }
-      toast('등록되지 않은 교회 코드입니다');
-      return;
-    }
-  }
-
-  const hasCustomPw = famPw && famPw !== DB.church.code;
-  if(hasCustomPw){
-    if(code !== famPw){ toast('가족 비밀번호가 올바르지 않습니다 — 가족 외 접근 불가'); return; }
-  } else {
-    if(code !== DB.church.code && !(famPw && code === famPw)){
-      toast('교회 코드가 올바르지 않습니다'); return;
-    }
-  }
-  if(famPw && code === famPw && typeof refreshFamilyProfileByPassword === 'function'){
-    await refreshFamilyProfileByPassword(profile, famPw);
-  }
+function enterMemberHome(){
   document.getElementById('churchName').textContent = memberHomeTitle();
   renderMemberDateLabels();
   renderFamily();
   go('s-family');
+}
+
+async function enterChurch(){
+  const code = document.getElementById('churchCode').value.trim();
+  if(!code){ toast('교회 코드 또는 가족 비밀번호를 입력하세요'); return; }
+  const profile = loadFamilyProfile();
+  const famPw = profile?.familyPassword;
+
+  // 1) 내 가족 비밀번호로 입장 (이미 가족방이 있는 기기)
+  if(famPw && code === famPw){
+    if(typeof refreshFamilyProfileByPassword === 'function') await refreshFamilyProfileByPassword(profile, famPw);
+    if(DB.church.code && typeof loadChurchConfig === 'function') await loadChurchConfig();
+    enterMemberHome();
+    return;
+  }
+
+  // 2) 이미 선택된 교회 코드와 일치 → 그 교회로 입장
+  if(DB.church.code && code === DB.church.code){
+    enterMemberHome();
+    return;
+  }
+
+  // 3) 입력한 코드를 교회 코드로 조회 → 등록된 교회면 전환 후 입장 (세광 11111 포함)
+  if(window.PAT_DB && PAT_DB.ready()){
+    const cfg = await PAT_DB.getConfig(code);
+    if(cfg){
+      adoptChurch(code, cfg.appTitle);
+      if(typeof loadChurchConfig === 'function') await loadChurchConfig();
+      enterMemberHome();
+      return;
+    }
+  }
+  toast('교회 코드가 올바르지 않습니다');
 }
 
 // ── 공통 유틸 ─────────────────────────────────────────────
