@@ -15,6 +15,8 @@ const db = getFirestore();
 
 // Groq(클라우드 Whisper) API 키 — Firebase Secret으로 관리(코드/깃에 노출 안 됨)
 const GROQ_API_KEY = defineSecret('GROQ_API_KEY');
+// 개발자(플랫폼 운영자) 전용 통계 토큰 — Firebase Secret(앱/코드에 노출 없음)
+const PAT_DEV_TOKEN = defineSecret('PAT_DEV_TOKEN');
 
 function begin(req, res) {
   if (!applyCors(req, res)) return false;
@@ -141,6 +143,65 @@ exports.adminLogin = onRequest({ cors: true, region: 'us-central1' }, async (req
     }
     const nameDoc = await db.doc(`churches/${code}`).get();
     res.json({ ok: true, code, name: (nameDoc.exists && nameDoc.data().name) || '' });
+  } catch (e) { errRes(res, e); }
+});
+
+// ════════════════════════════════════════════════════════
+// 개발자(플랫폼 운영자) 전용 — 전 교회 사용 현황 통계
+// ════════════════════════════════════════════════════════
+exports.getPlatformStats = onRequest({ cors: true, region: 'us-central1', secrets: [PAT_DEV_TOKEN] }, async (req, res) => {
+  if (!begin(req, res)) return;
+  try {
+    const token = hdr(req, 'x-pat-dev-token') || (req.query && req.query.token) || '';
+    if (!token || token !== PAT_DEV_TOKEN.value()) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+    // 서브컬렉션만 있는 레거시(세광 11111 등)도 포함하려면 listDocuments() 사용
+    const churchRefs = await db.collection('churches').listDocuments();
+    let totalFamilies = 0, totalMembers = 0;
+    const churches = [];
+    for (const cref of churchRefs) {
+      const code = cref.id;
+      const [rootSnap, famSnap] = await Promise.all([cref.get(), cref.collection('families').get()]);
+      let name = (rootSnap.exists && rootSnap.data().name) || '';
+      if (!name) {
+        const cfg = await cref.collection('config').doc('current').get();
+        name = (cfg.exists && cfg.data().appTitle) || '';
+      }
+      let memberCount = 0;
+      for (const fdoc of famSnap.docs) {
+        const data = fdoc.data();
+        const names = new Set();
+        if (Array.isArray(data.members)) data.members.forEach(m => {
+          const n = String(typeof m === 'string' ? m : (m && (m.displayName || m.name)) || '').trim();
+          if (n) names.add(n);
+        });
+        const subs = await fdoc.ref.collection('members').get();
+        subs.docs.forEach(d => { const n = String((d.data().displayName || d.data().name) || '').trim(); if (n) names.add(n); });
+        memberCount += names.size;
+      }
+      const familyCount = famSnap.size;
+      totalFamilies += familyCount;
+      totalMembers += memberCount;
+      let createdAt = null;
+      try { const ca = rootSnap.exists && rootSnap.data().createdAt; if (ca && ca.toDate) createdAt = ca.toDate().toISOString(); } catch (e) {}
+      churches.push({ code, name, familyCount, memberCount, createdAt });
+    }
+    churches.sort((a, b) => (b.memberCount - a.memberCount) || (b.familyCount - a.familyCount));
+    res.json({ totalChurches: churches.length, totalFamilies, totalMembers, churches });
+  } catch (e) { errRes(res, e); }
+});
+
+// 개발자 전용 — 교회 전체 삭제(테스트/스팸 정리). 하위 전부 재귀 삭제.
+exports.deleteChurch = onRequest({ cors: true, region: 'us-central1', secrets: [PAT_DEV_TOKEN] }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const token = hdr(req, 'x-pat-dev-token');
+    if (!token || token !== PAT_DEV_TOKEN.value()) { res.status(401).json({ error: 'Unauthorized' }); return; }
+    const { code } = req.body || {};
+    if (!validChurchCode(code)) { res.status(400).json({ error: 'Valid code required' }); return; }
+    await db.recursiveDelete(db.doc(`churches/${code}`)); // 문서 + 모든 하위 컬렉션 삭제
+    res.json({ ok: true, code });
   } catch (e) { errRes(res, e); }
 });
 

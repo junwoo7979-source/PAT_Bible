@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>PAT Bible — 개발자 통계</title>
+<style>
+  :root{ --accent:#2f6fed; --danger:#e0533d; --bg:#f4f6fb; --surface:#fff; --line:#e3e8f0; --text:#1b2330; --muted:#7a8699; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; background:var(--bg); color:var(--text); }
+  .wrap{ max-width:920px; margin:0 auto; padding:20px 16px 60px; }
+  h1{ font-size:20px; margin:6px 0 2px; }
+  .sub{ color:var(--muted); font-size:13px; margin:0 0 18px; }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  input{ width:100%; padding:12px; font-size:15px; border:1px solid var(--line); border-radius:10px; font-family:inherit; }
+  button{ font-family:inherit; cursor:pointer; border:none; border-radius:10px; }
+  .btn{ background:var(--accent); color:#fff; padding:12px 16px; font-size:15px; font-weight:700; width:100%; margin-top:10px; }
+  .summary{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .stat{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 12px; text-align:center; }
+  .stat .num{ font-size:28px; font-weight:800; color:var(--accent); }
+  .stat .lbl{ font-size:12px; color:var(--muted); margin-top:4px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th,td{ padding:9px 8px; border-bottom:1px solid var(--line); text-align:left; }
+  th{ color:var(--muted); font-weight:700; font-size:12px; }
+  td.num,th.num{ text-align:right; }
+  .code{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; color:var(--accent); }
+  .del{ background:var(--danger); color:#fff; padding:5px 9px; font-size:12px; }
+  .muted{ color:var(--muted); }
+  .err{ color:var(--danger); font-size:13px; margin-top:8px; }
+  .row-actions{ text-align:right; }
+  .refresh{ background:var(--surface); border:1px solid var(--line); color:var(--text); padding:8px 14px; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📊 PAT Bible — 개발자 통계</h1>
+  <p class="sub">플랫폼 전체 교회·사용 현황 (개발자 전용)</p>
+
+  <!-- 로그인 -->
+  <div class="card" id="loginCard">
+    <label class="muted" style="font-size:13px">개발자 토큰</label>
+    <input id="devToken" type="password" placeholder="개발자 토큰 입력" autocomplete="off" style="margin-top:6px">
+    <button class="btn" onclick="loadStats()">확인</button>
+    <div class="err" id="loginErr" style="display:none"></div>
+  </div>
+
+  <!-- 결과 -->
+  <div id="result" style="display:none">
+    <div class="summary">
+      <div class="stat"><div class="num" id="sChurches">–</div><div class="lbl">교회</div></div>
+      <div class="stat"><div class="num" id="sFamilies">–</div><div class="lbl">가정</div></div>
+      <div class="stat"><div class="num" id="sMembers">–</div><div class="lbl">인원</div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <b>교회별 현황</b>
+        <button class="refresh" onclick="loadStats()">🔄 새로고침</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>교회</th><th>코드</th><th class="num">가정</th><th class="num">인원</th><th>등록일</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:12px;margin:10px 2px 0">※ 삭제는 되돌릴 수 없습니다. 테스트/스팸 교회 정리용입니다.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://us-central1-pat-bible-app.cloudfunctions.net';
+function token(){ return localStorage.getItem('pat_dev_token') || ''; }
+
+async function loadStats(){
+  const inputTok = document.getElementById('devToken').value.trim();
+  const tok = inputTok || token();
+  if(!tok){ showErr('토큰을 입력하세요'); return; }
+  try{
+    const r = await fetch(`${API}/getPlatformStats`, { headers: { 'x-pat-dev-token': tok } });
+    if(r.status === 401){ showErr('토큰이 올바르지 않습니다'); return; }
+    if(!r.ok){ showErr('오류 ' + r.status); return; }
+    const d = await r.json();
+    localStorage.setItem('pat_dev_token', tok);
+    render(d);
+  }catch(e){ showErr('연결 오류: ' + e.message); }
+}
+
+function showErr(m){ const e = document.getElementById('loginErr'); e.textContent = m; e.style.display = 'block'; }
+
+function render(d){
+  document.getElementById('loginCard').style.display = 'none';
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('sChurches').textContent = d.totalChurches;
+  document.getElementById('sFamilies').textContent = d.totalFamilies;
+  document.getElementById('sMembers').textContent = d.totalMembers;
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  document.getElementById('rows').innerHTML = (d.churches||[]).map(c => {
+    const date = c.createdAt ? c.createdAt.slice(0,10) : '<span class="muted">–</span>';
+    return `<tr>
+      <td>${esc(c.name) || '<span class="muted">(이름없음)</span>'}</td>
+      <td class="code">${esc(c.code)}</td>
+      <td class="num">${c.familyCount}</td>
+      <td class="num">${c.memberCount}</td>
+      <td>${date}</td>
+      <td class="row-actions"><button class="del" onclick="delChurch('${encodeURIComponent(c.code)}','${esc(c.name)}')">삭제</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function delChurch(encCode, name){
+  const code = decodeURIComponent(encCode);
+  if(!confirm(`"${name||code}" (${code}) 교회를 완전히 삭제합니다.\n해당 교회의 모든 가정·기록이 영구 삭제됩니다. 계속할까요?`)) return;
+  try{
+    const r = await fetch(`${API}/deleteChurch`, {
+      method:'POST', headers:{ 'Content-Type':'application/json', 'x-pat-dev-token': token() },
+      body: JSON.stringify({ code })
+    });
+    if(!r.ok){ alert('삭제 실패: ' + r.status); return; }
+    loadStats();
+  }catch(e){ alert('연결 오류: ' + e.message); }
+}
+
+// 저장된 토큰이 있으면 자동 로드
+if(token()){ document.getElementById('devToken').value = token(); loadStats(); }
+</script>
+</body>
+</html>

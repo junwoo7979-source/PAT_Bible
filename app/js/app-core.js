@@ -78,6 +78,16 @@ function applyStoredData(){
     if(savedCode) DB.church.code = savedCode;
   } catch(e) {}
 
+  // ★ 개발자 통계 숨김 진입: ?dev=1 → 개발자 통계 화면 (일반 라우팅 건너뜀)
+  if(params.has('dev')){
+    go('s-dev-stats');
+    try {
+      const t = localStorage.getItem('pat_dev_token');
+      if(t){ const el = document.getElementById('devStatsToken'); if(el) el.value = t; setTimeout(()=>{ if(typeof devStatsLoad==='function') devStatsLoad(); }, 200); }
+    } catch(e) {}
+    return;
+  }
+
   // ★ 날짜 기반 암송 세션 초기화 (페이지 로드 시 실행)
   if(typeof checkAndResetByDate === 'function'){
     checkAndResetByDate();
@@ -347,6 +357,30 @@ async function checkRegChurchCode(){
   else if(r && !r.available){ el.textContent = '✗ 이미 사용 중인 코드입니다'; el.style.color = 'var(--danger)'; }
   else { el.textContent = ''; }
 }
+
+// ── 개발자 통계 (앱 내 숨김 화면) ──────────────────────────
+async function devStatsLoad(){
+  const tok = ((document.getElementById('devStatsToken')?.value || '').trim()) || localStorage.getItem('pat_dev_token') || '';
+  if(!tok){ toast('토큰을 입력하세요'); return; }
+  const base = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiBase) || 'https://us-central1-pat-bible-app.cloudfunctions.net';
+  try {
+    const r = await fetch(base + '/getPlatformStats', { headers: { 'x-pat-dev-token': tok } });
+    if(r.status === 401){ toast('토큰이 올바르지 않습니다'); return; }
+    if(!r.ok){ toast('오류 ' + r.status); return; }
+    const d = await r.json();
+    localStorage.setItem('pat_dev_token', tok);
+    document.getElementById('devLoginBox').style.display = 'none';
+    document.getElementById('devStatsResult').style.display = 'block';
+    document.getElementById('devC').textContent = d.totalChurches;
+    document.getElementById('devF').textContent = d.totalFamilies;
+    document.getElementById('devM').textContent = d.totalMembers;
+    document.getElementById('devRows').innerHTML = (d.churches || []).map(c =>
+      `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)">
+         <span>${esc(c.name || '(이름없음)')} <small class="muted">${esc(c.code)}</small></span>
+         <span style="white-space:nowrap">가정 ${c.familyCount} · 인원 ${c.memberCount}</span>
+       </div>`).join('') || '<p class="muted" style="text-align:center;margin:8px 0">등록된 교회가 없습니다</p>';
+  } catch(e){ toast('연결 오류'); }
+}
 function adminLogout(){
   localStorage.removeItem('pat_admin_id');
   localStorage.removeItem('pat_admin_pw');
@@ -488,7 +522,7 @@ function go(id, resetScroll=true, animate=false){
   if(!target) return;
   target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
-  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register'];
+  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register','s-dev-stats'];
   tabbar.style.display = noTab.includes(id) ? 'none' : 'flex';
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);

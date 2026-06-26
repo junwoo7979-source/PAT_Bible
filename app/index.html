@@ -315,6 +315,29 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div class="spacer"></div>
   </section>
 
+  <!-- S-dev-stats: 개발자 전용 통계 (?dev=1 또는 숨김 진입) -->
+  <section class="screen" id="s-dev-stats">
+    <button class="back" onclick="go('s-login')">‹ 처음으로</button>
+    <div class="logo">📊</div>
+    <h1 class="center">개발자 통계</h1>
+    <p class="center muted">플랫폼 전체 교회·사용 현황</p>
+    <div id="devLoginBox" style="margin-top:12px">
+      <input class="field" id="devStatsToken" type="password" placeholder="개발자 토큰" autocomplete="off">
+      <button class="btn" onclick="devStatsLoad()">확인</button>
+    </div>
+    <div id="devStatsResult" style="display:none">
+      <div class="card" style="display:flex;justify-content:space-around;text-align:center;margin-top:12px">
+        <div><div style="font-size:24px;font-weight:800;color:var(--accent)" id="devC">–</div><div class="muted" style="font-size:12px">교회</div></div>
+        <div><div style="font-size:24px;font-weight:800;color:var(--accent)" id="devF">–</div><div class="muted" style="font-size:12px">가정</div></div>
+        <div><div style="font-size:24px;font-weight:800;color:var(--accent)" id="devM">–</div><div class="muted" style="font-size:12px">인원</div></div>
+      </div>
+      <div class="card" style="margin-top:8px"><div id="devRows" style="font-size:calc(var(--fs)-2px)"></div></div>
+      <button class="btn ghost" onclick="devStatsLoad()">🔄 새로고침</button>
+      <p class="center muted" style="margin-top:10px;font-size:calc(var(--fs)-3px)">상세·삭제는 <b>/app/dev-stats.html</b> 페이지에서</p>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
   <!-- S-admin: 관리자 페이지 (성경 구절 입력이 메인) -->
   <section class="screen" id="s-admin">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
