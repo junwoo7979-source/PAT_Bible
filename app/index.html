@@ -241,11 +241,52 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <p class="muted center" style="margin-bottom:12px">교회 코드 또는 가족 비밀번호를 입력하세요</p>
     <input class="field code-input" id="churchCode" maxlength="20" placeholder="· · · · ·" autocomplete="off" style="letter-spacing:4px">
     <button class="btn" onclick="enterChurch()">시작하기</button>
+    <button class="btn ghost" style="margin-top:8px;border:1.5px solid var(--accent);color:var(--accent);font-weight:700" onclick="openInstallGuide()">📱 폰 홈 화면에 앱 설치하기</button>
     <button class="btn ghost" style="margin-top:8px" onclick="location.reload()">🔄 새로고침</button>
     <button class="btn ghost" style="margin-top:8px" onclick="go('s-church-register')">🏛️ 새 교회 등록 (관리자)</button>
     <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-reset-pw')">🔑 교회 관리자 초기화</button>
     <button class="back" style="margin:8px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
     <button class="back" style="margin:8px auto 0;display:block;color:var(--muted);font-size:calc(var(--fs)-3px)" onclick="window.location.href='?reset=1'">🔄 캐시 초기화 (데모 테스트용)</button>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- S-install: 홈 화면 설치 안내 -->
+  <section class="screen" id="s-install">
+    <button class="back" onclick="go('s-login')">‹ 처음으로</button>
+    <div class="logo">📱</div>
+    <h1 class="center">홈 화면에 앱 설치</h1>
+    <p class="center muted" style="line-height:1.7">매번 주소 입력 없이, 홈 화면 <b>아이콘</b>으로 바로 실행하세요.<br>음성 기능도 더 안정적으로 동작합니다.</p>
+    <button class="btn" id="installNowBtn" style="display:none;margin-top:14px" onclick="installPatApp()">📲 지금 바로 설치하기</button>
+
+    <div class="card" id="installAndroid" style="margin-top:14px">
+      <h3 style="margin:0 0 8px">🤖 안드로이드 (Chrome)</h3>
+      <ol style="margin:0;padding-left:20px;line-height:1.95">
+        <li>Chrome 브라우저로 이 페이지 열기</li>
+        <li>오른쪽 위 메뉴 <b>(⋮)</b> 누르기</li>
+        <li><b>「앱 설치」</b> 또는 「홈 화면에 추가」 선택</li>
+        <li>홈 화면의 <b>PAT 아이콘</b>으로 실행</li>
+      </ol>
+    </div>
+
+    <div class="card" id="installIos" style="margin-top:8px">
+      <h3 style="margin:0 0 8px">🍎 아이폰 / 아이패드 (Safari)</h3>
+      <ol style="margin:0;padding-left:20px;line-height:1.95">
+        <li>Safari 브라우저로 이 페이지 열기</li>
+        <li>아래쪽 <b>공유 버튼 (⬆️)</b> 누르기</li>
+        <li><b>「홈 화면에 추가」</b> 선택</li>
+        <li>홈 화면의 <b>PAT 아이콘</b>으로 실행</li>
+      </ol>
+    </div>
+
+    <div class="card" id="installKakao" style="margin-top:8px">
+      <h3 style="margin:0 0 8px">💬 카카오톡에서 열었다면</h3>
+      <ol style="margin:0;padding-left:20px;line-height:1.95">
+        <li>오른쪽 위/아래 메뉴 <b>(⋮ 또는 …)</b> 누르기</li>
+        <li><b>「다른 브라우저로 열기」</b> 선택</li>
+        <li>Chrome(안드로이드)·Safari(아이폰)에서 위 방법대로 설치</li>
+      </ol>
+      <p class="muted" style="margin:8px 0 0;font-size:calc(var(--fs)-3px)">※ 카카오톡 안에서는 마이크·설치가 불안정하니 다른 브라우저를 권장합니다.</p>
+    </div>
     <div class="spacer"></div>
   </section>
 

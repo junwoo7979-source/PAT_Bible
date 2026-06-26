@@ -521,7 +521,7 @@ function go(id, resetScroll=true, animate=false){
   if(!target) return;
   target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
-  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register','s-dev-stats'];
+  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register','s-dev-stats','s-install'];
   tabbar.style.display = noTab.includes(id) ? 'none' : 'flex';
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);
@@ -673,6 +673,25 @@ async function installPatApp(){
     return;
   }
   alert('Android 설치 방법\n1. Chrome에서 이 페이지 열기\n2. 오른쪽 위 메뉴(⋮) 누르기\n3. "앱 설치" 또는 "홈 화면에 추가" 선택\n4. PAT Bible 아이콘으로 실행');
+}
+
+// ── 설치 안내 화면 열기 (현재 플랫폼 강조 + 네이티브 설치 버튼 노출) ──
+function openInstallGuide(){
+  go('s-install');
+  try {
+    const ua = (navigator.userAgent || '');
+    const isAndroid = /Android/i.test(ua);
+    const isIos = /iPhone|iPad|iPod/i.test(ua);
+    const isKakao = /KAKAOTALK/i.test(ua);
+    // 안드로이드 Chrome에서 설치 프롬프트가 준비됐으면 "지금 바로 설치" 버튼 노출
+    const btn = document.getElementById('installNowBtn');
+    if(btn) btn.style.display = (deferredInstallPrompt && isAndroid && !isKakao) ? 'block' : 'none';
+    // 현재 플랫폼 카드 강조
+    const hi = (id, on) => { const e = document.getElementById(id); if(e) e.style.outline = on ? '2px solid var(--accent)' : 'none'; };
+    hi('installKakao', isKakao);
+    hi('installIos', isIos && !isKakao);
+    hi('installAndroid', isAndroid && !isKakao);
+  } catch(e) {}
 }
 
 // ── 메인화면 ⋮ 메뉴 ──────────────────────────────────────
