@@ -346,10 +346,11 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div class="card" style="margin-top:8px">
       <label class="lbl">③ 관리자 아이디 — 영문</label>
       <input class="field" id="regAdminId" placeholder="영문 3~20자 (예: pastorkim)" autocomplete="off">
-      <label class="lbl">④ 관리자 비밀번호 — 숫자 8자리</label>
-      <div class="pw-wrap"><input class="field" id="regAdminPw" type="password" placeholder="숫자 8자리" inputmode="numeric" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+      <label class="lbl">④ 관리자 비밀번호</label>
+      <div class="pw-wrap"><input class="field" id="regAdminPw" type="password" placeholder="특수문자→영문→숫자 순서 (예: #grace2026)" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+      <p class="muted" style="margin:4px 2px 0;font-size:calc(var(--fs)-3px)">🔒 비밀번호는 <b>특수문자 → 영문 → 숫자 순서로 8자 이상</b>으로 설정해주세요 (예: <b>#grace2026</b>)</p>
       <label class="lbl">⑤ 비밀번호 확인</label>
-      <div class="pw-wrap"><input class="field" id="regAdminPw2" type="password" placeholder="비밀번호 다시 입력" inputmode="numeric" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+      <div class="pw-wrap"><input class="field" id="regAdminPw2" type="password" placeholder="비밀번호 다시 입력" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
     </div>
     <button class="btn" onclick="registerChurchSubmit()">🏛️ 교회 등록하고 시작하기</button>
     <p class="center muted" style="margin-top:12px;line-height:1.7;font-size:calc(var(--fs)-2px)">등록 후 교인은 받은 <b>교회 코드</b>로 입장 →<br>가족방 만들 때 <b>본인 비밀번호</b>를 새로 설정합니다.</p>

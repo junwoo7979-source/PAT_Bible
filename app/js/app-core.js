@@ -341,7 +341,7 @@ async function registerChurchSubmit(){
   if(!name){ toast('교회 이름을 입력하세요'); return; }
   if(!/^[#@*!_-]\d{6}$/.test(code)){ toast('교회 코드는 특수문자 1개 + 숫자 6자리입니다 (예: #482913)'); return; }
   if(!/^[A-Za-z][A-Za-z0-9]{2,19}$/.test(id)){ toast('관리자 아이디는 영문으로 시작하는 3~20자입니다'); return; }
-  if(!/^\d{8}$/.test(pw)){ toast('관리자 비밀번호는 숫자 8자리입니다'); return; }
+  if(!/^(?=.{8,}$)[^A-Za-z0-9]+[A-Za-z]+[0-9]+$/.test(pw)){ toast('비밀번호는 특수문자 → 영문 → 숫자 순서로 8자 이상이어야 합니다 (예: #grace2026)'); return; }
   if(pw !== pw2){ toast('비밀번호가 일치하지 않습니다'); return; }
   if(!(window.PAT_DB && PAT_DB.ready())){ toast('서버 연결이 필요합니다'); return; }
 

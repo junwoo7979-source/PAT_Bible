@@ -73,8 +73,8 @@ function hdr(req, name) {
 const NEW_CHURCH_CODE_RE = /^[#@*!_-]\d{6}$/;
 // 관리자 아이디: 영문 시작 + 영문/숫자, 3~20자
 const ADMIN_ID_RE = /^[A-Za-z][A-Za-z0-9]{2,19}$/;
-// 관리자 비번: 숫자 8자리
-const ADMIN_PW_RE = /^\d{8}$/;
+// 관리자 비번: 특수문자 → 영문 → 숫자 순서, 8자 이상 (예: #grace2026)
+const ADMIN_PW_RE = /^(?=.{8,}$)[^A-Za-z0-9]+[A-Za-z]+[0-9]+$/;
 
 // 교회별 관리자 검증: 그 교회의 admin/cred 와 헤더(id/pw) 대조.
 // admin 문서가 없으면(레거시 세광 11111 등) 기존 전역 검증으로 폴백 → 호환 유지.
@@ -105,7 +105,7 @@ exports.registerChurch = onRequest({ cors: true, region: 'us-central1' }, async 
       res.status(400).json({ error: '관리자 아이디는 영문으로 시작하는 3~20자여야 합니다' }); return;
     }
     if (!ADMIN_PW_RE.test(String(adminPw || ''))) {
-      res.status(400).json({ error: '관리자 비밀번호는 숫자 8자리여야 합니다' }); return;
+      res.status(400).json({ error: '관리자 비밀번호는 특수문자 → 영문 → 숫자 순서로 8자 이상이어야 합니다 (예: #grace2026)' }); return;
     }
     // 기존 교회 보호: 코드가 이미 쓰이면(설정/관리자/루트 문서 존재) 거부
     const [rootDoc, credDoc, cfgDoc] = await Promise.all([
