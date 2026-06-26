@@ -372,12 +372,11 @@ async function devStatsLoad(){
     document.getElementById('devLoginBox').style.display = 'none';
     document.getElementById('devStatsResult').style.display = 'block';
     document.getElementById('devC').textContent = d.totalChurches;
-    document.getElementById('devF').textContent = d.totalFamilies;
     document.getElementById('devM').textContent = d.totalMembers;
     document.getElementById('devRows').innerHTML = (d.churches || []).map(c =>
       `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)">
-         <span>${esc(c.name || '(이름없음)')} <small class="muted">${esc(c.code)}</small></span>
-         <span style="white-space:nowrap">가정 ${c.familyCount} · 인원 ${c.memberCount}</span>
+         <span>${esc(c.name || '(이름없음)')}</span>
+         <span style="white-space:nowrap">인원 ${c.memberCount}명</span>
        </div>`).join('') || '<p class="muted" style="text-align:center;margin:8px 0">등록된 교회가 없습니다</p>';
   } catch(e){ toast('연결 오류'); }
 }
