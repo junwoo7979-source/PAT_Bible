@@ -117,6 +117,36 @@ window.PAT_DB = (() => {
     try { return await apiGet('checkChurchCode', { code }); } catch (e) { return null; }
   }
 
+  // ── 문의·오류 신고 ──
+  async function submitReport(payload) {
+    if (!ready()) return false;
+    try {
+      const r = await fetch(`${API}/submitReport`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(payload || {}),
+      });
+      return r.ok;
+    } catch (e) { return false; }
+  }
+  async function getReports(token) {
+    if (!ready()) return null;
+    try {
+      const r = await fetch(`${API}/getReports`, { headers: { 'x-pat-dev-token': token } });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch (e) { return null; }
+  }
+  async function deleteReport(token, id) {
+    if (!ready()) return false;
+    try {
+      const r = await fetch(`${API}/deleteReport`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-pat-dev-token': token },
+        body: JSON.stringify({ id }),
+      });
+      return r.ok;
+    } catch (e) { return false; }
+  }
+
   // ════════════════════════════════════════════════════════
   // 구절 (Verse)
   // ════════════════════════════════════════════════════════
@@ -453,6 +483,7 @@ window.PAT_DB = (() => {
   return {
     init, ready, getDeviceId,
     registerChurch, adminLogin, checkChurchCode,
+    submitReport, getReports, deleteReport,
     saveVerse, getLatestVerse, subscribeVerse,
     saveFamily, findFamilyByPassword, joinFamily, removeFamilyMember, getFamilyMembers, getFamilyInfo, subscribeFamily,
     saveRecord, hasRecord,

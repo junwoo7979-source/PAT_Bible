@@ -205,6 +205,60 @@ exports.deleteChurch = onRequest({ cors: true, region: 'us-central1', secrets: [
   } catch (e) { errRes(res, e); }
 });
 
+// ════════════════════════════════════════════════════════
+// 문의·오류 신고 (교회 → 개발자)
+// ════════════════════════════════════════════════════════
+// 신고 접수 — 공개(교인/관리자 누구나). 수동 문의 + 자동 오류수집 공용.
+exports.submitReport = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const { churchCode, churchName, type, message, screen, ua } = req.body || {};
+    const msg = String(message || '').slice(0, 1000).trim();
+    if (!msg) { res.status(400).json({ error: 'message required' }); return; }
+    await db.collection('reports').add({
+      churchCode: String(churchCode || '').slice(0, 40),
+      churchName: String(churchName || '').slice(0, 80),
+      type: (type === 'auto' ? 'auto' : 'manual'),
+      message: msg,
+      screen: String(screen || '').slice(0, 40),
+      ua: String(ua || '').slice(0, 300),
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    res.json({ ok: true });
+  } catch (e) { errRes(res, e); }
+});
+
+// 신고 목록 조회 — 개발자 전용
+exports.getReports = onRequest({ cors: true, region: 'us-central1', secrets: [PAT_DEV_TOKEN] }, async (req, res) => {
+  if (!begin(req, res)) return;
+  try {
+    const token = hdr(req, 'x-pat-dev-token') || (req.query && req.query.token) || '';
+    if (!token || token !== PAT_DEV_TOKEN.value()) { res.status(401).json({ error: 'Unauthorized' }); return; }
+    const snap = await db.collection('reports').orderBy('createdAt', 'desc').limit(100).get();
+    const reports = snap.docs.map(d => {
+      const r = d.data();
+      let at = null; try { if (r.createdAt && r.createdAt.toDate) at = r.createdAt.toDate().toISOString(); } catch (e) {}
+      return { id: d.id, churchCode: r.churchCode || '', churchName: r.churchName || '', type: r.type || 'manual', message: r.message || '', screen: r.screen || '', ua: r.ua || '', createdAt: at };
+    });
+    res.json({ reports, total: reports.length });
+  } catch (e) { errRes(res, e); }
+});
+
+// 신고 삭제(처리 완료) — 개발자 전용
+exports.deleteReport = onRequest({ cors: true, region: 'us-central1', secrets: [PAT_DEV_TOKEN] }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const token = hdr(req, 'x-pat-dev-token');
+    if (!token || token !== PAT_DEV_TOKEN.value()) { res.status(401).json({ error: 'Unauthorized' }); return; }
+    const { id } = req.body || {};
+    if (!id) { res.status(400).json({ error: 'id required' }); return; }
+    await db.doc('reports/' + id).delete();
+    res.json({ ok: true });
+  } catch (e) { errRes(res, e); }
+});
+
 // 교회 코드 사용 가능 여부(등록 화면 중복확인)
 exports.checkChurchCode = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
   if (!begin(req, res)) return;

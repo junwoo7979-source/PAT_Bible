@@ -64,6 +64,15 @@
       </div>
       <p class="muted" style="font-size:12px;margin:10px 2px 0">※ 삭제는 되돌릴 수 없습니다. 테스트/스팸 교회 정리용입니다.</p>
     </div>
+
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <b>📨 신고 · 오류 <span class="muted" id="rptCount" style="font-size:12px"></span></b>
+        <button class="refresh" onclick="loadReports()">🔄 새로고침</button>
+      </div>
+      <div id="reportList"></div>
+      <p class="muted" style="font-size:12px;margin:10px 2px 0">✓ = 처리 완료(삭제). 교인/관리자 문의와 자동 수집된 오류가 함께 표시됩니다.</p>
+    </div>
   </div>
 </div>
 
@@ -82,7 +91,44 @@ async function loadStats(){
     const d = await r.json();
     localStorage.setItem('pat_dev_token', tok);
     render(d);
+    loadReports();
   }catch(e){ showErr('연결 오류: ' + e.message); }
+}
+
+async function loadReports(){
+  const tok = token(); if(!tok) return;
+  try{
+    const r = await fetch(`${API}/getReports`, { headers:{ 'x-pat-dev-token': tok } });
+    if(!r.ok) return;
+    const d = await r.json();
+    renderReports(d.reports || []);
+  }catch(e){}
+}
+function renderReports(list){
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  document.getElementById('rptCount').textContent = '(' + list.length + '건)';
+  const el = document.getElementById('reportList');
+  if(!list.length){ el.innerHTML = '<p class="muted" style="text-align:center;padding:12px 0">접수된 신고가 없습니다</p>'; return; }
+  el.innerHTML = list.map(r => {
+    const when = r.createdAt ? r.createdAt.slice(0,16).replace('T',' ') : '';
+    const badge = r.type==='auto'
+      ? '<span style="background:#e0533d;color:#fff;border-radius:4px;padding:1px 6px;font-size:11px">자동오류</span>'
+      : '<span style="background:#2f6fed;color:#fff;border-radius:4px;padding:1px 6px;font-size:11px">문의</span>';
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <span>${badge} <b>${esc(r.churchName)||esc(r.churchCode)||'(미선택)'}</b> <small class="muted">${esc(r.screen)} · ${when}</small></span>
+        <button class="del" onclick="delReport('${r.id}')">✓</button>
+      </div>
+      <div style="margin-top:6px;font-size:13px;white-space:pre-wrap">${esc(r.message)}</div>
+    </div>`;
+  }).join('');
+}
+async function delReport(id){
+  if(!confirm('이 신고를 처리 완료(삭제)할까요?')) return;
+  try{
+    const r = await fetch(`${API}/deleteReport`, { method:'POST', headers:{ 'Content-Type':'application/json', 'x-pat-dev-token': token() }, body: JSON.stringify({ id }) });
+    if(r.ok) loadReports();
+  }catch(e){ alert('연결 오류: ' + e.message); }
 }
 
 function showErr(m){ const e = document.getElementById('loginErr'); e.textContent = m; e.style.display = 'block'; }

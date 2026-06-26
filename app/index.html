@@ -246,6 +246,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <button class="btn ghost" style="margin-top:8px" onclick="go('s-church-register')">🏛️ 새 교회 등록 (관리자)</button>
     <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-reset-pw')">🔑 교회 관리자 초기화</button>
     <button class="back" style="margin:8px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
+    <button class="back" style="margin:8px auto 0;display:block" onclick="openReport()">💬 문의 · 오류 신고</button>
     <button class="back" style="margin:8px auto 0;display:block;color:var(--muted);font-size:calc(var(--fs)-3px)" onclick="window.location.href='?reset=1'">🔄 캐시 초기화 (데모 테스트용)</button>
     <div class="spacer"></div>
   </section>
@@ -287,6 +288,18 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       </ol>
       <p class="muted" style="margin:8px 0 0;font-size:calc(var(--fs)-3px)">※ 카카오톡 안에서는 마이크·설치가 불안정하니 다른 브라우저를 권장합니다.</p>
     </div>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- S-report: 문의·오류 신고 -->
+  <section class="screen" id="s-report">
+    <button class="back" onclick="go(window._reportFrom || 's-login')">‹ 돌아가기</button>
+    <div class="logo">💬</div>
+    <h1 class="center">문의 · 오류 신고</h1>
+    <p class="center muted">사용 중 불편하거나 오류가 있으면 알려주세요.<br>개발자가 확인 후 빠르게 조치합니다.</p>
+    <p class="muted center" id="reportContext" style="margin:10px 0 6px;font-size:calc(var(--fs)-3px)"></p>
+    <textarea class="field" id="reportText" rows="5" placeholder="예: 음성 암송 화면에서 녹음 버튼을 눌러도 반응이 없어요" style="resize:none"></textarea>
+    <button class="btn" onclick="sendReport()">📨 신고 보내기</button>
     <div class="spacer"></div>
   </section>
 
@@ -383,7 +396,10 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
   <section class="screen" id="s-admin">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <h1 id="adminTabTitle">📖 구절 등록</h1>
-      <button class="back" style="margin:0" onclick="adminLogout()">로그아웃</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="back" style="margin:0" onclick="openReport()">💬 문의</button>
+        <button class="back" style="margin:0" onclick="adminLogout()">로그아웃</button>
+      </div>
     </div>
     <p class="muted" id="adminChurchLabel">관리 교회: 세광교회</p>
 
@@ -597,6 +613,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         </button>
         <div class="hm-dropdown" id="hmDropdown" style="display:none">
           <button onclick="installPatApp();closeHmMenu()">📱 홈 화면에 추가</button>
+          <button onclick="closeHmMenu();openReport()">💬 문의·오류 신고</button>
           <button onclick="memberLogout()" style="color:var(--danger)">🚪 로그아웃</button>
         </div>
         <div class="hm-circle" id="hmCircle">0%</div>

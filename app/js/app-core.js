@@ -397,6 +397,53 @@ async function devStatsLoad(){
        </div>`).join('') || '<p class="muted" style="text-align:center;margin:8px 0">등록된 교회가 없습니다</p>';
   } catch(e){ toast('연결 오류'); }
 }
+
+// ── 문의·오류 신고 ────────────────────────────────────────
+// 자동 오류 수집 (window.onerror / unhandledrejection) — 중복·세션상한으로 폭주 방지
+const _autoReported = new Set();
+let _autoReportCount = 0;
+function _autoReportError(message){
+  try {
+    if(!window.PAT_DB || !PAT_DB.ready || !PAT_DB.ready() || !PAT_DB.submitReport) return;
+    const msg = String(message || '').slice(0, 300).trim();
+    if(!msg) return;
+    if(_autoReported.has(msg)) return;     // 같은 메시지 1회만
+    if(_autoReportCount >= 8) return;       // 세션당 상한
+    _autoReported.add(msg); _autoReportCount++;
+    PAT_DB.submitReport({
+      churchCode: DB.church.code || '', churchName: DB.church.name || '',
+      type: 'auto', message: msg,
+      screen: (document.querySelector('.screen.active')?.id || ''),
+      ua: (typeof navigator!=='undefined' ? (navigator.userAgent||'') : '').slice(0, 300),
+    });
+  } catch(e){}
+}
+if(typeof window !== 'undefined' && window.addEventListener){
+  window.addEventListener('error', e => _autoReportError((e && e.message) || 'script error'));
+  window.addEventListener('unhandledrejection', e => _autoReportError('Promise: ' + ((e && e.reason && (e.reason.message || e.reason)) || 'rejection')));
+}
+
+// 수동 문의/신고 화면 열기 (현재 화면을 자동 기록)
+function openReport(){
+  window._reportFrom = document.querySelector('.screen.active')?.id || '';
+  const ta = document.getElementById('reportText'); if(ta) ta.value = '';
+  const ctx = document.getElementById('reportContext');
+  if(ctx) ctx.textContent = (DB.church.name ? DB.church.name + ' · ' : '') + '현재 화면: ' + (window._reportFrom || '-');
+  go('s-report');
+}
+async function sendReport(){
+  const msg = (document.getElementById('reportText')?.value || '').trim();
+  if(!msg){ toast('문의/오류 내용을 입력해주세요'); return; }
+  if(!(window.PAT_DB && PAT_DB.ready())){ toast('서버 연결이 필요합니다'); return; }
+  const ok = await PAT_DB.submitReport({
+    churchCode: DB.church.code || '', churchName: DB.church.name || '',
+    type: 'manual', message: msg,
+    screen: (window._reportFrom || ''),
+    ua: (typeof navigator!=='undefined' ? (navigator.userAgent||'') : '').slice(0, 300),
+  });
+  if(ok){ toast('✓ 접수되었습니다. 확인 후 조치하겠습니다. 감사합니다!'); go(window._reportFrom || 's-login'); }
+  else { toast('전송 실패 — 잠시 후 다시 시도해주세요'); }
+}
 function adminLogout(){
   localStorage.removeItem('pat_admin_id');
   localStorage.removeItem('pat_admin_pw');
@@ -538,7 +585,7 @@ function go(id, resetScroll=true, animate=false){
   if(!target) return;
   target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
-  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register','s-dev-stats','s-install'];
+  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register','s-dev-stats','s-install','s-report'];
   tabbar.style.display = noTab.includes(id) ? 'none' : 'flex';
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);
