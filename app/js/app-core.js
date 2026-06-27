@@ -23,10 +23,29 @@ function saveRec(r){ localStorage.setItem('pat_records', JSON.stringify(r)); }
 function loadVerses(){ try{ return JSON.parse(localStorage.getItem('pat_verses')||'[]'); }catch(e){ return []; } }
 function saveVerses(v){ localStorage.setItem('pat_verses', JSON.stringify(v)); }
 
+// ── 교구/목장 그룹 설정 ───────────────────────────────────
+// 교회별 설정이 없으면 기본값(세광 호환: 교구 1·2·3 + 블레싱)으로 폴백.
+const PARISH_DEFAULT = { term: '교구', groups: ['1교구','2교구','3교구','블레싱'] };
+function getParishConfig(){
+  try {
+    const raw = localStorage.getItem('pat_parish_config');
+    if(raw){
+      const c = JSON.parse(raw);
+      const groups = Array.isArray(c && c.groups) ? c.groups.map(g=>String(g).trim()).filter(Boolean) : [];
+      if(groups.length) return { term: (c.term && String(c.term).trim()) || '교구', groups };
+    }
+  } catch(e){}
+  return { term: PARISH_DEFAULT.term, groups: PARISH_DEFAULT.groups.slice() };
+}
+
 // ── 앱 제목 / 교회명 ──────────────────────────────────────
 const APP_TITLE_DEFAULT = 'PAT Bible';
 function applyAppTitle(){
-  let title = localStorage.getItem('pat_app_title') || APP_TITLE_DEFAULT;
+  // ★ 중립 시작: 교회 미선택 상태면 옛 캐시(세광 등) 무시하고 무조건 "PAT Bible".
+  //   (타 교회가 설치/입장 전엔 특정 교회 브랜딩이 보이지 않게)
+  let title = (DB.church && DB.church.code)
+    ? (localStorage.getItem('pat_app_title') || APP_TITLE_DEFAULT)
+    : APP_TITLE_DEFAULT;
   // 깨진 데이터(대체 문자 U+FFFD '�') 제거
   if(title && title.includes('�')) {
     console.warn('[PAT] 깨진 appTitle 발견, 초기화:', title);
@@ -46,6 +65,10 @@ function applyCloudConfig(config){
   //   (관리자/성도 어느 기기든 동일한 분모를 보게 되어 관리자↔대시보드 불일치 해소)
   if(config.parishTotals && typeof config.parishTotals === 'object'){
     try { localStorage.setItem('pat_admin_parish_edit', JSON.stringify(config.parishTotals)); } catch(e){}
+  }
+  // ★ 교회별 교구/그룹 설정도 미러링 (없으면 기본 1·2·3교구+블레싱으로 폴백 — getParishConfig())
+  if(config.parishConfig && typeof config.parishConfig === 'object'){
+    try { localStorage.setItem('pat_parish_config', JSON.stringify(config.parishConfig)); } catch(e){}
   }
   if(Object.prototype.hasOwnProperty.call(config, 'appTitle')) {
     const title = (config.appTitle || '').trim();
@@ -492,9 +515,11 @@ function syncAdminVerseFields(){
   // 적용 주차(inWeek)는 기준 날짜(inDate)에서 항상 파생하므로 여기서 설정하지 않음
 }
 function renderAdmin(){
-  document.getElementById('adminChurchLabel').textContent = '관리 교회: '+DB.church.name;
-  document.getElementById('inAppTitle').value = applyAppTitle();
-  document.getElementById('inChurchName').value = DB.church.name;
+  document.getElementById('adminChurchLabel').textContent = '관리 교회: '+(DB.church.name || '(미설정)');
+  applyAppTitle();
+  const _cn = document.getElementById('inChurchName'); if(_cn) _cn.value = DB.church.name || '';
+  const _pp = document.getElementById('inPastor'); if(_pp) _pp.value = localStorage.getItem('pat_church_pastor') || '';
+  const _ad = document.getElementById('inChurchAddr'); if(_ad) _ad.value = localStorage.getItem('pat_church_addr') || '';
   if(!document.getElementById('inDate').value){
     document.getElementById('inDate').value = new Date().toISOString().slice(0,10);
   }

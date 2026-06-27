@@ -243,7 +243,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <button class="btn" onclick="enterChurch()">시작하기</button>
     <button class="btn ghost" style="margin-top:8px;border:1.5px solid var(--accent);color:var(--accent);font-weight:700" onclick="openInstallGuide()">📱 폰 홈 화면에 앱 설치하기</button>
     <button class="btn ghost" style="margin-top:8px" onclick="location.reload()">🔄 새로고침</button>
-    <button class="btn ghost" style="margin-top:8px" onclick="go('s-church-register')">🏛️ 새 교회 등록 (관리자)</button>
+    <button class="btn ghost" style="margin-top:8px" onclick="go('s-church-register')">🏛️ 교회 등록 (관리자)</button>
     <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-reset-pw')">🔑 교회 관리자 초기화</button>
     <button class="back" style="margin:8px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
     <button class="back" style="margin:8px auto 0;display:block" onclick="openReport()">💬 문의 · 오류 신고</button>
@@ -347,7 +347,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
   <section class="screen" id="s-church-register">
     <button class="back" onclick="go('s-login')">‹ 처음으로</button>
     <div class="logo">🏛️</div>
-    <h1 class="center">새 교회 등록</h1>
+    <h1 class="center">교회 등록</h1>
     <p class="center muted" style="line-height:1.7">우리 교회를 처음 만드는 관리자만 등록하세요.<br>등록 후 <b>교인 등록 코드</b>를 교인들에게 공유하면 됩니다.</p>
     <div class="card" style="margin-top:16px">
       <label class="lbl">① 교회 이름</label>
@@ -455,13 +455,14 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- 교회 이름 등록 권한 -->
     <div class="card">
       <h2>⛪ 교회 정보 관리</h2>
-      <p class="muted" style="margin:6px 0 10px">교회 이름과 로그인 화면 제목 등록·수정 권한</p>
-      <label class="lbl">앱 상단 제목</label>
-      <input class="field" id="inAppTitle" placeholder="예: PAT Bible">
-      <button class="btn ghost" onclick="saveAppTitle()">앱 제목 저장</button>
+      <p class="muted" style="margin:6px 0 10px">교회 이름이 <b>앱 상단 제목</b>으로 자동 표시됩니다.</p>
       <label class="lbl">교회 이름</label>
-      <input class="field" id="inChurchName" placeholder="교회 이름">
-      <button class="btn ghost" onclick="saveChurchName()">교회 이름 저장</button>
+      <input class="field" id="inChurchName" placeholder="예: 은혜교회">
+      <label class="lbl">담임목사</label>
+      <input class="field" id="inPastor" placeholder="예: 홍길동 목사">
+      <label class="lbl">주소</label>
+      <input class="field" id="inChurchAddr" placeholder="예: 서울시 ○○구 ○○로 12">
+      <button class="btn ghost" onclick="saveChurchName()">교회 정보 저장</button>
       <label class="lbl" style="margin-top:12px">교회 로고 앱 로고</label>
       <p class="muted" style="margin:4px 0 8px;font-size:calc(var(--fs) - 3px)">SVG 파일 (권장) • 권장 사이즈: 200×200px 이상 • 최대 500KB</p>
       <div style="display:flex;gap:8px">
@@ -472,6 +473,19 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         <p class="muted" style="margin-bottom:8px">로고 미리보기:</p>
         <img id="logoPreviewImg" style="max-width:100px;max-height:100px;margin:0 auto">
       </div>
+    </div>
+
+    <!-- 교구/목장 설정 (그룹 구성) -->
+    <div class="card" style="margin-top:16px">
+      <h2>🧩 교구/목장 설정</h2>
+      <p class="muted" style="margin:6px 0 10px">우리 교회 편성에 맞게 호칭과 그룹을 정하세요. (예: 교구 1·2·3 / 목장 이름들)</p>
+      <label class="lbl">호칭</label>
+      <input class="field" id="parishTermInput" list="parishTermList" placeholder="예: 교구 / 목장 / 구역 / 그룹">
+      <datalist id="parishTermList"><option value="교구"></option><option value="목장"></option><option value="구역"></option><option value="그룹"></option></datalist>
+      <label class="lbl" style="margin-top:8px">그룹 목록</label>
+      <div id="parishGroupRows" style="display:flex;flex-direction:column;gap:6px"></div>
+      <button class="btn ghost" style="margin-top:8px" onclick="addParishGroupRow('')">＋ 그룹 추가</button>
+      <button class="btn" style="margin-top:8px" onclick="saveParishConfig()">🧩 교구/목장 설정 저장</button>
     </div>
 
     <!-- 교구별 현황 (관리자 뷰) -->
@@ -489,12 +503,12 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
               <col style="width:24%">
             </colgroup>
             <thead><tr>
-              <th style="padding:8px 6px;text-align:left;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg);white-space:nowrap">교구</th>
+              <th style="padding:8px 6px;text-align:left;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg);white-space:nowrap" id="parishTableHeader">교구</th>
               <th style="padding:8px 6px;text-align:center;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg);white-space:nowrap">완료</th>
               <th style="padding:8px 6px;text-align:center;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg);white-space:nowrap">전체 인원</th>
               <th style="padding:8px 6px;text-align:right;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg);white-space:nowrap">실천율</th>
             </tr></thead>
-            <tbody>
+            <tbody id="parishRowsBody">
               <tr>
                 <td style="padding:8px 6px;border:1px solid var(--line);font-weight:700;white-space:nowrap">1교구</td>
                 <td style="padding:8px 4px;border:1px solid var(--line);text-align:center;white-space:nowrap"><b id="p1_done" style="color:var(--accent)">0</b><span class="muted" style="font-size:11px"> 명</span></td>
@@ -719,12 +733,9 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         <input class="field" id="familyRoomName" placeholder="예: 믿음 가족방">
         <label class="lbl">가족 대표 이름</label>
         <input class="field" id="familyLeaderName" placeholder="예: 김민수">
-        <label class="lbl">교구</label>
+        <label class="lbl" id="familyParishLabel">교구</label>
         <select class="field" id="familyParish">
           <option value="">교구를 선택하세요</option>
-          <option value="1교구">1교구</option>
-          <option value="2교구">2교구</option>
-          <option value="3교구">3교구</option>
         </select>
         <label class="lbl">구역</label>
         <input class="field" id="familyDistrict" placeholder="예: 3구역">
@@ -976,81 +987,115 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';
 
-// 숫자 읽기 헬퍼: input은 .value, 표시용 <b>는 textContent
-function _parishNum(id) {
-  const el = document.getElementById(id);
-  if (!el) return 0;
-  const v = (el.value !== undefined && el.value !== '') ? el.value : el.textContent;
-  return parseInt(v) || 0;
+// ── 동적 교구/그룹 현황 (교회별 parishConfig 기반) ──
+function _parishGroups() {
+  return (typeof getParishConfig === 'function' ? getParishConfig().groups : ['1교구','2교구','3교구','블레싱']);
+}
+function _parishTotalsObj() {
+  try { return JSON.parse(localStorage.getItem(ADMIN_PARISH_KEY) || '{}'); } catch (e) { return {}; }
 }
 
-// 입력/표시 요소 id 베이스 (블레싱은 p 접두사 없음)
-function _parishBase(parish) { return parish === 'blessing' ? 'blessing' : 'p' + parish; }
+// 관리자: 교구별 현황 표를 그룹 설정대로 동적 렌더
+function renderParishTable() {
+  const body = document.getElementById('parishRowsBody');
+  if (!body) return;
+  const cfg = (typeof getParishConfig === 'function') ? getParishConfig() : { term:'교구', groups:['1교구','2교구','3교구','블레싱'] };
+  const header = document.getElementById('parishTableHeader'); if (header) header.textContent = cfg.term || '교구';
+  const totals = _parishTotalsObj();
+  body.innerHTML = cfg.groups.map((g, i) => {
+    const tv = (totals[g] != null) ? totals[g] : '';
+    return `<tr>
+      <td style="padding:8px 6px;border:1px solid var(--line);font-weight:700;white-space:nowrap">${esc(g)}</td>
+      <td style="padding:8px 4px;border:1px solid var(--line);text-align:center;white-space:nowrap"><b id="pg${i}_done" style="color:var(--accent)">0</b><span class="muted" style="font-size:11px"> 명</span></td>
+      <td style="padding:6px 6px;border:1px solid var(--line)"><input type="number" id="pg${i}_total" value="${tv}" style="width:100%;min-width:0;padding:5px 2px;border:1px solid var(--line);border-radius:6px;font-size:var(--fs);text-align:center;font-weight:700" placeholder="인원" oninput="updateParishPctIdx(${i})"></td>
+      <td style="padding:8px 4px;border:1px solid var(--line);text-align:right;white-space:nowrap"><span id="pg${i}_pct" style="color:var(--accent);font-weight:800;font-size:calc(var(--fs)+1px)">0%</span></td>
+    </tr>`;
+  }).join('');
+}
 
-// 관리자: 교구별 백분율 계산 (완료=자동집계, 전체=관리자입력)
-function updateParishPct(parish) {
-  const base = _parishBase(parish);
-  const done = _parishNum(`${base}_done`);
-  const total = _parishNum(`${base}_total`);
+function updateParishPctIdx(i) {
+  const doneEl = document.getElementById(`pg${i}_done`);
+  const totalEl = document.getElementById(`pg${i}_total`);
+  const done = doneEl ? (parseInt(doneEl.textContent) || 0) : 0;
+  const total = totalEl ? (parseInt(totalEl.value) || 0) : 0;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  const pctEl = document.getElementById(`pct${parish === 'blessing' ? 'Blessing' : parish}`);
-  if (pctEl) pctEl.textContent = pct + '%';
+  const pctEl = document.getElementById(`pg${i}_pct`); if (pctEl) pctEl.textContent = pct + '%';
 }
+function updateParishPct() {} // 레거시 호출 대비 no-op
 
-// 관리자: 교구별 전체 인원 저장 (완료 인원은 성도 데이터로 자동 집계되므로 저장 안 함)
+// 관리자: 그룹별 전체 인원 저장 (그룹 이름 키)
 function saveAdminParishData() {
-  const get = id => parseInt(document.getElementById(id)?.value) || 0;
-  const data = {
-    p1_total: get('p1_total'),
-    p2_total: get('p2_total'),
-    p3_total: get('p3_total'),
-    blessing_total: get('blessing_total')
-  };
+  const groups = _parishGroups();
+  const data = {};
+  groups.forEach((g, i) => { const el = document.getElementById(`pg${i}_total`); data[g] = el ? (parseInt(el.value) || 0) : 0; });
   localStorage.setItem(ADMIN_PARISH_KEY, JSON.stringify(data));
-  // ★ 서버(config.parishTotals)에도 저장 → 전 성도 기기와 동기화 (localStorage는 즉시 반영용 캐시)
-  if(window.PAT_DB && PAT_DB.ready()){
+  if (window.PAT_DB && PAT_DB.ready()) {
     PAT_DB.saveConfig(DB.church.code, undefined, undefined, data)
-      .then(ok => console.log('[ADMIN-PARISH-SAVE] 서버 동기화', ok ? '성공' : '실패(로컬만)'))
-      .catch(e => console.warn('[ADMIN-PARISH-SAVE] 서버 저장 오류:', e.message));
-    toast('✅ 교구별 전체 인원 저장 — 전 성도 기기와 동기화됩니다');
-  } else {
-    toast('✅ 저장됨 (오프라인: 이 기기에만 반영)');
-  }
-  console.log('[ADMIN-PARISH-SAVE]', data);
+      .then(ok => console.log('[ADMIN-PARISH-SAVE]', ok ? '성공' : '실패'))
+      .catch(e => console.warn('[ADMIN-PARISH-SAVE]', e.message));
+    toast('✅ 전체 인원 저장 — 전 성도 기기와 동기화됩니다');
+  } else { toast('✅ 저장됨 (오프라인: 이 기기에만 반영)'); }
 }
 
-// 저장된 전체 인원(전체 칸) 복원
-function loadAdminParishData() {
-  let data = {};
-  try { data = JSON.parse(localStorage.getItem(ADMIN_PARISH_KEY) || '{}'); } catch (e) {}
-  const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
-  set('p1_total', data.p1_total);
-  set('p2_total', data.p2_total);
-  set('p3_total', data.p3_total);
-  set('blessing_total', data.blessing_total);
-}
-
-// 집계된 실제 성도 데이터를 관리자 화면의 완료 칸에 반영 (자동 등록)
+// 집계된 실제 데이터를 완료 칸에 반영
 function applyAggregatedToAdmin(data) {
-  if (!document.getElementById('adminParishListEdit') || !data) return;
-  const setDone = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (v ?? 0); };
-  if (data.byParish) {
-    setDone('p1_done', data.byParish['1교구']);
-    setDone('p2_done', data.byParish['2교구']);
-    setDone('p3_done', data.byParish['3교구']);
-  }
-  setDone('blessing_done', data.totalDone);
-  ['1', '2', '3', 'blessing'].forEach(updateParishPct);
+  if (!document.getElementById('parishRowsBody') || !data) return;
+  const groups = _parishGroups();
+  const by = data.byParish || {};
+  groups.forEach((g, i) => {
+    const el = document.getElementById(`pg${i}_done`);
+    if (el) el.textContent = (by[g] != null ? by[g] : 0);
+    updateParishPctIdx(i);
+  });
 }
 
-// 관리자 화면 진입 시: 전체 인원 복원 + 완료 인원 자동 집계
+// 관리자 화면 진입 시: 설정 편집기 + 표 동적 렌더 + 완료 인원 자동 집계
 function renderAdminParishFromStorage() {
-  if (!document.getElementById('adminParishListEdit')) return;
-  loadAdminParishData();
-  ['1', '2', '3', 'blessing'].forEach(updateParishPct);
+  if (!document.getElementById('parishRowsBody')) return;
+  if (typeof renderParishConfigEditor === 'function') renderParishConfigEditor();
+  renderParishTable();
+  _parishGroups().forEach((g, i) => updateParishPctIdx(i));
   if (typeof computeAggregatedData === 'function') {
     computeAggregatedData().then(d => applyAggregatedToAdmin(d)).catch(() => {});
   }
+}
+
+// ── 관리자: 교구/목장 설정 편집 ──
+function renderParishConfigEditor() {
+  const cfg = (typeof getParishConfig === 'function') ? getParishConfig() : { term:'교구', groups:['1교구','2교구','3교구','블레싱'] };
+  const termEl = document.getElementById('parishTermInput'); if (termEl) termEl.value = cfg.term || '교구';
+  const rows = document.getElementById('parishGroupRows'); if (!rows) return;
+  rows.innerHTML = '';
+  cfg.groups.forEach(g => addParishGroupRow(g));
+}
+let _pgRowSeq = 0;
+function addParishGroupRow(name) {
+  const rows = document.getElementById('parishGroupRows'); if (!rows) return;
+  const id = 'pgr' + (++_pgRowSeq);
+  const div = document.createElement('div');
+  div.id = id;
+  div.style.cssText = 'display:flex;gap:6px;align-items:center';
+  div.innerHTML = `<input class="field pg-name" style="margin:0;flex:1" placeholder="그룹 이름 (예: 1교구 / 새싹목장)" value="${String(name||'').replace(/"/g,'&quot;')}">
+    <button onclick="document.getElementById('${id}').remove()" style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;flex-shrink:0">✕</button>`;
+  rows.appendChild(div);
+}
+function saveParishConfig() {
+  const term = (document.getElementById('parishTermInput')?.value || '교구').trim() || '교구';
+  const raw = [...document.querySelectorAll('#parishGroupRows .pg-name')].map(el => el.value.trim()).filter(Boolean);
+  if (!raw.length) { toast('그룹을 1개 이상 입력하세요'); return; }
+  const seen = new Set(); const groups = [];
+  raw.forEach(g => { if (!seen.has(g)) { seen.add(g); groups.push(g); } });
+  const cfg = { term, groups };
+  localStorage.setItem('pat_parish_config', JSON.stringify(cfg));
+  if (window.PAT_DB && PAT_DB.ready()) {
+    PAT_DB.saveConfig(DB.church.code, undefined, undefined, undefined, cfg)
+      .then(ok => console.log('[PARISH-CONFIG-SAVE]', ok ? '성공' : '실패'))
+      .catch(e => console.warn('[PARISH-CONFIG-SAVE]', e.message));
+    toast('✅ 교구/목장 설정 저장 — 전 성도 기기와 동기화됩니다');
+  } else { toast('✅ 저장됨 (오프라인: 이 기기에만 반영)'); }
+  renderParishTable();
+  _parishGroups().forEach((g, i) => updateParishPctIdx(i));
+  if (typeof computeAggregatedData === 'function') computeAggregatedData().then(d => applyAggregatedToAdmin(d)).catch(() => {});
 }
 
 // memorize.js 로드 시 applyStoredData()·churchCode·tabbar 초기화 완료

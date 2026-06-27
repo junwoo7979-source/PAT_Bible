@@ -50,11 +50,23 @@ function renderPreview(){
 function saveChurchName(){
   const name = document.getElementById('inChurchName').value.trim();
   if(!name){ toast('교회 이름을 입력하세요'); return; }
+  const pastor = (document.getElementById('inPastor')?.value || '').trim();
+  const addr   = (document.getElementById('inChurchAddr')?.value || '').trim();
   DB.church.name = name;
   localStorage.setItem('pat_church_name', name);
+  // ★ 교회 이름 = 앱 상단 제목 자동 동기화 (별도 입력/버튼 없이)
+  localStorage.setItem('pat_app_title', name);
+  applyAppTitle();
+  // 담임목사·주소 저장
+  localStorage.setItem('pat_church_pastor', pastor);
+  localStorage.setItem('pat_church_addr', addr);
   document.getElementById('adminChurchLabel').textContent = '관리 교회: '+name;
   renderPreview();
-  toast('✓ 교회 이름이 저장되었습니다');
+  // ★ 서버에도 앱 제목(=교회 이름) 저장 → 그 교회 교인들에게도 동일하게 표시
+  if(window.PAT_DB && PAT_DB.ready() && PAT_DB.saveConfig && DB.church.code){
+    PAT_DB.saveConfig(DB.church.code, name);
+  }
+  toast('✓ 교회 정보가 저장되었습니다');
 }
 function saveAppTitle(){
   const title = document.getElementById('inAppTitle').value.trim();

@@ -266,11 +266,24 @@ function renderMemberRows(names){
   _memberRowId = 0;
   (names && names.length ? names : ['']).forEach(n => addMemberRow(n));
 }
+// 교구/목장 드롭다운을 교회 설정대로 채움 (없으면 기본 1·2·3교구+블레싱)
+function populateFamilyParishOptions(selected){
+  const sel = document.getElementById('familyParish');
+  if(!sel) return;
+  const cfg = (typeof getParishConfig==='function') ? getParishConfig() : { term:'교구', groups:['1교구','2교구','3교구','블레싱'] };
+  const ev = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const lbl = document.getElementById('familyParishLabel'); if(lbl) lbl.textContent = cfg.term || '교구';
+  let html = `<option value="">${ev(cfg.term||'교구')}를 선택하세요</option>`;
+  cfg.groups.forEach(g => { html += `<option value="${ev(g)}">${ev(g)}</option>`; });
+  if(selected && cfg.groups.indexOf(selected) === -1){ html += `<option value="${ev(selected)}">${ev(selected)}</option>`; }
+  sel.innerHTML = html;
+  sel.value = selected || '';
+}
 function openFamilyRegister(tab){
   const profile = loadFamilyProfile();
   document.getElementById('familyRoomName').value   = profile?.roomName||'';
   document.getElementById('familyLeaderName').value = profile?.leaderName||'';
-  document.getElementById('familyParish').value     = profile?.parish||'';
+  populateFamilyParishOptions(profile?.parish||'');
   document.getElementById('familyDistrict').value   = profile?.district||'';
   document.getElementById('familyPassword').value   = profile?.familyPassword||DB.church.code;
   renderMemberRows(profile?.members||[]);

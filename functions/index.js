@@ -316,7 +316,7 @@ exports.saveConfig = onRequest({ cors: true, region: 'us-central1' }, async (req
   if (!begin(req, res)) return;
   console.log('[PAT] saveConfig 요청 시작');
   try {
-    const { churchCode, appTitle, verse, parishTotals } = req.body;
+    const { churchCode, appTitle, verse, parishTotals, parishConfig } = req.body;
     console.log('[PAT] saveConfig 수신:', { churchCode, appTitle, verseRef: verse?.ref, parishTotals });
     if (!assertChurchCode(churchCode, res)) return;
     // ★ 교회별 관리자 검증(레거시 11111은 전역 폴백) — 멀티 교회 격리
@@ -327,6 +327,10 @@ exports.saveConfig = onRequest({ cors: true, region: 'us-central1' }, async (req
     if (verse !== undefined) update.verse = verse || null;
     if (parishTotals && typeof parishTotals === 'object') {
       update.parishTotals = parishTotals;
+    }
+    // 교회별 교구/그룹 설정 {term, groups:[...]} 저장
+    if (parishConfig && typeof parishConfig === 'object') {
+      update.parishConfig = parishConfig;
     }
     await db.doc(`churches/${churchCode}/config/current`).set(update, { merge: true });
     console.log('[PAT] saveConfig 저장 성공');
@@ -659,7 +663,12 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
         joinedMembers: joinedSnap.docs.map(d => d.data()),
       };
     }));
-    const reg = countParishMembers(families);                // {byParish: 교구별 참가인원, totalMembers}
+    // 교회별 교구/그룹 설정 읽기 (없으면 레거시 1/2/3교구로 동작 — 세광 회귀 보호)
+    const cfgSnap = await db.doc(`churches/${churchCode}/config/current`).get();
+    const parishConfig = (cfgSnap.exists && cfgSnap.data().parishConfig) || null;
+    const groups = (parishConfig && Array.isArray(parishConfig.groups) && parishConfig.groups.length)
+      ? parishConfig.groups.map(g => String(g).trim()).filter(Boolean) : null;
+    const reg = countParishMembers(families, groups);        // {byParish: 교구별 참가인원, totalMembers}
     const totalMembers = reg.totalMembers;
     const familyToParish = {};
     families.forEach(f => { familyToParish[f.id] = f.parish; });
@@ -667,7 +676,7 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
     // ✅ 4️⃣ 교구별 "진도" 집계 — 현재 구절을 실제 완료한 멤버 수 (records 기반)
     //    등록만 하고 암송 안 한 사람은 0. 진도가 없으면 byParish 도 0.
     const records = recordsSnap.docs.map(doc => doc.data());
-    const { byParish, completedMembers } = countCompletedMembersByParish(records, familyToParish);
+    const { byParish, completedMembers } = countCompletedMembersByParish(records, familyToParish, groups);
 
     // 완료한 가정 수 (교회 전체/블레싱 현황용)
     const completedFamilies = new Set();
@@ -678,7 +687,7 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
     console.log(`\n[PAT-DASHBOARD] ===== 최종 결과 =====`);
     console.log(`  등록 가정: ${totalFamilies}개, 등록 인원: ${totalMembers}명`);
     console.log(`  완료 가정: ${completedTotal}개, 완료 멤버: ${completedMembers}명`);
-    console.log(`  교구별 진도(완료 멤버) → 1교구:${byParish['1교구']} 2교구:${byParish['2교구']} 3교구:${byParish['3교구']}명\n`);
+    console.log(`  교구별 진도(완료 멤버) → ${JSON.stringify(byParish)}\n`);
 
     res.json({
       total: completedTotal,           // 완료한 가정 수 (교회 전체/블레싱용)
@@ -686,7 +695,8 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
       totalMembers: totalMembers,       // 등록된 전체 인원 수(참고)
       completedMembers: completedMembers, // 완료한 전체 멤버 수
       byParish,                         // 교구별 진도(현재 구절 완료 멤버 수)
-      registeredByParish: reg.byParish  // 교구별 참가인원(등록 멤버 헤드카운트)
+      registeredByParish: reg.byParish, // 교구별 참가인원(등록 멤버 헤드카운트)
+      parishConfig                       // 교회별 교구/그룹 설정 {term, groups} (없으면 null=레거시)
     });
   } catch (e) { errRes(res, e); }
 });

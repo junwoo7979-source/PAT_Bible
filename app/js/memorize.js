@@ -154,16 +154,8 @@ async function computeAggregatedData(){
     myCount: 0,           // 내 암송 횟수 (로컬)
     familyDone: 0,        // 우리 가족 완료자
     familyTotal: 0,       // 우리 가족 총인원
-    byParish: {           // 교구별 완료(실천) 멤버 수
-      '1교구': 0,
-      '2교구': 0,
-      '3교구': 0,
-    },
-    registeredByParish: { // 교구별 참가인원(등록 멤버 수)
-      '1교구': 0,
-      '2교구': 0,
-      '3교구': 0,
-    },
+    byParish: {},           // 교구/그룹별 완료(실천) 멤버 수 (서버에서 동적으로 채움)
+    registeredByParish: {}, // 교구/그룹별 참가인원(등록 멤버 수)
     totalDone: 0,         // 현재 구절을 완료한 가정 수
     totalFamilies: 0,     // 등록된 모든 가정 수 (교회 전체 기준)
   };
@@ -209,29 +201,13 @@ async function computeAggregatedData(){
       if(stats && typeof stats.byParish === 'object'){
         console.log('[PAT-DASHBOARD-AGGREGATE] ✅ byParish 객체 존재:', stats.byParish);
 
-        // 실제 Firebase 데이터로 집계 (families 기반)
-        Object.keys(PARISH_INFO).forEach(parish => {
-          const firebaseValue = stats.byParish[parish];
-          result.byParish[parish] = typeof firebaseValue === 'number' ? firebaseValue : 0;
-          console.log(`[PAT-DASHBOARD-AGGREGATE]   ${parish}: Firebase=${firebaseValue}개 가정 → 결과=${result.byParish[parish]}`);
-        });
-
+        // ★ 동적: 서버가 교회별 그룹 이름으로 byParish/registeredByParish를 그대로 반환 → 패스스루
+        result.byParish = (stats.byParish && typeof stats.byParish === 'object') ? stats.byParish : {};
+        result.registeredByParish = (stats.registeredByParish && typeof stats.registeredByParish === 'object') ? stats.registeredByParish : {};
         result.totalDone = typeof stats.total === 'number' ? stats.total : 0;
         result.totalFamilies = typeof stats.totalFamilies === 'number' ? stats.totalFamilies : 0;
-        // 교구별 참가인원(등록) — 시뮬레이션 형식: 완료/전체 + 실천율 + 참가인원
-        if(stats.registeredByParish && typeof stats.registeredByParish === 'object'){
-          Object.keys(PARISH_INFO).forEach(parish => {
-            const v = stats.registeredByParish[parish];
-            result.registeredByParish[parish] = typeof v === 'number' ? v : 0;
-          });
-        }
 
-        console.log('[PAT-DASHBOARD-AGGREGATE] ✅ Firebase 교구 데이터 수집 완료:');
-        console.log('  등록된 가정:', result.totalFamilies, '개');
-        console.log('  완료한 가정:', result.totalDone, '개');
-        console.log('  1교구:', result.byParish['1교구'], '개 가정');
-        console.log('  2교구:', result.byParish['2교구'], '개 가정');
-        console.log('  3교구:', result.byParish['3교구'], '개 가정');
+        console.log('[PAT-DASHBOARD-AGGREGATE] ✅ Firebase 교구 데이터 수집 완료:', { byParish: result.byParish, registeredByParish: result.registeredByParish });
       } else {
         console.warn('[PAT-DASHBOARD-AGGREGATE] ⚠️ byParish 객체 없음:');
         console.warn('  stats:', stats);
@@ -347,76 +323,28 @@ function stopDashboardPolling(){
 
 // 교구별 현황 UI 렌더링 (수집된 실제 데이터만 사용)
 function renderParishStatsFromAggregated(byParish, totalDone, registeredByParish){
-  console.log('[PAT-PARISH-RENDER] 교구별 현황 렌더링 시작');
-  console.log('  입력 데이터:', { byParish, totalDone });
-
-  // 데이터 정규화 및 검증
-  const normalizedData = {};
-  const parishKeys = ['1교구','2교구','3교구'];
-
-  parishKeys.forEach(parish => {
-    // Firebase 데이터에서 교구별 실제 값 추출
-    normalizedData[parish] = Number(byParish[parish]) || 0;
-  });
-
-  console.log('[PAT-PARISH-RENDER] ✅ 정규화된 교구 데이터:', normalizedData);
-
-  // 프로필 정보 (내 교구 강조용)
+  byParish = byParish || {}; registeredByParish = registeredByParish || {};
+  const cfg = (typeof getParishConfig === 'function') ? getParishConfig() : { term:'교구', groups:['1교구','2교구','3교구','블레싱'] };
   const profile = loadFamilyProfile();
+  let totals = {};
+  try { totals = JSON.parse(localStorage.getItem('pat_admin_parish_edit') || '{}'); } catch(e) {}
 
-  // 관리자가 설정한 교구별 전체 인원(분모) — 관리자 화면과 동기화
-  let adminTotals = {};
-  try { adminTotals = JSON.parse(localStorage.getItem('pat_admin_parish_edit') || '{}'); } catch(e) {}
-  const TOTAL_KEY = { '1교구': 'p1_total', '2교구': 'p2_total', '3교구': 'p3_total' };
-
-  // HTML 생성 (수집된 데이터 기반)
-  const rows = parishKeys.map(parish => {
-    const done  = normalizedData[parish];           // Firebase에서 수집한 실제 완료자
-    const adminTotal = adminTotals[TOTAL_KEY[parish]];
-    const total = (adminTotal !== undefined && adminTotal !== null && adminTotal > 0)
-      ? adminTotal                                   // 관리자 설정 인원 우선
-      : PARISH_INFO[parish].total;                   // 없으면 기본 인원
-    const pct   = total > 0 ? Math.round(done / total * 100) : 0;  // 실천율
-    const reg   = (registeredByParish && Number(registeredByParish[parish])) || 0; // 참가인원
-    const isMine = profile?.parish && (profile.parish === parish || profile.parish.includes(parish));
-
-    // 실제 데이터 표시: 완료/전체 · 참가인원 · 실천율
-    const html = `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)">
-      <span style="min-width:48px;font-weight:700;${isMine?'color:var(--accent)':''}">${parish} 실천표${isMine?' ★':''}</span>
+  const rows = cfg.groups.map(g => {
+    const done  = Number(byParish[g]) || 0;
+    const total = (totals[g] != null && Number(totals[g]) > 0) ? Number(totals[g]) : 0;
+    const pct   = total > 0 ? Math.round(done / total * 100) : 0;
+    const reg   = Number(registeredByParish[g]) || 0;
+    const isMine = profile?.parish && (profile.parish === g || (profile.parish || '').includes(g));
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)">
+      <span style="min-width:56px;font-weight:700;${isMine?'color:var(--accent)':''}">${esc(g)}${isMine?' ★':''}</span>
       <small class="muted" style="min-width:104px">완료 ${done}/${total} · 참가 ${reg}</small>
       <div class="bar" style="flex:1;margin:0"><span style="width:${pct}%"></span></div>
       <small style="min-width:36px;text-align:right;font-weight:700">${pct}%</small>
     </div>`;
-
-    console.log(`[PAT-PARISH-RENDER]   ${parish}: ${done}/${total}명 (${pct}%)`);
-    return html;
   });
 
-  // 블레싱 실천표 — 완료는 자동 집계(totalDone), 전체는 관리자 설정값 우선
-  const adminBlessingTotal = adminTotals.blessing_total;
-  const totalFamilies = (adminBlessingTotal !== undefined && adminBlessingTotal !== null && adminBlessingTotal > 0)
-    ? adminBlessingTotal
-    : Object.values(normalizedData).reduce((a, b) => a + b, 0);
-  const totalPct = totalFamilies > 0 ? Math.round(totalDone / totalFamilies * 100) : 0;
-  rows.push(`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);margin-top:4px">
-    <span style="min-width:48px;font-weight:700">블레싱 실천표</span>
-    <small class="muted" style="min-width:74px">${totalDone}/${totalFamilies}개</small>
-    <div class="bar" style="flex:1;margin:0"><span style="width:${totalPct}%"></span></div>
-    <small style="min-width:36px;text-align:right;font-weight:700">${totalPct}%</small>
-  </div>`);
-
-  console.log(`[PAT-PARISH-RENDER]   블레싱 실천표: ${totalDone}/${totalFamilies}개 가정 (${totalPct}%)`);
-
-  // DOM 업데이트
-  const html = rows.join('');
   const element = document.getElementById('dParishList');
-  if(element){
-    element.innerHTML = html;
-    console.log('[PAT-PARISH-RENDER] ✅ DOM 업데이트 완료\n');
-  } else {
-    console.error('[PAT-PARISH-RENDER] ❌ dParishList 요소를 찾을 수 없음!');
-  }
-  // 관리자 편집 폼(adminParishListEdit)은 별도 입력 UI이므로 여기서 덮어쓰지 않음
+  if(element) element.innerHTML = rows.join('');
 }
 
 // ── 설정 ─────────────────────────────────────────────────

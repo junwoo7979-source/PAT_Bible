@@ -183,12 +183,12 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] getConfig:', e.message); return null; }
   }
 
-  async function saveConfig(churchCode, appTitle, verse, parishTotals) {
+  async function saveConfig(churchCode, appTitle, verse, parishTotals, parishConfig) {
     if (!ready()) return false;
     try {
       console.log('[PAT_DB] saveConfig 요청 시작:', { churchCode });
       // undefined 필드는 JSON 직렬화에서 제외 → 백엔드 부분 업데이트
-      await apiPost('saveConfig', { churchCode, appTitle, verse, parishTotals });
+      await apiPost('saveConfig', { churchCode, appTitle, verse, parishTotals, parishConfig });
       console.log('[PAT_DB] saveConfig 저장 성공');
       return true;
     } catch (e) {

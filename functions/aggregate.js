@@ -12,11 +12,32 @@ function normalizeParish(raw) {
   return s; // 알 수 없는 값 → 원본 유지(교구 집계에서 제외)
 }
 
+// 교구/그룹 빈 집계 객체 생성. groups(교회별 그룹명 배열)가 있으면 그걸로, 없으면 레거시 1/2/3교구.
+function _emptyByGroup(groups) {
+  const byParish = {};
+  if (Array.isArray(groups) && groups.length) {
+    groups.forEach(g => { const n = String(g == null ? '' : g).trim(); if (n) byParish[n] = 0; });
+  } else {
+    byParish['1교구'] = 0; byParish['2교구'] = 0; byParish['3교구'] = 0;
+  }
+  return byParish;
+}
+// 가정/기록의 교구값을 집계 키에 매칭. 정확 일치 우선(커스텀 이름) → 레거시 normalize(1/일/1교구) 폴백.
+//   덕분에 세광을 동적 groups(1교구…)로 옮겨도 옛 자유입력("1","일교구")이 그대로 잡힌다.
+function _matchGroup(rawParish, byParish) {
+  const p = String(rawParish == null ? '' : rawParish).trim();
+  if (byParish[p] !== undefined) return p;
+  const norm = normalizeParish(p);
+  if (byParish[norm] !== undefined) return norm;
+  return null;
+}
+
 // 교구별 등록 인원(멤버 헤드카운트) 집계 — 순수 함수(테스트 가능).
 // 각 가정의 인원 = 선언된 members 배열 + 입장한 members 서브컬렉션의 "이름 합집합".
 // families: [{ parish, members:[...], joinedMembers:[{displayName|name}] }]
-function countParishMembers(families) {
-  const byParish = { '1교구': 0, '2교구': 0, '3교구': 0 };
+// groups(선택): 교회별 그룹명 배열. 없으면 1/2/3교구(레거시 동일 동작).
+function countParishMembers(families, groups) {
+  const byParish = _emptyByGroup(groups);
   let totalMembers = 0;
   for (const f of (families || [])) {
     const names = new Set();
@@ -34,8 +55,8 @@ function countParishMembers(families) {
     }
     const count = names.size;
     totalMembers += count;
-    const parish = normalizeParish(f.parish);
-    if (byParish[parish] !== undefined) byParish[parish] += count;
+    const g = _matchGroup(f.parish, byParish);
+    if (g) byParish[g] += count;
   }
   return { byParish, totalMembers };
 }
@@ -44,8 +65,8 @@ function countParishMembers(families) {
 // records: [{ familyId, deviceId, memberName, parish }]  (현재 구절 기록만)
 // familyToParish: { [familyId]: parish }  (가정의 교구로 우선 매핑, 없으면 record.parish)
 // 멤버 단위 중복 제거(같은 멤버가 여러 번 기록해도 1명).
-function countCompletedMembersByParish(records, familyToParish) {
-  const byParish = { '1교구': 0, '2교구': 0, '3교구': 0 };
+function countCompletedMembersByParish(records, familyToParish, groups) {
+  const byParish = _emptyByGroup(groups);
   const seen = new Set();
   for (const r of (records || [])) {
     const familyId = r.familyId || '';
@@ -55,8 +76,8 @@ function countCompletedMembersByParish(records, familyToParish) {
     if (seen.has(key)) continue;
     seen.add(key);
     const rawParish = (familyToParish && familyToParish[familyId]) || r.parish;
-    const parish = normalizeParish(rawParish);
-    if (byParish[parish] !== undefined) byParish[parish] += 1;
+    const g = _matchGroup(rawParish, byParish);
+    if (g) byParish[g] += 1;
   }
   return { byParish, completedMembers: seen.size };
 }
