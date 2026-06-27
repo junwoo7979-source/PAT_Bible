@@ -103,7 +103,7 @@ function applyStoredData(){
   try {
     const savedCode = localStorage.getItem('pat_church_code');
     if(savedCode) DB.church.code = savedCode;
-    else if(loadFamilyProfile() || localStorage.getItem('pat_admin_id')) DB.church.code = '11111';
+    else if(loadFamilyProfile()) DB.church.code = '11111'; // 멀티교회 이전 세광 교인 회귀
   } catch(e) {}
 
   // ★ 개발자 통계 숨김 진입: ?dev=1 → 개발자 통계 화면 (일반 라우팅 건너뜀)
@@ -139,14 +139,15 @@ function determineInitialScreen(){
     const adminId = localStorage.getItem('pat_admin_id');
     const adminPw = localStorage.getItem('pat_admin_pw');
 
-    // 저장된 가족방이 있으면 가족방으로
+    // 저장된 가족방이 있으면 가족방으로 (교인은 자동 입장 — 편의)
     if(familyProfile){
       console.log('[PAT-STARTUP] 저장된 가족방 복원');
       return 's-family';
     }
-    // 저장된 관리자 정보가 있으면 관리자 화면으로
-    if(adminId && adminPw){
-      console.log('[PAT-STARTUP] 저장된 관리자 계정 복원');
+    // ★ 관리자는 "앱을 새로 열면"(새 세션) 자동 진입하지 않고 로그인 화면.
+    //   단 같은 세션 내 새로고침은 유지(pat_admin_session). → "열면 로그인된 채" 방지 + 작업 중 안 튕김.
+    if(adminId && adminPw && sessionStorage.getItem('pat_admin_session')){
+      console.log('[PAT-STARTUP] 관리자 세션 유지');
       return 's-admin';
     }
   } catch(e) {
@@ -226,11 +227,10 @@ function completeAppInitialization(){
     initialScreen = 's-family';
     reason = '저장된 가족방 복원';
   }
-  // 2️⃣ 저장된 관리자 정보가 있으면 관리자 화면으로 이동
-  else if(adminId && adminPw){
-    console.log('[PAT-STARTUP] 관리자 계정 발견:', adminId);
+  // ★ 관리자: 같은 세션(새로고침)만 유지, 새로 열면 로그인 화면.
+  else if(adminId && adminPw && (function(){ try { return !!sessionStorage.getItem('pat_admin_session'); } catch(e){ return false; } })()){
     initialScreen = 's-admin';
-    reason = '저장된 관리자 계정 복원';
+    reason = '관리자 세션 유지';
   }
 
   console.log('[PAT-STARTUP] 초기 화면 진입:', initialScreen, `(${reason})`);
@@ -321,6 +321,7 @@ async function adminLogin(){
     localStorage.setItem('pat_admin_token', 'fbde1052ecb6da2b9720c096ba8ea047a9327207399802d358dc308299e0d7ac');
     document.getElementById('adminPw').value = '';
     setAdminLoggedIn(true);
+    try { sessionStorage.setItem('pat_admin_session', '1'); } catch(e) {}
     if(typeof loadChurchConfig === 'function') await loadChurchConfig();
     renderAdmin();
     go('s-admin');
@@ -338,6 +339,7 @@ async function adminLogin(){
     localStorage.removeItem('pat_admin_token'); // 교회별 자격 사용 → 전역 토큰 제거
     document.getElementById('adminPw').value = '';
     setAdminLoggedIn(true);
+    try { sessionStorage.setItem('pat_admin_session', '1'); } catch(e) {}
     if(typeof loadChurchConfig === 'function') await loadChurchConfig();
     renderAdmin();
     go('s-admin');
@@ -370,6 +372,7 @@ async function registerChurchSubmit(){
     localStorage.setItem('pat_admin_pw', pw);
     localStorage.removeItem('pat_admin_token');
     setAdminLoggedIn(true);
+    try { sessionStorage.setItem('pat_admin_session', '1'); } catch(e) {}
     if(document.getElementById('regAdminPw'))  document.getElementById('regAdminPw').value  = '';
     if(document.getElementById('regAdminPw2')) document.getElementById('regAdminPw2').value = '';
     renderAdmin();
@@ -478,6 +481,7 @@ function adminLogout(){
   localStorage.removeItem('pat_admin_pw');
   localStorage.removeItem('pat_admin_token');
   setAdminLoggedIn(false);
+  try { sessionStorage.removeItem('pat_admin_session'); } catch(e) {}
   // ★ 새로고침(당겨서 새로고침) 시 이전 화면으로 튕기지 않도록 — go('s-login')과 동일한 보호 플래그.
   //   (초기화 로직 determineInitialScreen/completeAppInitialization 이 이 플래그를 보면 무조건 로그인 유지)
   try { sessionStorage.setItem('pat_stay_login', '1'); } catch(e) {}
