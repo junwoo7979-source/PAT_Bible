@@ -75,6 +75,8 @@ const NEW_CHURCH_CODE_RE = /^[#@*!_-]\d{6}$/;
 const ADMIN_ID_RE = /^[A-Za-z][A-Za-z0-9]{2,19}$/;
 // 관리자 비번: 특수문자 → 영문 → 숫자 순서, 8자 이상 (예: #grace2026)
 const ADMIN_PW_RE = /^(?=.{8,}$)[^A-Za-z0-9]+[A-Za-z]+[0-9]+$/;
+// 예약된 관리자 아이디 (세광 레거시 'admin' 등 — 신규 교회가 못 쓰게)
+const RESERVED_ADMIN_IDS = ['admin'];
 
 // 교회별 관리자 검증: 그 교회의 admin/cred 와 헤더(id/pw) 대조.
 // admin 문서가 없으면(레거시 세광 11111 등) 기존 전역 검증으로 폴백 → 호환 유지.
@@ -107,19 +109,29 @@ exports.registerChurch = onRequest({ cors: true, region: 'us-central1' }, async 
     if (!ADMIN_PW_RE.test(String(adminPw || ''))) {
       res.status(400).json({ error: '관리자 비밀번호는 특수문자 → 영문 → 숫자 순서로 8자 이상이어야 합니다 (예: #grace2026)' }); return;
     }
-    // 기존 교회 보호: 코드가 이미 쓰이면(설정/관리자/루트 문서 존재) 거부
-    const [rootDoc, credDoc, cfgDoc] = await Promise.all([
+    const adminIdKey = String(adminId).toLowerCase();
+    if (RESERVED_ADMIN_IDS.includes(adminIdKey)) {
+      res.status(409).json({ error: '사용할 수 없는 관리자 아이디입니다. 다른 아이디를 입력하세요.' }); return;
+    }
+    // 기존 교회 코드 / 관리자 아이디 중복 보호
+    const [rootDoc, credDoc, cfgDoc, idxDoc] = await Promise.all([
       db.doc(`churches/${code}`).get(),
       db.doc(`churches/${code}/admin/cred`).get(),
       db.doc(`churches/${code}/config/current`).get(),
+      db.doc(`adminIds/${adminIdKey}`).get(),
     ]);
     if (rootDoc.exists || credDoc.exists || cfgDoc.exists) {
       res.status(409).json({ error: '이미 사용 중인 교회 코드입니다. 다른 코드를 입력하세요.' }); return;
+    }
+    if (idxDoc.exists) {
+      res.status(409).json({ error: '이미 사용 중인 관리자 아이디입니다. 다른 아이디를 입력하세요.' }); return;
     }
     await db.doc(`churches/${code}`).set({ name: String(name).trim(), createdAt: FieldValue.serverTimestamp() });
     await db.doc(`churches/${code}/admin/cred`).set({
       adminId: String(adminId), adminPwHash: hashFamilyPassword(code, adminPw), createdAt: FieldValue.serverTimestamp(),
     });
+    // ★ 관리자 아이디 전역 유일 인덱스 → 로그인 시 아이디만으로 교회 식별 (코드 불필요)
+    await db.doc(`adminIds/${adminIdKey}`).set({ churchCode: code, adminId: String(adminId), createdAt: FieldValue.serverTimestamp() });
     // 초기 설정 문서(교회 이름) 생성 → 코드 점유 표시 + 성도 화면 제목
     await db.doc(`churches/${code}/config/current`).set({
       appTitle: String(name).trim(), updatedAt: FieldValue.serverTimestamp(),
@@ -128,17 +140,18 @@ exports.registerChurch = onRequest({ cors: true, region: 'us-central1' }, async 
   } catch (e) { errRes(res, e); }
 });
 
-// 관리자 로그인(신규 교회) — 교회코드+아이디+비번 대조
+// 관리자 로그인(신규 교회) — 아이디+비번만 (아이디 전역 유일 → 교회 자동 식별)
 exports.adminLogin = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
   if (!begin(req, res)) return;
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
   try {
-    const { code, adminId, adminPw } = req.body || {};
-    if (!assertChurchCode(code, res)) return;
+    const { adminId, adminPw } = req.body || {};
+    if (!ADMIN_ID_RE.test(String(adminId || ''))) { res.status(400).json({ ok: false, error: '아이디 형식이 올바르지 않습니다' }); return; }
+    const idxSnap = await db.doc(`adminIds/${String(adminId).toLowerCase()}`).get();
+    if (!idxSnap.exists) { res.status(404).json({ ok: false, error: '등록되지 않은 관리자 아이디입니다' }); return; }
+    const code = idxSnap.data().churchCode;
     const credSnap = await db.doc(`churches/${code}/admin/cred`).get();
-    if (!credSnap.exists) { res.status(404).json({ ok: false, error: '등록되지 않은 교회 코드입니다' }); return; }
-    const cred = credSnap.data();
-    if (String(adminId) !== cred.adminId || !verifyFamilyPassword(code, adminPw, cred.adminPwHash)) {
+    if (!credSnap.exists || !verifyFamilyPassword(code, adminPw, credSnap.data().adminPwHash)) {
       res.status(401).json({ ok: false, error: '아이디 또는 비밀번호가 올바르지 않습니다' }); return;
     }
     const nameDoc = await db.doc(`churches/${code}`).get();
@@ -200,8 +213,11 @@ exports.deleteChurch = onRequest({ cors: true, region: 'us-central1', secrets: [
     if (!token || token !== PAT_DEV_TOKEN.value()) { res.status(401).json({ error: 'Unauthorized' }); return; }
     const { code } = req.body || {};
     if (!validChurchCode(code)) { res.status(400).json({ error: 'Valid code required' }); return; }
+    // 이 교회를 가리키는 관리자 아이디 인덱스도 정리 (아이디 영구 점유 방지 + 고아 정리)
+    const idxSnap = await db.collection('adminIds').where('churchCode', '==', code).get();
+    await Promise.all(idxSnap.docs.map(d => d.ref.delete()));
     await db.recursiveDelete(db.doc(`churches/${code}`)); // 문서 + 모든 하위 컬렉션 삭제
-    res.json({ ok: true, code });
+    res.json({ ok: true, code, adminIdsCleaned: idxSnap.size });
   } catch (e) { errRes(res, e); }
 });
 
@@ -272,6 +288,19 @@ exports.checkChurchCode = onRequest({ cors: true, region: 'us-central1' }, async
     ]);
     const used = rootDoc.exists || credDoc.exists || cfgDoc.exists;
     res.json({ valid: true, available: !used });
+  } catch (e) { errRes(res, e); }
+});
+
+// 관리자 아이디 사용 가능 여부(등록 화면 중복확인 — 전역 유일)
+exports.checkAdminId = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  try {
+    const { adminId } = req.query;
+    if (!ADMIN_ID_RE.test(String(adminId || ''))) { res.json({ valid: false, available: false }); return; }
+    const key = String(adminId).toLowerCase();
+    if (RESERVED_ADMIN_IDS.includes(key)) { res.json({ valid: true, available: false }); return; }
+    const idxSnap = await db.doc(`adminIds/${key}`).get();
+    res.json({ valid: true, available: !idxSnap.exists });
   } catch (e) { errRes(res, e); }
 });
 

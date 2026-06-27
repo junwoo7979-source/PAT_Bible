@@ -335,11 +335,10 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <h1 class="center">관리자 로그인</h1>
     <p class="center muted">교회 관리자 전용 페이지</p>
     <div class="spacer"></div>
-    <input class="field" id="adminChurchCode" placeholder="교회 코드 (예: #482913 / 세광은 비움)" autocomplete="off">
     <input class="field" id="adminId" placeholder="관리자 아이디" autocomplete="off">
     <div class="pw-wrap"><input class="field" id="adminPw" type="password" placeholder="비밀번호" autocomplete="off"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
     <button class="btn" onclick="adminLogin()">관리자 입장</button>
-    <p class="center muted" style="margin-top:14px">세광교회(체험): 코드 비우고 <b style="color:var(--accent)">admin / 1234</b></p>
+    <p class="center muted" style="margin-top:14px">세광교회(체험): <b style="color:var(--accent)">admin / 1234</b></p>
     <div class="spacer"></div>
   </section>
 
@@ -357,8 +356,9 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <p id="regCodeStatus" class="muted" style="margin:4px 2px 0;font-size:calc(var(--fs)-3px)">형식: 특수문자1 + 숫자6 (예: #482913)</p>
     </div>
     <div class="card" style="margin-top:8px">
-      <label class="lbl">③ 관리자 아이디 — 영문</label>
-      <input class="field" id="regAdminId" placeholder="영문 3~20자 (예: pastorkim)" autocomplete="off">
+      <label class="lbl">③ 관리자 아이디 — 영문 (전체 교회에서 유일)</label>
+      <input class="field" id="regAdminId" placeholder="영문 3~20자 (예: pastorkim)" autocomplete="off" oninput="checkRegAdminId()">
+      <p id="regAdminIdStatus" class="muted" style="margin:4px 2px 0;font-size:calc(var(--fs)-3px)">로그인은 이 아이디로 합니다 (교회 코드 불필요)</p>
       <label class="lbl">④ 관리자 비밀번호</label>
       <div class="pw-wrap"><input class="field" id="regAdminPw" type="password" placeholder="특수문자→영문→숫자 순서 (예: #grace2026)" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
       <p class="muted" style="margin:4px 2px 0;font-size:calc(var(--fs)-3px)">🔒 비밀번호는 <b>특수문자 → 영문 → 숫자 순서로 8자 이상</b>으로 설정해주세요 (예: <b>#grace2026</b>)</p>

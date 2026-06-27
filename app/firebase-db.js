@@ -99,12 +99,12 @@ window.PAT_DB = (() => {
     } catch (e) { return { ok: false, error: e.message }; }
   }
 
-  async function adminLogin(code, adminId, adminPw) {
+  async function adminLogin(adminId, adminPw) {
     if (!ready()) return { ok: false, error: '서버 연결이 필요합니다' };
     try {
       const r = await fetch(`${API}/adminLogin`, {
         method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({ code, adminId, adminPw }),
+        body: JSON.stringify({ adminId, adminPw }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) return { ok: false, error: data.error || ('오류 ' + r.status) };
@@ -115,6 +115,10 @@ window.PAT_DB = (() => {
   async function checkChurchCode(code) {
     if (!ready()) return null;
     try { return await apiGet('checkChurchCode', { code }); } catch (e) { return null; }
+  }
+  async function checkAdminId(adminId) {
+    if (!ready()) return null;
+    try { return await apiGet('checkAdminId', { adminId }); } catch (e) { return null; }
   }
 
   // ── 문의·오류 신고 ──
@@ -482,7 +486,7 @@ window.PAT_DB = (() => {
 
   return {
     init, ready, getDeviceId,
-    registerChurch, adminLogin, checkChurchCode,
+    registerChurch, adminLogin, checkChurchCode, checkAdminId,
     submitReport, getReports, deleteReport,
     saveVerse, getLatestVerse, subscribeVerse,
     saveFamily, findFamilyByPassword, joinFamily, removeFamilyMember, getFamilyMembers, getFamilyInfo, subscribeFamily,

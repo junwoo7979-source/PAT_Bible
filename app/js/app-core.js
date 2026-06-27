@@ -309,39 +309,33 @@ function adoptChurch(code, name){
 }
 
 async function adminLogin(){
-  const code = (document.getElementById('adminChurchCode')?.value || '').trim();
   const id = document.getElementById('adminId').value.trim();
   const pw = document.getElementById('adminPw').value.trim();
+  if(!id || !pw){ toast('아이디와 비밀번호를 입력하세요'); return; }
 
-  // ── 레거시 세광교회: 코드 비움 또는 11111 + admin/1234 (테스트 기간 현행 유지) ──
-  if(!code || code === '11111'){
-    if(id === ADMIN.id && pw === ADMIN.pw){
-      adoptChurch('11111', '세광교회');
-      localStorage.setItem('pat_admin_id', id);
-      localStorage.setItem('pat_admin_pw', pw);
-      // Firebase Admin Token 저장 (레거시 전역 인증용)
-      localStorage.setItem('pat_admin_token', 'fbde1052ecb6da2b9720c096ba8ea047a9327207399802d358dc308299e0d7ac');
-      document.getElementById('adminPw').value = '';
-      setAdminLoggedIn(true);
-      if(typeof loadChurchConfig === 'function') await loadChurchConfig();
-      renderAdmin();
-      go('s-admin');
-      toast('✓ 관리자로 로그인되었습니다');
-      return;
-    }
-    toast('아이디 또는 비밀번호가 올바르지 않습니다');
+  // ── 레거시 세광교회: admin/1234 → 11111 (테스트 기간 현행 유지) ──
+  if(id === ADMIN.id && pw === ADMIN.pw){
+    adoptChurch('11111', '세광교회');
+    localStorage.setItem('pat_admin_id', id);
+    localStorage.setItem('pat_admin_pw', pw);
+    localStorage.setItem('pat_admin_token', 'fbde1052ecb6da2b9720c096ba8ea047a9327207399802d358dc308299e0d7ac');
+    document.getElementById('adminPw').value = '';
+    setAdminLoggedIn(true);
+    if(typeof loadChurchConfig === 'function') await loadChurchConfig();
+    renderAdmin();
+    go('s-admin');
+    toast('✓ 관리자로 로그인되었습니다');
     return;
   }
 
-  // ── 신규 교회: 백엔드에서 교회별 관리자 검증 ──
+  // ── 신규 교회: 아이디(전역 유일)+비번으로 교회 자동 식별 ──
   if(!(window.PAT_DB && PAT_DB.ready())){ toast('서버 연결이 필요합니다'); return; }
-  const r = await PAT_DB.adminLogin(code, id, pw);
+  const r = await PAT_DB.adminLogin(id, pw);
   if(r && r.ok){
-    adoptChurch(code, r.name);
+    adoptChurch(r.code, r.name);
     localStorage.setItem('pat_admin_id', id);
     localStorage.setItem('pat_admin_pw', pw);
-    // 교회별 자격(id/pw)으로 인증 → 레거시 전역 토큰 제거
-    localStorage.removeItem('pat_admin_token');
+    localStorage.removeItem('pat_admin_token'); // 교회별 자격 사용 → 전역 토큰 제거
     document.getElementById('adminPw').value = '';
     setAdminLoggedIn(true);
     if(typeof loadChurchConfig === 'function') await loadChurchConfig();
@@ -350,7 +344,7 @@ async function adminLogin(){
     toast('✓ ' + (r.name || '교회') + ' 관리자 로그인');
     return;
   }
-  toast((r && r.error) || '로그인 실패');
+  toast((r && r.error) || '아이디 또는 비밀번호가 올바르지 않습니다');
 }
 
 // ── 교회 신규 등록 (셀프 등록) ──────────────────────────────
@@ -395,6 +389,18 @@ async function checkRegChurchCode(){
   const r = await PAT_DB.checkChurchCode(code);
   if(r && r.available){ el.textContent = '✓ 사용 가능한 코드입니다'; el.style.color = 'var(--accent)'; }
   else if(r && !r.available){ el.textContent = '✗ 이미 사용 중인 코드입니다'; el.style.color = 'var(--danger)'; }
+  else { el.textContent = ''; }
+}
+
+async function checkRegAdminId(){
+  const id = (document.getElementById('regAdminId')?.value || '').trim();
+  const el = document.getElementById('regAdminIdStatus');
+  if(!el) return;
+  if(!/^[A-Za-z][A-Za-z0-9]{2,19}$/.test(id)){ el.textContent = '영문으로 시작하는 3~20자 (전체 교회에서 유일)'; el.style.color = 'var(--muted)'; return; }
+  if(!(window.PAT_DB && PAT_DB.ready())){ el.textContent = ''; return; }
+  const r = await PAT_DB.checkAdminId(id);
+  if(r && r.available){ el.textContent = '✓ 사용 가능한 아이디입니다'; el.style.color = 'var(--accent)'; }
+  else if(r && !r.available){ el.textContent = '✗ 이미 사용 중인 아이디입니다 (다른 아이디를 입력하세요)'; el.style.color = 'var(--danger)'; }
   else { el.textContent = ''; }
 }
 
