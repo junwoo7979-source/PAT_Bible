@@ -498,9 +498,11 @@ function memberLogout(){
   const code = document.getElementById('churchCode');
   if(code) code.value = '';
   // ★ 가족방 정보 완전 삭제 (로그아웃 시 초기화)
+  //   단, pat_leader_family_profile은 보존 (BUG-FIX: 대표 가족 정보 복구용)
   localStorage.removeItem('pat_family_profile');
   localStorage.removeItem('pat_family_id');
   localStorage.removeItem('pat_device_id');
+  // ⚠️ pat_leader_family_profile은 삭제하지 않음 (재로그인 후 자동 복구)
   // ★ localStorage 쓰기 실패 시 남았을 수 있는 sessionStorage 백업까지 제거
   //   (loadFamilyProfile 이 sessionStorage 백업을 읽어 새로고침 시 가족화면 복원 → 튕김 방지)
   try { sessionStorage.removeItem('pat_family_profile'); } catch(e) {}

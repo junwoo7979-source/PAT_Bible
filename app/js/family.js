@@ -37,6 +37,20 @@ function loadFamilyProfile(){
     }
   }catch(e) {}
 
+  // ★ BUG-FIX: 대표 가족 정보 자동 복구 (로그아웃 후 재로그인 시)
+  //   pat_leader_family_profile에서 복구하여 pat_family_profile에 다시 저장
+  try{
+    const leaderProfile = localStorage.getItem('pat_leader_family_profile');
+    if(leaderProfile) {
+      const profile = JSON.parse(leaderProfile);
+      console.log('[PAT-FAMILY] 대표 가족 정보에서 자동 복구');
+      setFamilyStorage('pat_family_profile', leaderProfile);
+      return profile;
+    }
+  }catch(e) {
+    console.warn('[PAT-FAMILY] 대표 가족 정보 복구 실패:', e.message);
+  }
+
   return null;
 }
 function familyRoomName(profile){
@@ -311,6 +325,17 @@ function saveFamilyProfileAsLeader(){
   const profileData = { roomName, leaderName, parish, district, familyPassword, members, memberName: leaderName };
 
   setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
+
+  // ★ BUG-FIX: 대표 가족 정보를 별도 키에도 저장 (로그아웃해도 보존되도록)
+  //   memberLogout()에서 pat_family_profile은 삭제되지만,
+  //   pat_leader_family_profile은 보존되어 재로그인 후 자동 복구 가능
+  try {
+    localStorage.setItem('pat_leader_family_profile', JSON.stringify(profileData));
+    console.log('[PAT-FAMILY] 대표 가족 정보 저장 (로그아웃 후 복구용)');
+  } catch(e) {
+    console.warn('[PAT-FAMILY] 대표 가족 정보 저장 실패:', e.message);
+  }
+
   // ★ localStorage에 저장된 값을 메모리에도 캐시 (다른 폴링이 읽을 수 있도록)
   window._lastSavedFamilyProfile = profileData;
 
