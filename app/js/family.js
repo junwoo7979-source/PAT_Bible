@@ -109,10 +109,60 @@ async function refreshFamilyProfileByPassword(profile, password){
     };
     localStorage.setItem('pat_family_id', found.id);
     setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
+    // ★ Firebase 동기화 성공 시 백업도 갱신 (_familyId 포함)
+    try {
+      localStorage.setItem('pat_leader_family_profile', JSON.stringify({ ...nextProfile, _familyId: found.id }));
+    } catch(e) {}
     return nextProfile;
   }catch(e){
     console.warn('[PAT] family reconnect failed:', e.message);
     return profile;
+  }
+}
+
+// ★ 가족 데이터 없을 때 Firebase에서 자동 복구 시도
+async function tryAutoRecoverFamily(){
+  if(!window.PAT_DB || !PAT_DB.ready() || !DB.church?.code) return null;
+  try{
+    const res = await fetch(`https://us-central1-pat-bible-app.cloudfunctions.net/getFamiliesList?churchCode=${DB.church.code}`);
+    const data = await res.json();
+    if(!data.families || data.families.length === 0) return null;
+
+    // 1) 가족이 1개뿐이면 그게 내 가족 (단일 기기 교회)
+    // 2) pat_member_confirmed에 이름이 있으면 매칭
+    const confirmedNames = Object.keys(JSON.parse(localStorage.getItem('pat_member_confirmed') || '{}'));
+    let match = null;
+
+    if(data.families.length === 1){
+      match = data.families[0];
+    } else if(confirmedNames.length){
+      match = data.families.find(f =>
+        f.memberNames.some(n => confirmedNames.includes(n)) ||
+        confirmedNames.includes(f.leaderName)
+      );
+    }
+
+    if(!match) return null;
+
+    const profileData = {
+      roomName: match.roomName,
+      leaderName: match.leaderName,
+      parish: match.parish,
+      district: match.district || '',
+      familyPassword: DB.church.code,
+      members: match.memberNames,
+      memberName: confirmedNames.find(n => match.memberNames.includes(n)) || match.leaderName,
+      _familyId: match.familyId
+    };
+
+    localStorage.setItem('pat_family_id', match.familyId);
+    setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
+    localStorage.setItem('pat_leader_family_profile', JSON.stringify(profileData));
+    console.log('[PAT-FAMILY] Firebase 자동 복구 완료:', match.roomName);
+    return profileData;
+  }catch(e){
+    console.warn('[PAT-FAMILY] 자동 복구 실패:', e.message);
+    return null;
   }
 }
 
@@ -685,7 +735,16 @@ function startFamilyProgressPolling(profile){
 function renderFamily(){
   const profile = loadFamilyProfile();
 
-  // ★ 이제 본인 선택 화면이 필요 없음 - memberName은 자동으로 설정됨
+  // ★ 가족 데이터 없으면 Firebase 자동 복구 시도 후 재렌더
+  if(!profile && window.PAT_DB && PAT_DB.ready()){
+    tryAutoRecoverFamily().then(recovered => {
+      if(recovered){
+        console.log('[PAT-FAMILY] 자동 복구 후 renderFamily 재실행');
+        renderFamily();
+      }
+    });
+    // 복구 시도 중에는 일단 빈 화면으로 계속 진행
+  }
 
   const recs    = loadRec();
   const profileMembers = familyMemberNames(profile);

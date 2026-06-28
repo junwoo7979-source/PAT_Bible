@@ -89,7 +89,12 @@ function applyStoredData(){
   const params = new URLSearchParams(window.location.search);
   if(params.has('reset')){
     console.log('[PAT] ?reset=1 감지 — localStorage 초기화 → 로그인 화면');
+    // ★ 가족 데이터는 reset에서도 보존 (기기 귀속 데이터)
+    const keepKeys = ['pat_family_profile','pat_family_id','pat_leader_family_profile'];
+    const saved = {};
+    keepKeys.forEach(k => { saved[k] = localStorage.getItem(k); });
     localStorage.clear();
+    keepKeys.forEach(k => { if(saved[k]) localStorage.setItem(k, saved[k]); });
     window.history.replaceState({}, document.title, window.location.pathname);
     go('s-login');
     setTimeout(() => completeAppInitialization(), 50);
