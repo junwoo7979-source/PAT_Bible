@@ -148,6 +148,8 @@ function renderVoice(){
   document.getElementById('micHint').textContent = insecure
     ? '⚠ 이 환경에선 마이크가 제한될 수 있어요 — 아래 대체 입력 사용'
     : '탭하여 녹음 시작';
+  // 현재 음성 단계 진입 상태를 즉시 저장 (모바일 새로고침 시 위치 유지)
+  if (typeof saveMemorizeState === 'function') saveMemorizeState('s-voice');
 }
 function showManual(){
   document.getElementById('manualBox').style.display = 'block';
@@ -168,6 +170,8 @@ function resetMemorizeState(){
   setMicRec(false);
   voiceStage=1; voiceScore1=0; voiceScore2=0; typeStage=1; typeScore1=0; typeScore2=0; typeCurrentScore=0;
   voiceInput1=''; voiceInput2=''; typeInput1=''; typeInput2=''; memorizeCompleted=false; reviewMode=false;
+  // 처음부터 다시 시작 → 저장된 진행 상태 삭제 (이후 renderVoice가 새 상태를 저장)
+  if (typeof clearMemorizeState === 'function') clearMemorizeState();
 }
 async function restartMemorize(){
   resetMemorizeState();
@@ -330,6 +334,8 @@ function evalVoice(text){
     document.getElementById('voiceManualCheck').disabled = true;
     document.getElementById('micHint').textContent  = '입력 완료 · 다시 하려면 아래 버튼을 누르세요';
     document.getElementById('voiceRepeat').style.display = 'block';
+    // 음성 단계 통과(미션 완료) 즉시 저장
+    if (typeof saveMemorizeState === 'function') saveMemorizeState('s-voice');
     toast('✓ '+voiceStage+'차 통과!');
   }else{
     // 통과 못한 경우: 진행 중인 recognition 정리 후 재시도 안내

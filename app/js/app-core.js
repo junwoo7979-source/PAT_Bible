@@ -245,6 +245,13 @@ function completeAppInitialization(){
     go(initialScreen, true, false);
   }
 
+  // ★ 암송 진행 상태 복원 — 모바일 새로고침/앱 재실행 시 진행 중이던 단계와
+  //   이미 완료한 미션 데이터를 그대로 복원해 화면에 보여준다.
+  //   (가족방으로 복원되는 회원에 한해 적용. DB.verse가 위에서 로드된 뒤 호출됨)
+  if(initialScreen === 's-family' && typeof applyRestoredMemorizeScreen === 'function'){
+    try { applyRestoredMemorizeScreen(); } catch(e){ console.error('[PAT-PROGRESS] 복원 중 오류:', e.message); }
+  }
+
   initFirebase();
 }
 async function initFirebase(){

@@ -64,6 +64,7 @@ function resetMemorizeProgress(){
   try {
     localStorage.removeItem('pat_records');
     localStorage.removeItem('pat_daily_tasks');
+    if (typeof clearMemorizeState === 'function') clearMemorizeState();
     console.log('[DATE-RESET] ✅ localStorage도 초기화됨');
   } catch(e) {
     console.error('[DATE-RESET] localStorage 초기화 실패:', e.message);

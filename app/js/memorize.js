@@ -15,6 +15,8 @@ function renderTyping(focusInput=true){
   typeCurrentScore = 0;
   updateTyped('');
   if(focusInput) document.getElementById('typeInput').focus();
+  // 현재 타이핑 단계 진입 상태를 즉시 저장 (모바일 새로고침 시 위치 유지)
+  if (typeof saveMemorizeState === 'function') saveMemorizeState('s-typing');
 }
 function typingNext(){
   const input = document.getElementById('typeInput').value;
@@ -95,6 +97,8 @@ function completeMemorize(){
   document.getElementById('cVoice2').textContent = (voiceScore2||92)+'%';
   renderSteps(5, false);
   go('s-complete');
+  // 완료 상태 저장 (모바일 새로고침 시 완료 화면 유지)
+  if (typeof saveMemorizeState === 'function') saveMemorizeState('s-complete');
 }
 function reviewStep(n){
   clearVoiceStartTimer();
