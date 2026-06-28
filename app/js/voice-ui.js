@@ -23,9 +23,13 @@ function renderSteps(active, showReview=reviewMode){
   });
 }
 
-// ── 단계 직접 이동 (이전: 무조건 / 다음: 현재 완료 시만) ───
+// ── 단계 직접 이동 ────────────────────────────────────────
+// 규칙
+//  • 뒤로 가기: 이미 지나온 '이전 단계'(target <= current)는 언제든 자유롭게 이동
+//  • 이미 완료한 단계: 화면 위치와 무관하게 항상 이동 허용
+//  • 앞으로 가기: 아직 안 한 '미래 단계'는 현재 단계를 완료하기 전엔 잠금
 function goToStage(targetStage) {
-  // 현재 어떤 단계에 있는지 계산
+  // 현재 어떤 단계(1=음성1, 2=음성2, 3=타이핑1, 4=타이핑2, 5=완료)에 있는지 계산
   const activeScreen = document.querySelector('.screen.active')?.id;
   let currentStageIndex;
   if (activeScreen === 's-voice') {
@@ -40,19 +44,27 @@ function goToStage(targetStage) {
 
   const targetStageIndex = targetStage;
 
-  // 🎯 이전 단계 → 완료 여부 무관, 항상 이동 허용
-  if (targetStageIndex < currentStageIndex) {
+  // 같은 단계면 아무것도 안 함
+  if (targetStageIndex === currentStageIndex) return;
+
+  // 각 단계 점수/통과 기준
+  const scores = [voiceScore1, voiceScore2, typeScore1, typeScore2];
+  const thresholds = [TH().voice, TH().voice, TH().typing, TH().typing];
+
+  // 🎯 이동 허용 조건
+  //   ① 이전(또는 같은) 단계 → 무조건 허용  (targetStageIndex <= currentStageIndex)
+  //   ② 이미 완료한 단계 → 무조건 허용       (점수가 통과 기준 이상)
+  const targetAlreadyDone = (targetStageIndex >= 1 && targetStageIndex <= 4)
+    ? scores[targetStageIndex - 1] >= thresholds[targetStageIndex - 1]
+    : false;
+
+  if (targetStageIndex <= currentStageIndex || targetAlreadyDone) {
     reviewStep(targetStage);
     return;
   }
 
-  // 같은 단계 → 무시
-  if (targetStageIndex === currentStageIndex) return;
-
-  // 다음 단계 → 현재 단계가 완료되어야만 이동
-  const scores = [voiceScore1, voiceScore2, typeScore1, typeScore2];
-  const thresholds = [TH().voice, TH().voice, TH().typing, TH().typing];
-  const isCurrentStageCompleted = currentStageIndex >= 1 && currentStageIndex <= 4
+  // ③ 그 외(아직 안 한 미래 단계) → 현재 단계를 완료해야만 이동
+  const isCurrentStageCompleted = (currentStageIndex >= 1 && currentStageIndex <= 4)
     ? scores[currentStageIndex - 1] >= thresholds[currentStageIndex - 1]
     : memorizeCompleted;
 
