@@ -11,15 +11,57 @@ function renderSteps(active, showReview=reviewMode){
     const n=i+1; const cls=n<active?'done':(n===active?'cur':'');
     const score=stepScore(n);
     const review=score>0&&score<100;
-    const mark=showReview&&n<active?'✓':n;
-    const detail=showReview&&score?`<small>${score}% · ${review?'다시 검수':'확인'}</small>`:'';
+    const mark=(showReview||n<active)&&n<active?'✓':n;
+    const detail=score?`<small>${score}% · ${review?'다시 검수':'확인'}</small>`:'';
     const body=`<span class="no">${mark}</span>${nm}${detail}`;
-    if(showReview&&score) return `<button type="button" class="st ${cls} ${review?'review':''}" onclick="reviewStep(${n})">${body}</button>`;
+    // 현재 단계(cur)는 클릭 불가, 나머지는 모두 goToStage 로 이동
+    if(n !== active) return `<button type="button" class="st ${cls} ${review?'review':''}" onclick="goToStage(${n})">${body}</button>`;
     return `<div class="st ${cls}">${body}</div>`;
   }).join('');
   ['stepsVoice','stepsTyping','stepsComplete','stepsVerse'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.innerHTML=html;
   });
+}
+
+// ── 단계 직접 이동 (이전: 무조건 / 다음: 현재 완료 시만) ───
+function goToStage(targetStage) {
+  // 현재 어떤 단계에 있는지 계산
+  const activeScreen = document.querySelector('.screen.active')?.id;
+  let currentStageIndex;
+  if (activeScreen === 's-voice') {
+    currentStageIndex = voiceStage;        // 1 or 2
+  } else if (activeScreen === 's-typing') {
+    currentStageIndex = typeStage + 2;     // 3 or 4
+  } else if (activeScreen === 's-complete') {
+    currentStageIndex = 5;                 // 완료 화면
+  } else {
+    currentStageIndex = 1;
+  }
+
+  const targetStageIndex = targetStage;
+
+  // 🎯 이전 단계 → 완료 여부 무관, 항상 이동 허용
+  if (targetStageIndex < currentStageIndex) {
+    reviewStep(targetStage);
+    return;
+  }
+
+  // 같은 단계 → 무시
+  if (targetStageIndex === currentStageIndex) return;
+
+  // 다음 단계 → 현재 단계가 완료되어야만 이동
+  const scores = [voiceScore1, voiceScore2, typeScore1, typeScore2];
+  const thresholds = [TH().voice, TH().voice, TH().typing, TH().typing];
+  const isCurrentStageCompleted = currentStageIndex >= 1 && currentStageIndex <= 4
+    ? scores[currentStageIndex - 1] >= thresholds[currentStageIndex - 1]
+    : memorizeCompleted;
+
+  if (!isCurrentStageCompleted) {
+    toast('현재 단계를 완료해야 다음으로 갈 수 있습니다!');
+    return;
+  }
+
+  reviewStep(targetStage);
 }
 
 // ── 구절 블러 토글 ────────────────────────────────────────
