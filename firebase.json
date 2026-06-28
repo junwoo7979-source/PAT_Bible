@@ -28,7 +28,7 @@
                     },
                     {
                         "key": "Content-Security-Policy",
-                        "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://us-central1-pat-bible-app.cloudfunctions.net https://*.googleapis.com https://*.firebaseio.com; frame-src 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost:* http://127.0.0.1:*; frame-ancestors 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost:* http://127.0.0.1:*;"
+                        "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://us-central1-pat-bible-app.cloudfunctions.net https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-src 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost http://localhost:3000 http://localhost:5000 http://localhost:8080 http://127.0.0.1 http://127.0.0.1:3000 http://127.0.0.1:5000 http://127.0.0.1:8080; frame-ancestors 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost http://localhost:3000 http://localhost:5000 http://localhost:8080 http://127.0.0.1 http://127.0.0.1:3000 http://127.0.0.1:5000 http://127.0.0.1:8080;"
                     }
                 ]
             },
