@@ -165,48 +165,101 @@ function renderVerse(){
 
 // ── 음성 결과 미리보기 / 평가 ─────────────────────────────
 function previewVoice(text){
+  // 1. 기본 유사도 (문자 레벨 Levenshtein)
   let sim = similarity(text, DB.verse.text);
-  // BUG-V01 FIX: 발음 보정 적용 — normalizeKorean 기반 점수와 비교해 높은 값 사용
-  // BUG-V03 FIX: 91-99% 임의 보정 제거 (일관성 없는 점수 조작 제거)
+
+  // 2. 단방향 발음 보정 후 유사도
   const simPhonetic = similarity(normalizeKorean(text), DB.verse.text);
   if(simPhonetic > sim) sim = simPhonetic;
-  // 자모(음소) 단위 비교 — ASR 재음절화/무음 ㅇ 차이를 흡수해 올바른 낭독은 ~100%로 인정
+
+  // 3. 자모(음소) 단위 비교 — ASR 재음절화·무음 ㅇ 차이 흡수
   const simJamo = similarity(jamoNormalize(text), jamoNormalize(DB.verse.text));
   if(simJamo > sim) sim = simJamo;
-  // 포함 채점(자모) — 녹음에 여분/반복이 섞여도 구절을 제대로 읽었으면 ~100%로 인정
+
+  // 4. 포함 채점(자모) — 앞뒤 여분/반복이 있어도 올바른 낭독은 ~100% 인정
   const simContain = containmentSimilarity(jamoNormalize(DB.verse.text), jamoNormalize(text));
   if(simContain > sim) sim = simContain;
+
+  // 5. ★ 단어 재현율 — 구절 중간 단어 누락을 세밀하게 감지
+  const wordRecall = wordRecallSimilarity(DB.verse.text, text);
+  // 재현율 높고 포함 채점 높으면 가중 블렌드로 상향 (단어를 많이 맞췄으면 보상)
+  const simBlend = Math.round(simContain * 0.6 + wordRecall * 0.4);
+  if(simBlend > sim) sim = simBlend;
+
+  // 6. ★ 발음 치환 후보별 포함 채점 — 특정 단어 발음 오류 보정
+  for(const cand of getPhoneticCandidates(text)){
+    const sc = containmentSimilarity(jamoNormalize(DB.verse.text), jamoNormalize(cand));
+    if(sc > sim) sim = sc;
+  }
+
   const pass = sim >= TH().voice;
   document.getElementById('simBar').style.width = sim+'%';
   document.getElementById('simLabel').innerHTML =
-    `유사도 <b style="color:${pass?'var(--accent)':'var(--danger)'}">${sim}%</b> · 통과 기준 ${TH().voice}%`;
+    `유사도 <b style="color:${pass?'var(--accent)':'var(--danger)'}">${sim}%</b>`+
+    ` &nbsp;·&nbsp; 단어 재현율 ${wordRecall}%`+
+    ` &nbsp;·&nbsp; 통과 기준 ${TH().voice}%`;
   renderVoiceDiff(text);
   return { sim, pass };
 }
+
+// ── 단어 단위 LCS diff 렌더링 ────────────────────────────
+// 순차 문자 비교 대신 단어 레벨 LCS 정렬 → 삽입·삭제 단어 정확히 표시
 function renderVoiceDiff(input){
-  const diff    = document.getElementById('voiceDiff');
-  const target  = DB.verse.text;
-  const nInput  = normalize(input);
-  const nTarget = normalize(target);
-  if(!nInput){ diff.style.display='none'; diff.innerHTML=''; return; }
-  let html='', pos=0, hasDiff=false;
-  for(const tc of target){
-    const ntc = normalize(tc);
-    if(!ntc){ html += (tc===' '?'&nbsp;':`<span class="n">${esc(tc)}</span>`); continue; }
-    if(pos < nInput.length){
-      const ok = nInput[pos]===ntc;
-      if(!ok) hasDiff=true;
-      html += `<span class="${ok?'g':'b'}">${esc(tc)}</span>`;
-      pos++;
-    }else{ hasDiff=true; html += `<span class="m">${esc(tc)}</span>`; }
+  const diff = document.getElementById('voiceDiff');
+  const target = DB.verse.text;
+  if(!input||!input.trim()){ diff.style.display='none'; diff.innerHTML=''; return; }
+
+  const tWords = tokenize(target);
+  const iWords = tokenize(input);
+  const njT = tWords.map(w=>jamoNormalize(normalize(w)));
+  const njI = iWords.map(w=>jamoNormalize(normalize(w)));
+  const m=njT.length, n=njI.length;
+
+  // 단어 단위 LCS DP
+  const dp=[];
+  for(let i=0;i<=m;i++){ dp.push(new Array(n+1).fill(0)); }
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){
+    dp[i][j] = similarity(njT[i-1],njI[j-1])>=_WORD_MATCH_TH
+      ? dp[i-1][j-1]+1
+      : Math.max(dp[i-1][j],dp[i][j-1]);
   }
-  if(nInput.length !== nTarget.length) hasDiff=true;
-  const extra = nInput.length>nTarget.length
-    ? `<div class="hint">인식된 내용이 원문보다 ${nInput.length-nTarget.length}글자 더 깁니다.</div>` : '';
-  diff.style.display = 'block';
+
+  // 역추적으로 정렬 구성
+  const aligned=[];
+  let i=m, j=n;
+  while(i>0||j>0){
+    if(i>0&&j>0&&similarity(njT[i-1],njI[j-1])>=_WORD_MATCH_TH){
+      aligned.unshift({tw:tWords[i-1],iw:iWords[j-1],ok:true});
+      i--; j--;
+    }else if(j>0&&(i===0||dp[i][j-1]>=dp[i-1][j])){
+      j--; // transcript 여분 단어 — 건너뜀
+    }else{
+      aligned.unshift({tw:tWords[i-1],iw:null,ok:false});
+      i--;
+    }
+  }
+
+  const hasDiff = aligned.some(a=>!a.ok) ||
+    normalize(input).length !== normalize(target).length;
+
+  const parts = aligned.map(a=>{
+    if(a.ok){
+      const nTw=normalize(a.tw), nIw=normalize(a.iw);
+      // 동일 단어
+      if(nTw===nIw) return `<span class="g">${esc(a.tw)}</span>`;
+      // 발음 유사 — 약간 다름 (title에 인식 결과 표시)
+      return `<span class="b" title="인식: ${esc(a.iw)}">${esc(a.tw)}</span>`;
+    }
+    return `<span class="m">${esc(a.tw)}</span>`; // 누락 단어
+  }).join('&nbsp;');
+
+  const extra = normalize(input).length>normalize(target).length
+    ? `<div class="hint" style="margin-top:4px">인식된 내용이 원문보다 ${normalize(input).length-normalize(target).length}글자 더 깁니다.</div>`:'';
+
+  diff.style.display='block';
   diff.innerHTML = hasDiff
-    ? `<span class="hint">다른 부분: 초록=일치, 빨강=다름, 점선=빠짐</span>${html}${extra}`
-    : `<span class="hint">완전히 일치합니다.</span>${html}`;
+    ? `<span class="hint">초록=일치 &nbsp;·&nbsp; 빨강=다름 &nbsp;·&nbsp; 점선=빠진 단어</span>&nbsp;${parts}${extra}`
+    : `<span class="hint">완전히 일치합니다.</span>&nbsp;${parts}`;
 }
 function evalVoice(text){
   const { sim, pass } = previewVoice(text);

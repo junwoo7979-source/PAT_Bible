@@ -83,28 +83,83 @@ function isKakaoInAppBrowser(){
 }
 
 // ── 텍스트 정규화 / 유사도 ────────────────────────────────
-// 한국어 발음 유사 문자 매핑 (음성 인식 오류 보정)
-// BUG-V02 FIX: 자기 자신을 가리키는 무의미한 항목 제거, 실제 발음 혼동 쌍만 유지
-const korPhoneticMap={
+// 정규식 특수문자 이스케이프
+function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+
+// 한국어 STT→표준 단방향 교정 규칙 (발음대로 인식된 STT 결과를 성경 원문 형태로 보정)
+// ★ 단방향 적용 → 충돌·역치환 없음
+const _PHONETIC_ONEWAY = [
+  // ① 축약형 → 원형 (STT가 발음대로 출력하는 경우)
+  ['돼서','되어서'],['돼','되어'],
+  ['봐서','보아서'],['봐','보아'],
+  ['해서','하여서'],['해','하여'],
+  ['놔','놓아'],['봬','뵈어'],
+  // ② 성경 어미 혼동
+  ['하셨으니','하시었으니'],['하셔서','하시어서'],
+  ['하셨고','하시었고'],['하셨다','하시었다'],
+  ['했으니','하였으니'],['했고','하였고'],
+  ['됐으니','되었으니'],['됐고','되었고'],
+  ['하시니','하시매'],         // 어미 혼동 (성경 문어체)
+  ['하였으니','하였으매'],
+  // ③ 종교 용어
+  ['하느님','하나님'],
+  ['아면','아멘'],
+  // ④ 대명사·기타
+  ['너이','너희'],
+  ['롤','를'],
+  // ⑤ 기존 검증 항목
+  ['같','까'],['지','치'],
+  ['하므로','함으로'],
+];
+
+// 양방향 발음 혼동 쌍 (getPhoneticCandidates 용 — 각 규칙을 독립 후보로 시도)
+const korPhoneticMap = {
   '같':'까','까':'같',
   '지':'치','치':'지',
   '하므로':'함으로','함으로':'하므로',
   '롤':'를','를':'롤',
+  '돼':'되어','되어':'돼',
+  '돼서':'되어서','되어서':'돼서',
+  '해':'하여','하여':'해',
+  '해서':'하여서','하여서':'해서',
+  '봐':'보아','보아':'봐',
+  '하시매':'하시니','하시니':'하시매',
+  '하셨으니':'하시었으니','하시었으니':'하셨으니',
+  '하였으니':'했으니','했으니':'하였으니',
+  '하였고':'했고','했고':'하였고',
+  '하나님':'하느님','하느님':'하나님',
+  '아멘':'아면','아면':'아멘',
+  '너희':'너이','너이':'너희',
+  '데':'때','때':'데',
+  '예':'얘','얘':'예',
 };
+
+// STT 출력에 단방향 교정 적용 (양방향 충돌 없음)
 function normalizeKorean(s){
   s=(s||'').replace(/[\s.,!?;:'"·…]/g,'');
-  // 한국어 발음 유사 치환 시도 (1글자 유사도 향상)
-  let result=s;
-  for(let orig in korPhoneticMap){
-    if(s.includes(orig)){
-      const alt=korPhoneticMap[orig];
-      const replaced=s.replace(new RegExp(orig,'g'),alt);
-      // 원본과 대체본 중 원문과 더 유사한 것 선택
-      if(replaced.length===s.length) result=replaced;
-    }
+  let r=s;
+  for(const [orig,alt] of _PHONETIC_ONEWAY){
+    if(r.includes(orig)) r=r.replace(new RegExp(escapeRegex(orig),'g'),alt);
   }
-  return result.toLowerCase();
+  return r.toLowerCase();
 }
+
+// 각 발음 규칙을 독립적으로 적용한 후보 배열 반환 (previewVoice에서 최댓값 선택)
+function getPhoneticCandidates(text){
+  const base=(text||'').replace(/[\s.,!?;:'"·…]/g,'');
+  const cands=new Set([base]);
+  for(const [orig,alt] of Object.entries(korPhoneticMap)){
+    if(base.includes(orig))
+      cands.add(base.replace(new RegExp(escapeRegex(orig),'g'),alt));
+  }
+  return Array.from(cands);
+}
+
+// 단어 토크나이저 — 공백 기준 분리, 구두점·기호 제거
+function tokenize(s){
+  return (s||'').replace(/[.,!?;:'"·…]/g,'').split(/\s+/).filter(Boolean);
+}
+
 function normalize(s){ return (s||'').replace(/[\s.,!?;:'"·…]/g,'').toLowerCase(); }
 // 자모(음소) 단위 정규화 — 음절 분해 + 무음 초성 ㅇ 제거.
 // "목자시니" ↔ "목자신이" 처럼 ASR 재음절화/띄어쓰기 차이를 음소 레벨에서 동일하게 봄.
@@ -159,6 +214,29 @@ function containmentSimilarity(target, transcript){
   }
   let best=Infinity; for(let j=0;j<=n;j++) if(prev[j]<best) best=prev[j]; // dp[m][*] 최소 → 종료 무료
   return Math.round((1 - best/m)*100);
+}
+
+// ── 단어 재현율 유사도 ────────────────────────────────────
+// target의 각 단어가 transcript에 얼마나 포함됐는지 측정
+// — STT가 구절 중간 단어를 통째로 빠뜨린 경우를 containmentSimilarity보다 정밀하게 감지
+const _WORD_MATCH_TH = 78; // 단어 자모 유사도 기준 (이 이상이면 매칭)
+function wordRecallSimilarity(target, transcript){
+  const tw=tokenize(target).map(jamoNormalize).filter(w=>w.length>0);
+  const sw=tokenize(transcript).map(jamoNormalize).filter(w=>w.length>0);
+  if(!tw.length || !sw.length) return 0;
+  let matched=0;
+  const used=new Set();
+  for(const tWord of tw){
+    if(tWord.length<=1){ matched++; continue; }  // 1음소 단어는 항상 통과 (조사 등)
+    let best=0, bestIdx=-1;
+    for(let i=0;i<sw.length;i++){
+      if(used.has(i)) continue;
+      const s=similarity(tWord,sw[i]);
+      if(s>best){ best=s; bestIdx=i; }
+    }
+    if(best>=_WORD_MATCH_TH){ matched++; if(bestIdx>=0) used.add(bestIdx); }
+  }
+  return Math.round(matched/tw.length*100);
 }
 
 // ── Recognition 정리 ─────────────────────────────────────
