@@ -50,25 +50,27 @@ function goToStage(targetStage) {
   // 각 단계 점수/통과 기준
   const scores = [voiceScore1, voiceScore2, typeScore1, typeScore2];
   const thresholds = [TH().voice, TH().voice, TH().typing, TH().typing];
+  const isDone = (n) => (n >= 1 && n <= 4) && scores[n - 1] >= thresholds[n - 1];
 
-  // 🎯 이동 허용 조건
-  //   ① 이전(또는 같은) 단계 → 무조건 허용  (targetStageIndex <= currentStageIndex)
-  //   ② 이미 완료한 단계 → 무조건 허용       (점수가 통과 기준 이상)
-  const targetAlreadyDone = (targetStageIndex >= 1 && targetStageIndex <= 4)
-    ? scores[targetStageIndex - 1] >= thresholds[targetStageIndex - 1]
-    : false;
-
-  if (targetStageIndex <= currentStageIndex || targetAlreadyDone) {
+  // ① 이전(또는 같은) 단계 → 무조건 허용
+  if (targetStageIndex <= currentStageIndex) {
     reviewStep(targetStage);
     return;
   }
 
-  // ③ 그 외(아직 안 한 미래 단계) → 현재 단계를 완료해야만 이동
-  const isCurrentStageCompleted = (currentStageIndex >= 1 && currentStageIndex <= 4)
-    ? scores[currentStageIndex - 1] >= thresholds[currentStageIndex - 1]
-    : memorizeCompleted;
+  // ② 이미 완료한 단계 → 화면 위치와 무관하게 항상 허용 (지난 단계 재검수)
+  if (isDone(targetStageIndex)) {
+    reviewStep(targetStage);
+    return;
+  }
 
-  if (!isCurrentStageCompleted) {
+  // ③ 아직 안 한 미래 단계 → 사이의 모든 단계(현재 ~ 직전)가 완료돼야만 이동
+  //    (중간 단계를 건너뛰는 앞으로 점프는 금지)
+  let gapDone = true;
+  for (let n = currentStageIndex; n < targetStageIndex; n++) {
+    if (!isDone(n)) { gapDone = false; break; }
+  }
+  if (!gapDone) {
     toast('현재 단계를 완료해야 다음으로 갈 수 있습니다!');
     return;
   }
