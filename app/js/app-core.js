@@ -497,14 +497,14 @@ function adminLogout(){
 function memberLogout(){
   const code = document.getElementById('churchCode');
   if(code) code.value = '';
-  // ★ 가족방 정보 완전 삭제 (로그아웃 시 초기화)
-  //   단, pat_leader_family_profile은 보존 (BUG-FIX: 대표 가족 정보 복구용)
-  localStorage.removeItem('pat_family_profile');
-  // ★ BUG-FIX: pat_family_id는 로그아웃 후에도 보존 (재로그인 후 중복 생성 방지)
-  //   삭제하면 재로그인 시 existingFamilyId=null → 가족 새로 생성 → 중복 반복
-  // localStorage.removeItem('pat_family_id'); // ← 삭제하지 않음!
+  // ★ 가족 데이터는 기기에 영구 보존 — 로그아웃해도 삭제하지 않음
+  //   가족방은 기기(사람) 단위로 귀속되므로, 재로그인 후 즉시 복원되어야 함
+  //   삭제하면: 재로그인 시 가족방 초기화 → 재등록 시 중복 생성 반복 (근본 버그)
+  // localStorage.removeItem('pat_family_profile');    ← 삭제하지 않음!
+  // localStorage.removeItem('pat_family_id');         ← 삭제하지 않음!
+  // localStorage.removeItem('pat_leader_family_profile'); ← 삭제하지 않음!
   localStorage.removeItem('pat_device_id');
-  // ⚠️ pat_leader_family_profile은 삭제하지 않음 (재로그인 후 자동 복구)
+  // ⚠️ sessionStorage 백업만 제거 (세션 종료 시 자동 소멸되므로 명시 제거)
   // ★ localStorage 쓰기 실패 시 남았을 수 있는 sessionStorage 백업까지 제거
   //   (loadFamilyProfile 이 sessionStorage 백업을 읽어 새로고침 시 가족화면 복원 → 튕김 방지)
   try { sessionStorage.removeItem('pat_family_profile'); } catch(e) {}
