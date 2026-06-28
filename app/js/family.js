@@ -340,13 +340,31 @@ function saveFamilyProfileAsLeader(){
   window._lastSavedFamilyProfile = profileData;
 
   if(window.PAT_DB && PAT_DB.ready()){
-    PAT_DB.saveFamily(DB.church.code, profileData)
-      .then(familyId=>{
-        if(familyId) {
-          localStorage.setItem('pat_family_id', familyId);
-          PAT_DB.joinFamily(DB.church.code, familyId, leaderName);
-        }
-      });
+    // ★ BUG-FIX: 기존 가족이 있으면 업데이트, 없으면 새로 생성
+    const existingFamilyId = localStorage.getItem('pat_family_id');
+
+    if(existingFamilyId) {
+      // 기존 가족 업데이트
+      console.log('[PAT-FAMILY] 기존 가족 업데이트:', existingFamilyId);
+      profileData.id = existingFamilyId;
+      PAT_DB.saveFamily(DB.church.code, profileData)
+        .then(familyId=>{
+          if(familyId) {
+            console.log('[PAT-FAMILY] 가족 업데이트 완료');
+          }
+        });
+    } else {
+      // 새로운 가족 생성
+      console.log('[PAT-FAMILY] 새로운 가족 생성');
+      PAT_DB.saveFamily(DB.church.code, profileData)
+        .then(familyId=>{
+          if(familyId) {
+            localStorage.setItem('pat_family_id', familyId);
+            PAT_DB.joinFamily(DB.church.code, familyId, leaderName);
+            console.log('[PAT-FAMILY] 새로운 가족 생성 완료:', familyId);
+          }
+        });
+    }
   }
 
   renderFamily();
