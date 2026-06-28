@@ -15,15 +15,29 @@ let globalMicStream=null;
 let micPermissionRequestedThisSession=false;
 
 // ── 날짜 기반 세션 관리 ────────────────────────────────────
+// ★ BUG-FIX: _memorizeSessionDate를 localStorage에서 로드하여 초기값 설정
+//   (로그아웃/재로그인 시 동일 날짜이면 records를 보존하도록 수정)
 let _memorizeSessionDate = null;  // 현재 암송 세션이 시작된 날짜
 function getTodayDateString(){ return new Date().toISOString().slice(0, 10); }
+function initMemorizeSessionDate(){
+  // localStorage에서 저장된 세션 날짜 로드 (처음 실행 시)
+  const saved = localStorage.getItem('pat_memorize_session_date');
+  _memorizeSessionDate = saved || getTodayDateString();
+  localStorage.setItem('pat_memorize_session_date', _memorizeSessionDate);
+  return _memorizeSessionDate;
+}
 function checkAndResetByDate(){
   const today = getTodayDateString();
+  // 초기화되지 않았으면 초기화 (앱 시작 시)
+  if(_memorizeSessionDate === null) {
+    initMemorizeSessionDate();
+  }
   if(_memorizeSessionDate !== today){
     // 날짜가 변경되었으면 암송 진행 상태 초기화
     console.log(`[DATE-RESET] 날짜 변경 감지: ${_memorizeSessionDate} → ${today}`);
     resetMemorizeProgress();
     _memorizeSessionDate = today;
+    localStorage.setItem('pat_memorize_session_date', today);
   }
 }
 function resetMemorizeProgress(){
