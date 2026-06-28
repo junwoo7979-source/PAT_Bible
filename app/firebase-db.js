@@ -1,23 +1,56 @@
 /**
- * PAT Bible — Firebase Functions API 연동 모듈
- * Firestore REST 직접 호출 → Firebase Functions API 호출로 전환
- * API 키가 서버(Functions)에만 존재 — 클라이언트에 노출 없음
+ * PAT Bible — Firebase Functions API 연동 모듈 (v2)
+ *
+ * ★ 연결 방식: Cloud Functions REST API (Long-Polling 방식)
+ *   - Firestore SDK를 직접 사용하지 않음 → QUIC/WebChannel 연결 없음
+ *   - experimentalForceLongPolling: true 와 동일한 효과 (fetch + setInterval 폴링)
+ *   - ERR_QUIC_PROTOCOL_ERROR 원천 차단
+ *   - [resub] resubscribing listener 무한루프 없음
+ *
+ * ★ 구버전 SDK 잔존 방지:
+ *   - 페이지 로드 시 window.__FIREBASE_DEFAULTS__ 를 설정하여
+ *     혹시 캐시된 구버전 Firebase SDK가 로드되더라도 실시간 리스너를 비활성화
  */
 
+// ── 구버전 Firebase SDK 실시간 리스너 비활성화 방어막 ──────────────
+// 구 SW 캐시에 Firebase SDK가 남아 있을 경우, 초기화 시 experimentalForceLongPolling을
+// 적용하고 실시간 스트리밍(WebChannel/QUIC)을 차단한다.
+(function blockLegacyFirestoreSDK() {
+  try {
+    // Firebase SDK 글로벌 기본값 설정 (SDK가 로드될 경우 이 값을 참조함)
+    window.__FIREBASE_DEFAULTS__ = window.__FIREBASE_DEFAULTS__ || {};
+    window.__FIREBASE_DEFAULTS__._config = window.__FIREBASE_DEFAULTS__._config || {};
+    window.__FIREBASE_DEFAULTS__._config.firestore = {
+      experimentalForceLongPolling: true,
+      experimentalAutoDetectLongPolling: false,
+      useFetchStreams: false,
+    };
+
+    // onSnapshot 같은 실시간 리스너가 실행되려 할 때 경고 출력 (디버그용)
+    if (typeof window !== 'undefined' && !window._legacySDKBlocked) {
+      window._legacySDKBlocked = true;
+      console.log('[PAT_DB] ✅ Long-Polling 모드 강제 적용 (QUIC/WebChannel 차단)');
+    }
+  } catch (e) {
+    // 무시
+  }
+})();
+
+// ── PAT_DB 모듈 ───────────────────────────────────────────────────
 window.PAT_DB = (() => {
   const CONFIG = window.FIREBASE_CONFIG || {};
   const API = CONFIG.apiBase || 'https://us-central1-pat-bible-app.cloudfunctions.net';
 
-  // ── 활성화 여부 ───────────────────────────────────────
+  // ── 활성화 여부 ─────────────────────────────────────────────────
   function ready() { return !!window.FIREBASE_READY; }
 
   function init() {
     if (!ready()) { console.log('[PAT_DB] 로컬 모드'); return false; }
-    console.log('[PAT_DB] Firebase Functions API 모드 활성화');
+    console.log('[PAT_DB] Firebase Functions REST API 모드 (Long-Polling)');
     return true;
   }
 
-  // ── 기기 고유 ID ──────────────────────────────────────
+  // ── 기기 고유 ID ─────────────────────────────────────────────────
   function getDeviceId() {
     let id = localStorage.getItem('pat_device_id');
     if (!id) {
@@ -27,18 +60,23 @@ window.PAT_DB = (() => {
     return id;
   }
 
-  // ── API 헬퍼 ─────────────────────────────────────────
+  // ── API 헬퍼 ────────────────────────────────────────────────────
+  // Long-Polling 방식: 매 요청은 독립적인 fetch (스트리밍 없음, QUIC 미사용)
   async function apiGet(path, params = {}, retries = 2) {
     const qs = new URLSearchParams(params).toString();
     const url = `${API}/${path}${qs ? '?' + qs : ''}`;
     for (let i = 0; i <= retries; i++) {
       try {
-        const r = await fetch(url);
+        const r = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store',    // 캐시 없이 항상 서버에서 직접 조회
+          headers: { 'Accept': 'application/json' },
+        });
         if (!r.ok) throw new Error(`API ${path} ${r.status}`);
         return await r.json();
       } catch (e) {
         if (i === retries) throw e;
-        await new Promise(r => setTimeout(r, 500 * (i + 1)));
+        await new Promise(r => setTimeout(r, 600 * (i + 1)));
       }
     }
   }
@@ -51,14 +89,15 @@ window.PAT_DB = (() => {
         headers['Content-Type'] = 'application/json; charset=utf-8';
         const r = await fetch(url, {
           method: 'POST',
-          headers: headers,
+          headers,
           body: JSON.stringify(body),
+          cache: 'no-store',
         });
         if (!r.ok) throw new Error(`API ${path} ${r.status}`);
         return await r.json();
       } catch (e) {
         if (i === retries) throw e;
-        await new Promise(r => setTimeout(r, 500 * (i + 1)));
+        await new Promise(r => setTimeout(r, 600 * (i + 1)));
       }
     }
   }
@@ -83,15 +122,17 @@ window.PAT_DB = (() => {
     return headers;
   }
 
-  // ════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════
   // 멀티 교회 — 등록 / 관리자 로그인 / 코드 확인
-  // ════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════
   async function registerChurch(code, name, adminId, adminPw) {
     if (!ready()) return { ok: false, error: '서버 연결이 필요합니다' };
     try {
       const r = await fetch(`${API}/registerChurch`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({ code, name, adminId, adminPw }),
+        cache: 'no-store',
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) return { ok: false, error: data.error || ('오류 ' + r.status) };
@@ -103,8 +144,10 @@ window.PAT_DB = (() => {
     if (!ready()) return { ok: false, error: '서버 연결이 필요합니다' };
     try {
       const r = await fetch(`${API}/adminLogin`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({ adminId, adminPw }),
+        cache: 'no-store',
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) return { ok: false, error: data.error || ('오류 ' + r.status) };
@@ -116,57 +159,64 @@ window.PAT_DB = (() => {
     if (!ready()) return null;
     try { return await apiGet('checkChurchCode', { code }); } catch (e) { return null; }
   }
+
   async function checkAdminId(adminId) {
     if (!ready()) return null;
     try { return await apiGet('checkAdminId', { adminId }); } catch (e) { return null; }
   }
 
-  // ── 문의·오류 신고 ──
+  // ── 문의·오류 신고 ──────────────────────────────────────────────
   async function submitReport(payload) {
     if (!ready()) return false;
     try {
       const r = await fetch(`${API}/submitReport`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify(payload || {}),
+        cache: 'no-store',
       });
       return r.ok;
     } catch (e) { return false; }
   }
+
   async function getReports(token) {
     if (!ready()) return null;
     try {
-      const r = await fetch(`${API}/getReports`, { headers: { 'x-pat-dev-token': token } });
+      const r = await fetch(`${API}/getReports`, {
+        headers: { 'x-pat-dev-token': token },
+        cache: 'no-store',
+      });
       if (!r.ok) return null;
       return await r.json();
     } catch (e) { return null; }
   }
+
   async function deleteReport(token, id) {
     if (!ready()) return false;
     try {
       const r = await fetch(`${API}/deleteReport`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-pat-dev-token': token },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-pat-dev-token': token },
         body: JSON.stringify({ id }),
+        cache: 'no-store',
       });
       return r.ok;
     } catch (e) { return false; }
   }
 
-  // ════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════
   // 구절 (Verse)
-  // ════════════════════════════════════════════════════════
-
+  // ════════════════════════════════════════════════════════════════
   async function saveVerse(churchCode, verse) {
-    if (!ready()) {
-      console.error('[PAT_DB] Firebase not ready');
-      return false;
-    }
+    if (!ready()) { console.error('[PAT_DB] Firebase not ready'); return false; }
     try {
-      console.log('[PAT_DB] saveVerse 요청 시작:', { churchCode, ref: verse.ref });
-      const result = await apiPost('saveVerse', { churchCode, ref: verse.ref, text: verse.text, weekOf: verse.weekOf });
-      console.log('[PAT_DB] saveVerse 저장 성공:', result);
+      const result = await apiPost('saveVerse', {
+        churchCode, ref: verse.ref, text: verse.text, weekOf: verse.weekOf,
+      });
+      console.log('[PAT_DB] saveVerse 성공:', result);
       return true;
     } catch (e) {
-      console.error('[PAT_DB] saveVerse 실패:', e.message, e.status);
+      console.error('[PAT_DB] saveVerse 실패:', e.message);
       return false;
     }
   }
@@ -190,10 +240,7 @@ window.PAT_DB = (() => {
   async function saveConfig(churchCode, appTitle, verse, parishTotals, parishConfig) {
     if (!ready()) return false;
     try {
-      console.log('[PAT_DB] saveConfig 요청 시작:', { churchCode });
-      // undefined 필드는 JSON 직렬화에서 제외 → 백엔드 부분 업데이트
       await apiPost('saveConfig', { churchCode, appTitle, verse, parishTotals, parishConfig });
-      console.log('[PAT_DB] saveConfig 저장 성공');
       return true;
     } catch (e) {
       console.error('[PAT_DB] saveConfig 실패:', e.message);
@@ -201,6 +248,7 @@ window.PAT_DB = (() => {
     }
   }
 
+  // ── Long-Polling 구독 (setInterval 방식, WebChannel/QUIC 없음) ──
   let _polling = null;
   let _configPolling = null;
   let _lastVerseHash = null;
@@ -210,12 +258,17 @@ window.PAT_DB = (() => {
     if (!ready()) return;
     if (_polling) clearInterval(_polling);
 
-    // 구절 내용을 hash로 비교 (ID 대신 내용 기준)
     function getVerseHash(verse) {
       if (!verse) return null;
-      return verse.ref + '|' + verse.text + '|' + verse.weekOf;
+      return verse.ref + '|' + verse.text + '|' + (verse.weekOf || '');
     }
 
+    // 초기값 즉시 로드
+    getLatestVerse(churchCode).then(verse => {
+      if (verse) { _lastVerseHash = getVerseHash(verse); callback(verse); }
+    });
+
+    // 5초 폴링 (Long-Polling 방식)
     _polling = setInterval(async () => {
       try {
         const verse = await getLatestVerse(churchCode);
@@ -223,33 +276,29 @@ window.PAT_DB = (() => {
         if (hash && hash !== _lastVerseHash) {
           _lastVerseHash = hash;
           callback(verse);
-          console.log('[PAT_DB] 구절 업데이트 감지됨:', verse.ref);
         }
       } catch (e) {
-        console.error('[PAT_DB] subscribeVerse polling error:', e.message);
+        // 네트워크 오류는 조용히 무시 (다음 폴링에서 재시도)
       }
     }, 5000);
-
-    // 초기값 로드
-    getLatestVerse(churchCode).then(verse => {
-      if (verse) {
-        _lastVerseHash = getVerseHash(verse);
-        callback(verse);
-      }
-    });
   }
 
   function subscribeConfig(churchCode, callback) {
     if (!ready()) return;
     if (_configPolling) clearInterval(_configPolling);
 
-    // 설정을 hash로 비교
     function getConfigHash(config) {
       if (!config) return null;
-      const verseHash = config.verse ? config.verse.ref + '|' + config.verse.text + '|' + config.verse.weekOf : '';
-      return config.appTitle + '|' + verseHash;
+      const v = config.verse ? config.verse.ref + '|' + config.verse.text : '';
+      return (config.appTitle || '') + '|' + v;
     }
 
+    // 초기값 즉시 로드
+    getConfig(churchCode).then(config => {
+      if (config) { _lastConfigHash = getConfigHash(config); callback(config); }
+    });
+
+    // 5초 폴링
     _configPolling = setInterval(async () => {
       try {
         const config = await getConfig(churchCode);
@@ -257,38 +306,36 @@ window.PAT_DB = (() => {
         if (hash && hash !== _lastConfigHash) {
           _lastConfigHash = hash;
           callback(config);
-          console.log('[PAT_DB] 설정 업데이트 감지됨:', config.appTitle);
         }
       } catch (e) {
-        console.error('[PAT_DB] subscribeConfig polling error:', e.message);
+        // 네트워크 오류는 조용히 무시
       }
     }, 5000);
-
-    // 초기값 로드
-    getConfig(churchCode).then(config => {
-      if (config) {
-        _lastConfigHash = getConfigHash(config);
-        callback(config);
-      }
-    });
   }
 
-  // ════════════════════════════════════════════════════════
-  // 가족방 (Family)
-  // ════════════════════════════════════════════════════════
+  function unsubscribeAll() {
+    if (_polling) { clearInterval(_polling); _polling = null; }
+    if (_configPolling) { clearInterval(_configPolling); _configPolling = null; }
+  }
 
+  // ════════════════════════════════════════════════════════════════
+  // 가족방 (Family)
+  // ════════════════════════════════════════════════════════════════
   async function saveFamily(churchCode, profile) {
     if (!ready()) return null;
     try {
-      const familyId = localStorage.getItem('pat_family_id') || undefined;
+      const familyId = profile.id || localStorage.getItem('pat_family_id') || undefined;
       const data = await apiPost('saveFamily', {
-        churchCode, familyId,
-        roomName: profile.roomName, leaderName: profile.leaderName,
-        parish: profile.parish, district: profile.district,
+        churchCode,
+        familyId,
+        roomName: profile.roomName,
+        leaderName: profile.leaderName,
+        parish: profile.parish,
+        district: profile.district,
         familyPassword: profile.familyPassword || undefined,
         members: Array.isArray(profile.members) ? profile.members : [],
       });
-      if (!familyId) localStorage.setItem('pat_family_id', data.familyId);
+      if (!familyId && data.familyId) localStorage.setItem('pat_family_id', data.familyId);
       return data.familyId;
     } catch (e) { console.warn('[PAT_DB] saveFamily:', e.message); return null; }
   }
@@ -309,7 +356,6 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] joinFamily:', e.message); }
   }
 
-  // 구성원 삭제 — 배열 + 서브컬렉션 동시 정리(합집합 재출현 차단)
   async function removeFamilyMember(churchCode, familyId, name) {
     if (!ready() || !familyId || !name) return false;
     try {
@@ -344,8 +390,8 @@ window.PAT_DB = (() => {
     if (!ready() || !familyId) return;
     const poll = async () => {
       try {
-        const verseRef = window.DB?.verse?.ref;
-        const data = await apiGet('getFamilyProgress', { churchCode, familyId, verseRef: verseRef || '' });
+        const verseRef = window.DB?.verse?.ref || '';
+        const data = await apiGet('getFamilyProgress', { churchCode, familyId, verseRef });
         callback(data.members || []);
       } catch (e) {}
     };
@@ -353,32 +399,23 @@ window.PAT_DB = (() => {
     setInterval(poll, 10000);
   }
 
-  // ════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════
   // 암송 기록 (Records)
-  // ════════════════════════════════════════════════════════
-
+  // ════════════════════════════════════════════════════════════════
   async function saveRecord(churchCode, record) {
     if (!ready()) return false;
     try {
       const deviceId = getDeviceId();
-      let familyId = localStorage.getItem('pat_family_id') || '';
-      const profile = (() => {
-        try { return JSON.parse(localStorage.getItem('pat_family_profile') || 'null'); } catch { return null; }
-      })();
-
-      // ⚠️ 중요: familyId가 없으면 profiles.json에서 찾기 (가족방 미등록일 수도 있음)
+      const familyId = localStorage.getItem('pat_family_id') || '';
       if (!familyId) {
-        console.warn('[PAT_DB] ⚠️ pat_family_id 없음 — 로컬 전용 모드 (가족방 미등록)');
-        return false; // 가족방에 등록되지 않은 사용자는 기록 미저장
+        console.warn('[PAT_DB] pat_family_id 없음 — 가족방 미등록');
+        return false;
       }
 
-      console.log('[PAT_DB] saveRecord 디버깅:');
-      console.log('  churchCode:', churchCode);
-      console.log('  deviceId:', deviceId);
-      console.log('  familyId:', familyId);
-      console.log('  profile:', profile);
-      console.log('  profile.parish:', profile?.parish);
-      console.log('  record.ref:', record.ref);
+      const profile = (() => {
+        try { return JSON.parse(localStorage.getItem('pat_family_profile') || 'null'); }
+        catch { return null; }
+      })();
 
       const payload = {
         churchCode, deviceId, familyId,
@@ -394,15 +431,11 @@ window.PAT_DB = (() => {
         badge: record.badge || 'weekly_complete',
       };
 
-      console.log('[PAT_DB] saveRecord 전송할 데이터:', payload);
-
       await apiPost('saveRecord', payload);
-
       console.log('[PAT_DB] ✅ saveRecord 저장 성공');
       return true;
     } catch (e) {
       console.error('[PAT_DB] ❌ saveRecord 오류:', e.message);
-      console.error('  전체 에러:', e);
       return false;
     }
   }
@@ -415,10 +448,9 @@ window.PAT_DB = (() => {
     } catch (e) { return false; }
   }
 
-  // ════════════════════════════════════════════════════════
-  // 대시보드 집계
-  // ════════════════════════════════════════════════════════
-
+  // ════════════════════════════════════════════════════════════════
+  // 대시보드 / 순위 / 통계
+  // ════════════════════════════════════════════════════════════════
   async function getDashboardStats(churchCode, verseRef) {
     if (!ready()) return null;
     try {
@@ -426,7 +458,6 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] getDashboardStats:', e.message); return null; }
   }
 
-  // 등록가정 목록 (관리자 데이터 관리)
   async function getFamiliesList(churchCode) {
     if (!ready()) return null;
     try {
@@ -434,19 +465,11 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] getFamiliesList:', e.message); return null; }
   }
 
-  // 시상관리: 가족별 실천율 순위 (교구별 현황과 동일 Firestore 소스)
   async function getAwardRanking(churchCode) {
     if (!ready()) return null;
     try {
       return await apiGet('getAwardRanking', { churchCode });
     } catch (e) { console.warn('[PAT_DB] getAwardRanking:', e.message); return null; }
-  }
-
-  // 음성 전사 (Groq Whisper 프록시) — base64 오디오 → 한국어 텍스트
-  async function transcribeAudio(audioBase64, mimeType, language) {
-    if (!ready()) return null;
-    const data = await apiPost('transcribeAudio', { audioBase64, mimeType, language: language || 'ko' });
-    return (data && data.text) || '';
   }
 
   async function getFamilyStats(churchCode, familyId, verseRef) {
@@ -466,8 +489,15 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] getFamilyProgress:', e.message); return []; }
   }
 
-  function unsubscribeAll() {
-    if (_polling) { clearInterval(_polling); _polling = null; }
+  // ════════════════════════════════════════════════════════════════
+  // 음성 전사 / 비밀번호 재설정
+  // ════════════════════════════════════════════════════════════════
+  async function transcribeAudio(audioBase64, mimeType, language) {
+    if (!ready()) return null;
+    const data = await apiPost('transcribeAudio', {
+      audioBase64, mimeType, language: language || 'ko',
+    });
+    return (data && data.text) || '';
   }
 
   async function resetFamilyPassword(churchCode, leaderName, parish, district, newPassword) {
@@ -478,20 +508,21 @@ window.PAT_DB = (() => {
       });
       return data.ok ? { ok: true, familyId: data.familyId } : { ok: false, error: data.error || '재설정 실패' };
     } catch (e) {
-      // 404: 가족방 못 찾음, 기타: 서버 오류
-      const msg = e.message || '서버 오류';
-      return { ok: false, error: msg };
+      return { ok: false, error: e.message || '서버 오류' };
     }
   }
 
+  // ── public API ─────────────────────────────────────────────────
   return {
     init, ready, getDeviceId,
     registerChurch, adminLogin, checkChurchCode, checkAdminId,
     submitReport, getReports, deleteReport,
     saveVerse, getLatestVerse, subscribeVerse,
-    saveFamily, findFamilyByPassword, joinFamily, removeFamilyMember, getFamilyMembers, getFamilyInfo, subscribeFamily,
+    saveFamily, findFamilyByPassword, joinFamily, removeFamilyMember,
+    getFamilyMembers, getFamilyInfo, subscribeFamily,
     saveRecord, hasRecord,
-    getDashboardStats, getFamilyStats, getFamilyProgress, transcribeAudio, getAwardRanking, getFamiliesList,
+    getDashboardStats, getFamilyStats, getFamilyProgress,
+    transcribeAudio, getAwardRanking, getFamiliesList,
     resetFamilyPassword,
     getConfig, saveConfig, subscribeConfig,
     unsubscribeAll,

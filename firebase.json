@@ -1,71 +1,81 @@
-﻿{
-    "hosting":  {
-                    "public":  "app",
-                    "ignore":  [
-                                   "firebase.json",
-                                   "**/.*",
-                                   "!**/.well-known",
-                                   "!**/.well-known/**",
-                                   "**/node_modules/**"
-                               ],
-                    "rewrites":  [
-                                     {
-                                         "source":  "**",
-                                         "destination":  "/index.html"
-                                     }
-                                 ],
-                    "headers": [
-                      {
-                        "source": "**",
-                        "headers": [
-                          { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-                          { "key": "Cross-Origin-Embedder-Policy", "value": "credentialless" }
-                        ]
-                      },
-                      {
-                        "source": "**/*.js",
-                        "headers": [
-                          { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-                        ]
-                      },
-                      {
-                        "source": "**/*.@(css|json|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot)",
-                        "headers": [
-                          { "key": "Cache-Control", "value": "public, max-age=3600" }
-                        ]
-                      },
-                      {
-                        "source": "index.html",
-                        "headers": [
-                          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-                          { "key": "Pragma", "value": "no-cache" },
-                          { "key": "Expires", "value": "0" }
-                        ]
-                      },
-                      {
-                        "source": "sw.js",
-                        "headers": [
-                          { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-                        ]
-                      },
-                      {
-                        "source": "manifest.json",
-                        "headers": [
-                          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-                          { "key": "Pragma", "value": "no-cache" },
-                          { "key": "Expires", "value": "0" }
-                        ]
-                      },
-                      {
-                        "source": "icons/**/*.png",
-                        "headers": [
-                          { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-                        ]
-                      }
-                    ]
-                },
-    "functions":  {
-                      "runtime":  "nodejs22",
-                      "source":  "functions"
-                  }
+{
+    "hosting": {
+        "public": "app",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "!**/.well-known",
+            "!**/.well-known/**",
+            "**/node_modules/**"
+        ],
+        "rewrites": [
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ],
+        "headers": [
+            {
+                "source": "**",
+                "headers": [
+                    {
+                        "key": "Cross-Origin-Opener-Policy",
+                        "value": "same-origin"
+                    },
+                    {
+                        "key": "Cross-Origin-Embedder-Policy",
+                        "value": "credentialless"
+                    },
+                    {
+                        "key": "Content-Security-Policy",
+                        "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://us-central1-pat-bible-app.cloudfunctions.net https://*.googleapis.com https://*.firebaseio.com; frame-src 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost:* http://127.0.0.1:*; frame-ancestors 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost:* http://127.0.0.1:*;"
+                    }
+                ]
+            },
+            {
+                "source": "**/*.js",
+                "headers": [
+                    { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+                ]
+            },
+            {
+                "source": "**/*.@(css|json|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot)",
+                "headers": [
+                    { "key": "Cache-Control", "value": "public, max-age=3600" }
+                ]
+            },
+            {
+                "source": "index.html",
+                "headers": [
+                    { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+                    { "key": "Pragma", "value": "no-cache" },
+                    { "key": "Expires", "value": "0" }
+                ]
+            },
+            {
+                "source": "sw.js",
+                "headers": [
+                    { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+                ]
+            },
+            {
+                "source": "manifest.json",
+                "headers": [
+                    { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+                    { "key": "Pragma", "value": "no-cache" },
+                    { "key": "Expires", "value": "0" }
+                ]
+            },
+            {
+                "source": "icons/**/*.png",
+                "headers": [
+                    { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+                ]
+            }
+        ]
+    },
+    "functions": {
+        "runtime": "nodejs22",
+        "source": "functions"
+    }
 }
