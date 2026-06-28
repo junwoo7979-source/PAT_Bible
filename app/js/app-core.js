@@ -500,7 +500,9 @@ function memberLogout(){
   // ★ 가족방 정보 완전 삭제 (로그아웃 시 초기화)
   //   단, pat_leader_family_profile은 보존 (BUG-FIX: 대표 가족 정보 복구용)
   localStorage.removeItem('pat_family_profile');
-  localStorage.removeItem('pat_family_id');
+  // ★ BUG-FIX: pat_family_id는 로그아웃 후에도 보존 (재로그인 후 중복 생성 방지)
+  //   삭제하면 재로그인 시 existingFamilyId=null → 가족 새로 생성 → 중복 반복
+  // localStorage.removeItem('pat_family_id'); // ← 삭제하지 않음!
   localStorage.removeItem('pat_device_id');
   // ⚠️ pat_leader_family_profile은 삭제하지 않음 (재로그인 후 자동 복구)
   // ★ localStorage 쓰기 실패 시 남았을 수 있는 sessionStorage 백업까지 제거

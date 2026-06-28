@@ -45,6 +45,11 @@ function loadFamilyProfile(){
       const profile = JSON.parse(leaderProfile);
       console.log('[PAT-FAMILY] 대표 가족 정보에서 자동 복구');
       setFamilyStorage('pat_family_profile', leaderProfile);
+      // ★ pat_family_id도 함께 복구 (없을 경우에만 — 중복 생성 방지)
+      if(profile._familyId && !localStorage.getItem('pat_family_id')) {
+        localStorage.setItem('pat_family_id', profile._familyId);
+        console.log('[PAT-FAMILY] pat_family_id 복구:', profile._familyId);
+      }
       return profile;
     }
   }catch(e) {
@@ -330,7 +335,9 @@ function saveFamilyProfileAsLeader(){
   //   memberLogout()에서 pat_family_profile은 삭제되지만,
   //   pat_leader_family_profile은 보존되어 재로그인 후 자동 복구 가능
   try {
-    localStorage.setItem('pat_leader_family_profile', JSON.stringify(profileData));
+    // pat_family_id도 함께 백업 (복구 시 중복 생성 방지)
+    const backupData = { ...profileData, _familyId: localStorage.getItem('pat_family_id') || '' };
+    localStorage.setItem('pat_leader_family_profile', JSON.stringify(backupData));
     console.log('[PAT-FAMILY] 대표 가족 정보 저장 (로그아웃 후 복구용)');
   } catch(e) {
     console.warn('[PAT-FAMILY] 대표 가족 정보 저장 실패:', e.message);
