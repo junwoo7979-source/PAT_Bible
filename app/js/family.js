@@ -544,16 +544,30 @@ function toggleDailyTask(type){
   saveDailyTasks(tasks);
   updateHomeDisplay();
 }
+// 오늘 본인 기도 완료 여부 (prayer.js 데이터 기준)
+function _isPrayerDoneToday(){
+  try{
+    if(typeof loadFamilyPrayers!=='function' || typeof currentPrayerMember!=='function') return false;
+    const board = loadFamilyPrayers(todayKey()) || {};
+    const me = currentPrayerMember();
+    return !!(me && board[me] && board[me].text);
+  }catch(e){ return false; }
+}
+// 오늘 통독(오늘의 바이블버스) 읽음 여부
+function _isReadingDoneToday(){
+  try{ return localStorage.getItem('pat_read_done_'+todayKey())==='1'; }catch(e){ return false; }
+}
 function updateHomeDisplay(){
-  const tasks    = loadDailyTasks();
-  const recs     = loadRec();
-  const today    = todayKey();
-  const memorized = recs.some(r => r.date && r.date.startsWith(today));
-  const writing  = tasks.writing||0;
-  const prayer   = !!tasks.prayer;
-  const total    = writing + (memorized?1:0) + (prayer?1:0);
-  const maxScore = 4;
-  const pct      = Math.round(total/maxScore*100);
+  const recs  = loadRec();
+  const today = todayKey();
+  // ★ 점수 연산 수정: 실제 활동 3가지에 연결 (암송 / 기도 / 통독)
+  //   - (버그) 기존엔 r.date 를 봤으나 암송 기록은 completedAt 필드라 항상 0점이었음
+  const memorized = recs.some(r => String(r.completedAt || r.date || '').slice(0,10) === today);
+  const prayed    = _isPrayerDoneToday();
+  const read      = _isReadingDoneToday();
+  const total     = (memorized?1:0) + (prayed?1:0) + (read?1:0);
+  const maxScore  = 3;
+  const pct       = Math.round(total/maxScore*100);
 
   const el = id => document.getElementById(id);
 
@@ -563,26 +577,17 @@ function updateHomeDisplay(){
   if(el('hmProgressFill'))  el('hmProgressFill').style.width = pct+'%';
   if(el('hmAllDone'))       el('hmAllDone').style.display = (total===maxScore)?'block':'none';
 
-  // 성경 쓰기 도트
-  if(el('hmDotW0')) el('hmDotW0').classList.toggle('on', writing>=1);
-  if(el('hmDotW1')) el('hmDotW1').classList.toggle('on', writing>=2);
-  if(el('hmTaskWriting')) el('hmTaskWriting').classList.toggle('done', writing>=2);
-  if(el('btnWritingMinus')) el('btnWritingMinus').disabled = writing<=0;
-  if(el('btnWritingPlus'))  el('btnWritingPlus').disabled  = writing>=2;
-
-  // 암송 체크
+  // (구) 일일 과제 체크 표시 — 요소가 있을 때만 갱신
   if(el('hmCheckMemorize')){
     el('hmCheckMemorize').textContent = memorized?'✓':'○';
     el('hmCheckMemorize').classList.toggle('checked', memorized);
   }
   if(el('hmTaskMemorize')) el('hmTaskMemorize').classList.toggle('done', memorized);
-
-  // 기도 체크
   if(el('hmCheckPrayer')){
-    el('hmCheckPrayer').textContent = prayer?'✓':'○';
-    el('hmCheckPrayer').classList.toggle('checked', prayer);
+    el('hmCheckPrayer').textContent = prayed?'✓':'○';
+    el('hmCheckPrayer').classList.toggle('checked', prayed);
   }
-  if(el('hmTaskPrayer')) el('hmTaskPrayer').classList.toggle('done', prayer);
+  if(el('hmTaskPrayer')) el('hmTaskPrayer').classList.toggle('done', prayed);
 }
 function initHomeScreen(){
   // 날짜

@@ -97,6 +97,8 @@ function openTodayReading(track){
   const map={si:0,ot:1,nt:2,pr:3};
   const ref=_readingFullLabel(track, plan[map[track]]||'');
   _readingActiveTrack=track;
+  // ★ 오늘 통독 읽음 기록 (홈 '오늘의 달성률' 점수에 반영)
+  try{ localStorage.setItem('pat_read_done_'+_readingTodayKey(),'1'); }catch(e){}
   _highlightTrack(track);
   const pane=document.getElementById('todayReadingPane');
   const title=document.getElementById('todayReadingTitle');
