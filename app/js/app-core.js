@@ -503,7 +503,8 @@ function adminLogout(){
   if(target) target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
   if(tabbar) tabbar.style.display = 'none';
-  history.replaceState({ screen: 's-login' }, '', _screenUrl('s-login'));
+  // 누적된 히스토리를 루트로 접어 — 로그인 화면에서 back 한 번에 폰 홈으로 종료되게 함
+  collapseHistoryToLogin();
   toast('로그아웃되었습니다');
 }
 function memberLogout(){
@@ -532,7 +533,8 @@ function memberLogout(){
   if(target) target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
   if(tabbar) tabbar.style.display = 'none';
-  history.replaceState({ screen: 's-login' }, '', _screenUrl('s-login'));
+  // 누적된 히스토리를 루트로 접어 — 로그인 화면에서 back 한 번에 폰 홈으로 종료되게 함
+  collapseHistoryToLogin();
   toast('로그아웃되었습니다');
 }
 function syncAdminVerseFields(){
@@ -663,26 +665,49 @@ function go(id, resetScroll=true, animate=false){
   // 브라우저 히스토리 관리 — 모바일 대응: 해시(#id)로 URL 구분
   if(!_poppingState && typeof history !== 'undefined'){
     const isAuthScreen = ['s-login','s-adminlogin'].includes(id);
+    // 현재 히스토리 깊이(_depth)를 읽어, 로그아웃 시 루트로 한 번에 접을 수 있게 추적한다.
+    const curDepth = (history.state && typeof history.state._depth === 'number') ? history.state._depth : 0;
     if(isAuthScreen){
       // 로그인 화면은 replace — 뒤로가기로 로그인화면 재진입 방지
-      history.replaceState({ screen: id }, '', _screenUrl(id));
+      history.replaceState({ screen: id, _depth: curDepth }, '', _screenUrl(id));
     } else {
-      history.pushState({ screen: id }, '', _screenUrl(id));
+      history.pushState({ screen: id, _depth: curDepth + 1 }, '', _screenUrl(id));
     }
   }
 }
 function tabGo(id){ go(id); }
 
+// 로그아웃/로그인 진입 시 누적된 뒤로가기 히스토리를 루트(depth 0)로 한 번에 접는다.
+// 이렇게 해야 로그인 화면에서 시스템 back 한 번에 TWA가 종료되어 폰 홈으로 나갈 수 있다.
+let _collapsingToLogin = false;
+function collapseHistoryToLogin(){
+  if(typeof history === 'undefined') return;
+  const d = (history.state && typeof history.state._depth === 'number') ? history.state._depth : 0;
+  if(d > 0 && typeof history.go === 'function'){
+    // 현재 depth 만큼 뒤로 점프 → 루트(로그인) 엔트리로 이동. 이때 발생하는 popstate 는 무시한다.
+    _collapsingToLogin = true;
+    history.go(-d);
+  } else {
+    // 이미 루트면 그대로 로그인으로 고정
+    history.replaceState({ screen: 's-login', _depth: 0 }, '', _screenUrl('s-login'));
+  }
+}
+
 // 브라우저/모바일 뒤로가기 처리
 let _preventBack = false;
 if(typeof window !== 'undefined' && window.history){
   window.addEventListener('popstate', e => {
-    // 현재 보이는 화면이 로그인 화면이면 뒤로가기 완전 차단 (forward로 취소)
+    // 히스토리 접기(collapse) 중 발생한 popstate: 루트에 로그인 상태만 고정하고 종료.
+    if(_collapsingToLogin){
+      _collapsingToLogin = false;
+      history.replaceState({ screen: 's-login', _depth: 0 }, '', _screenUrl('s-login'));
+      return;
+    }
+
+    // 현재 보이는 화면이 로그인 화면이면 뒤로가기를 트랩하지 않고 그대로 통과시킨다.
+    // → 더 이상 history.forward() 로 가두지 않으므로, 시스템이 TWA 를 종료해 폰 홈으로 나간다.
     const currentActive = document.querySelector('.screen.active');
     if(currentActive && (currentActive.id === 's-login' || currentActive.id === 's-adminlogin')){
-      _preventBack = true;
-      history.forward();
-      setTimeout(() => { _preventBack = false; }, 100);
       return;
     }
 
@@ -706,8 +731,8 @@ if(typeof window !== 'undefined' && window.history){
     go(screen, true, false);
     _poppingState = false;
   });
-  // 초기 상태: 해시 없이 replaceState
-  history.replaceState({ screen: 's-login' }, '', location.pathname + location.search);
+  // 초기 상태: 해시 없이 replaceState — 루트 depth 0 으로 표시 (back 한 번에 앱 종료 가능)
+  history.replaceState({ screen: 's-login', _depth: 0 }, '', location.pathname + location.search);
 }
 
 // ── 교회 입장 ─────────────────────────────────────────────
