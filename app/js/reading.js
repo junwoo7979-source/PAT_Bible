@@ -63,7 +63,7 @@ function renderTodayPlan(){
     const raw=plan[t.i]||'';
     // 시편/잠언은 트랙명이 곧 책이름이라 값(숫자)만 표시, 구약/신약은 정식 책이름+장
     const label=(t.k==='si'||t.k==='pr') ? raw : _readingFullLabel(t.k, raw);
-    html+='<button onclick="openTodayReading(\''+t.k+'\')" '+
+    html+='<button data-rtrack="'+t.k+'" onclick="openTodayReading(\''+t.k+'\')" '+
       'style="position:relative;text-align:left;padding:12px 26px 12px 14px;border:none;border-left:4px solid var(--accent);border-radius:12px;cursor:pointer;background:var(--surface);transition:transform .05s" '+
       'ontouchstart="" onmousedown="this.style.transform=\'scale(.97)\'" onmouseup="this.style.transform=\'\'" onmouseleave="this.style.transform=\'\'">'+
       '<div class="muted" style="font-size:calc(var(--fs)-5px);font-weight:700">'+t.emoji+' '+t.name+'</div>'+
@@ -72,15 +72,55 @@ function renderTodayPlan(){
       '</button>';
   });
   menuEl.innerHTML=html;
+  // 날짜/메뉴 새로 그릴 때 열린 본문은 닫는다
+  closeTodayReading();
 }
-// 메뉴 탭 → (추후) 성경 본문 연동. 현재는 안내.
+
+// 선택 버튼 강조 (자식: [0]트랙명(muted) [1]본문값 [2]화살표)
+function _highlightTrack(track){
+  document.querySelectorAll('#todayPlanMenu button[data-rtrack]').forEach(b=>{
+    const on=(b.getAttribute('data-rtrack')===track);
+    b.style.background = on ? 'var(--accent)' : 'var(--surface)';
+    const kids=b.children;
+    if(kids[0]) kids[0].style.color = on ? 'rgba(255,255,255,.85)' : '';      // 트랙명
+    if(kids[1]) kids[1].style.color = on ? '#fff' : 'var(--text)';            // 본문값
+    if(kids[2]) kids[2].style.color = on ? '#fff' : 'var(--accent)';          // 화살표
+  });
+}
+
+// 메뉴 탭 → 같은 화면 아래에 본문 펼치기 (토글)
+let _readingActiveTrack=null;
 function openTodayReading(track){
   const plan=_readingTodayPlan();
   if(!plan){ if(typeof toast==='function')toast('오늘 통독표가 없습니다'); return; }
+  if(_readingActiveTrack===track){ closeTodayReading(); return; } // 같은 버튼 → 닫기
   const map={si:0,ot:1,nt:2,pr:3};
-  const label=_readingFullLabel(track, plan[map[track]]||'');
-  if(typeof toast==='function')
-    toast('📖 '+label+' · 성경 본문 연동 준비 중 (개역개정 API)');
+  const ref=_readingFullLabel(track, plan[map[track]]||'');
+  _readingActiveTrack=track;
+  _highlightTrack(track);
+  const pane=document.getElementById('todayReadingPane');
+  const title=document.getElementById('todayReadingTitle');
+  const body=document.getElementById('todayReadingBody');
+  if(title) title.textContent='📖 '+ref;
+  if(body) body.innerHTML=_readingBibleHtml(ref);  // ★ API 연동 시 여기에 본문 채움
+  if(pane){
+    pane.style.display='block';
+    pane.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+}
+function closeTodayReading(){
+  _readingActiveTrack=null;
+  const pane=document.getElementById('todayReadingPane');
+  if(pane) pane.style.display='none';
+  _highlightTrack(null);
+}
+// ★ 성경 본문 HTML — 현재는 안내. 대한성서공회 개역개정 API 승인 후
+//   이 함수만 교체하면(또는 async fetch) 버튼 아래에 본문이 표시된다.
+function _readingBibleHtml(ref){
+  return '<div style="text-align:center;padding:22px 8px">'+
+    '<div style="font-size:calc(var(--fs)+4px);font-weight:800;color:var(--accent)">'+ref+'</div>'+
+    '<p class="muted" style="margin-top:14px;line-height:1.7">개역개정 본문은 대한성서공회 API<br>승인 후 여기에 표시됩니다.</p>'+
+    '</div>';
 }
 
 // ── 렌더 ─────────────────────────────────────────────

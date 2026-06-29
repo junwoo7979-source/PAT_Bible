@@ -957,6 +957,16 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       </div>
       <div id="todayPlanMenu" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
     </div>
+
+    <!-- 선택한 본문 표시 영역 (버튼 탭 시 아래에 펼쳐짐) -->
+    <div class="card" id="todayReadingPane" style="margin-top:14px;display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 id="todayReadingTitle" style="margin:0;font-size:var(--fs)"></h2>
+        <button onclick="closeTodayReading()" style="border:none;background:var(--surface);border-radius:8px;padding:5px 11px;cursor:pointer;font-weight:700;color:var(--muted)">✕</button>
+      </div>
+      <div id="todayReadingBody" style="line-height:1.9"></div>
+    </div>
+
     <div class="spacer"></div>
   </section>
 
