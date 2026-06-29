@@ -512,6 +512,28 @@ window.PAT_DB = (() => {
     }
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // 가족 기도 나눔 — 당일 가족 구성원끼리 서로 공유
+  // ════════════════════════════════════════════════════════════════
+  async function savePrayer(churchCode, { date, memberName, text }) {
+    if (!ready()) return false;
+    try {
+      const familyId = localStorage.getItem('pat_family_id') || '';
+      if (!familyId) { console.warn('[PAT_DB] savePrayer: familyId 없음'); return false; }
+      await apiPost('savePrayer', { churchCode, familyId, date, memberName, text });
+      return true;
+    } catch (e) { console.warn('[PAT_DB] savePrayer:', e.message); return false; }
+  }
+
+  async function getPrayers(churchCode, date) {
+    if (!ready()) return null;
+    try {
+      const familyId = localStorage.getItem('pat_family_id') || '';
+      if (!familyId) return null;
+      return await apiGet('getPrayers', { churchCode, familyId, date });
+    } catch (e) { console.warn('[PAT_DB] getPrayers:', e.message); return null; }
+  }
+
   // ── public API ─────────────────────────────────────────────────
   return {
     init, ready, getDeviceId,
@@ -524,6 +546,7 @@ window.PAT_DB = (() => {
     getDashboardStats, getFamilyStats, getFamilyProgress,
     transcribeAudio, getAwardRanking, getFamiliesList,
     resetFamilyPassword,
+    savePrayer, getPrayers,
     getConfig, saveConfig, subscribeConfig,
     unsubscribeAll,
   };

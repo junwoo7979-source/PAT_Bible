@@ -648,6 +648,51 @@ exports.saveRecord = onRequest({ cors: true, region: 'us-central1' }, async (req
   } catch (e) { errRes(res, e); }
 });
 
+// ── 가족 기도 나눔 ───────────────────────────────────────────────
+// churches/{code}/families/{familyId}/prayers/{date_memberName}
+exports.savePrayer = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  try {
+    const { churchCode, familyId, date, memberName, text } = req.body;
+    if (!assertChurchCode(churchCode, res)) return;
+    if (!familyId || !date || !memberName) {
+      res.status(400).json({ error: 'familyId, date, memberName required' }); return;
+    }
+    const docId = `${date}_${memberName}`.replace(/[\/\.#$\[\]]/g, '-');
+    const ref = db.doc(`churches/${churchCode}/families/${familyId}/prayers/${docId}`);
+    const clean = (text || '').toString().trim();
+    if (clean) {
+      await ref.set({
+        date, memberName, text: clean.slice(0, 500),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    } else {
+      await ref.delete().catch(() => {});
+    }
+    res.json({ ok: true });
+  } catch (e) { errRes(res, e); }
+});
+
+exports.getPrayers = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  try {
+    const { churchCode, familyId, date } = req.query;
+    if (!assertChurchCode(churchCode, res)) return;
+    if (!familyId) { res.status(400).json({ error: 'familyId required' }); return; }
+    const snap = await db.collection(`churches/${churchCode}/families/${familyId}/prayers`).get();
+    const prayers = snap.docs.map(d => {
+      const x = d.data();
+      return {
+        memberName: x.memberName || '',
+        text: x.text || '',
+        date: x.date || '',
+        updatedAt: (x.updatedAt && x.updatedAt.toMillis) ? x.updatedAt.toMillis() : 0,
+      };
+    }).filter(p => !date || p.date === date);
+    res.json({ prayers });
+  } catch (e) { errRes(res, e); }
+});
+
 exports.hasRecord = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
   if (!begin(req, res)) return;
   try {

@@ -941,9 +941,11 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- 오늘 기도 상태 -->
     <div class="hm-card" style="margin-top:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <h2 style="font-size:var(--fs);font-weight:700">오늘의 기도</h2>
+        <h2 id="prayerMemberSelf" style="font-size:var(--fs);font-weight:700">오늘의 기도</h2>
         <span id="prayerDoneBadge" style="display:none;background:var(--accent);color:#04231a;font-size:calc(var(--fs)-4px);font-weight:700;padding:4px 12px;border-radius:20px">✓ 완료</span>
       </div>
+      <!-- 가족 구성원 칩 (오늘 기도한 가족 표시) -->
+      <div id="prayerMemberChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
       <!-- 음성/텍스트 입력 탭 -->
       <div style="display:flex;gap:8px;margin-bottom:12px">
         <button id="prayerTabText" class="reg-tab active" onclick="switchPrayerTab('text')" style="flex:1;padding:10px 0;border-radius:10px;border:none;font-weight:700;font-size:calc(var(--fs) - 1px);cursor:pointer;background:var(--accent);color:#fff">📝 텍스트</button>
@@ -973,9 +975,9 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <button class="btn" id="prayerSaveBtn" onclick="savePrayer()" style="margin-top:8px">🙏 기도 완료</button>
     </div>
 
-    <!-- 최근 기도 기록 -->
+    <!-- 오늘 우리 가족의 기도 (당일 공유) -->
     <div class="hm-card" style="margin-top:4px">
-      <h2 style="font-size:var(--fs);font-weight:700;margin-bottom:12px">📖 최근 기도 기록</h2>
+      <h2 style="font-size:var(--fs);font-weight:700;margin-bottom:12px">👨‍👩‍👧 오늘 우리 가족의 기도</h2>
       <div id="prayerHistory"></div>
     </div>
   </section>

@@ -148,20 +148,119 @@ function updatePrayerTextLength(){
   document.getElementById('prayerTextLength').textContent=text.length;
 }
 
-function prayerKey(dateStr){ return 'pat_prayer_'+dateStr; }
+// ── 가족 기도 나눔 (당일 공유) ──────────────────────────────────
+// 데이터 모델: localStorage 'pat_fprayer_{familyId}_{date}' = { [memberName]: { text, savedAt } }
+// Firebase 동기화: PAT_DB.savePrayer / PAT_DB.getPrayers (다른 폰의 가족도 열람 가능)
 
-function loadPrayer(dateStr){
-  try{ return JSON.parse(localStorage.getItem(prayerKey(dateStr))||'null'); }
+function prayerKey(dateStr){ return 'pat_prayer_'+dateStr; } // (기존 개인 기도 호환용)
+
+function _prayerFamilyProfile(){
+  try { return JSON.parse(localStorage.getItem('pat_family_profile')||'null'); }
   catch(e){ return null; }
 }
+function _prayerFamilyId(){
+  try { return localStorage.getItem('pat_family_id')||''; } catch(e){ return ''; }
+}
+function _prayerChurchCode(){
+  try { return localStorage.getItem('pat_church_code') || (window.DB && DB.church && DB.church.code) || ''; }
+  catch(e){ return ''; }
+}
+function currentPrayerMember(){
+  const p=_prayerFamilyProfile();
+  return (p && (p.memberName || p.leaderName)) || '';
+}
+function prayerMemberList(){
+  const p=_prayerFamilyProfile();
+  let names=[];
+  if(p && Array.isArray(p.members)){
+    names = p.members
+      .map(m => (typeof m==='string') ? m : (m && (m.displayName || m.name)) || '')
+      .map(s => String(s).trim())
+      .filter(Boolean);
+  }
+  const me=currentPrayerMember();
+  if(me && !names.includes(me)) names=[me, ...names];
+  return [...new Set(names)];
+}
 
-function savePrayer(){
-  const text = document.getElementById('prayerText').value.trim();
+function fprayerKey(dateStr){ return 'pat_fprayer_'+_prayerFamilyId()+'_'+dateStr; }
+function loadFamilyPrayers(dateStr){
+  try { return JSON.parse(localStorage.getItem(fprayerKey(dateStr))||'{}'); }
+  catch(e){ return {}; }
+}
+function storeFamilyPrayers(dateStr, board){
+  try { localStorage.setItem(fprayerKey(dateStr), JSON.stringify(board)); } catch(e){}
+}
+
+async function savePrayer(){
+  const text  = document.getElementById('prayerText').value.trim();
   const today = todayKey();
-  const data  = { text, done: true, savedAt: Date.now() };
-  localStorage.setItem(prayerKey(today), JSON.stringify(data));
-  toast('🙏 기도가 저장되었습니다');
+  const me    = currentPrayerMember();
+  if(!me){ toast('가족 정보를 찾을 수 없습니다 — 다시 로그인 해주세요'); return; }
+
+  // 1) 로컬 즉시 반영
+  const board = loadFamilyPrayers(today);
+  if(text) board[me] = { text, savedAt: Date.now() };
+  else delete board[me];
+  storeFamilyPrayers(today, board);
+  // 개인 기도 호환 키도 함께 보존 (기존 동작 유지)
+  localStorage.setItem(prayerKey(today), JSON.stringify({ text, done: !!text, savedAt: Date.now() }));
+
+  toast(text ? '🙏 기도가 저장되었습니다' : '기도를 비웠습니다');
   renderPrayer();
+
+  // 2) Firebase 동기화 — 가족이 서로 볼 수 있도록
+  if(window.PAT_DB && PAT_DB.ready && PAT_DB.ready() && PAT_DB.savePrayer){
+    try {
+      await PAT_DB.savePrayer(_prayerChurchCode(), { date: today, memberName: me, text });
+      renderPrayer();
+    } catch(e){ console.warn('[PRAYER] 동기화 실패:', e && e.message); }
+  }
+}
+
+function renderPrayerChips(board){
+  const el=document.getElementById('prayerMemberChips');
+  if(!el) return;
+  const members=prayerMemberList();
+  const me=currentPrayerMember();
+  if(!members.length){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display='flex';
+  el.innerHTML = members.map(n=>{
+    const prayed = board[n] && board[n].text;
+    const isMe   = n===me;
+    return `<span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:20px;`
+      + `font-size:calc(var(--fs)-3px);font-weight:700;white-space:nowrap;`
+      + `background:${isMe?'var(--accent)':'var(--surface)'};color:${isMe?'#04231a':'var(--text)'};`
+      + `border:1px solid ${isMe?'var(--accent)':'var(--line)'}">`
+      + `${prayed?'🙏':'<span style=\"opacity:.4\">○</span>'} ${esc(n)}${isMe?' (나)':''}</span>`;
+  }).join('');
+}
+
+function renderPrayerFeed(board){
+  const el=document.getElementById('prayerHistory');
+  if(!el) return;
+  const entries=Object.keys(board)
+    .map(n=>({ name:n, text:(board[n]&&board[n].text)||'', savedAt:(board[n]&&board[n].savedAt)||0 }))
+    .filter(e=>e.text)
+    .sort((a,b)=> b.savedAt - a.savedAt);
+
+  if(!entries.length){
+    el.innerHTML='<p class="muted" style="text-align:center;padding:16px 0">오늘 가족의 기도가 아직 없어요 🙏</p>';
+    return;
+  }
+  const me=currentPrayerMember();
+  el.innerHTML = entries.map(e=>{
+    const t=e.savedAt ? new Date(e.savedAt) : null;
+    const time = t ? ((t.getHours()<12?'오전':'오후')+' '+(((t.getHours()%12)||12))+':'+String(t.getMinutes()).padStart(2,'0')) : '';
+    const mine = e.name===me;
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:calc(var(--fs)-2px);font-weight:700;color:var(--text)">🙏 ${esc(e.name)}님의 기도${mine?' <span style=\"color:var(--accent);font-size:calc(var(--fs)-4px)\">· 나</span>':''}</span>
+        <span style="font-size:calc(var(--fs)-4px);color:var(--muted)">${time}</span>
+      </div>
+      <p style="font-size:calc(var(--fs)-2px);line-height:1.7;color:var(--text)">${esc(e.text)}</p>
+    </div>`;
+  }).join('').replace(/<div([^>]*)>([\s\S]*?)<\/div>\s*$/, (m)=> m.replace('border-bottom:1px solid var(--line)','border-bottom:none'));
 }
 
 function renderPrayer(){
@@ -174,55 +273,55 @@ function renderPrayer(){
   if(dateEl) dateEl.textContent =
     (now.getMonth()+1)+'월 '+now.getDate()+'일 ('+days[now.getDay()]+')';
 
-  // 오늘 기도 상태 로드
-  const todayData = loadPrayer(today);
-  const textEl    = document.getElementById('prayerText');
-  const badge     = document.getElementById('prayerDoneBadge');
-  const saveBtn   = document.getElementById('prayerSaveBtn');
+  const me      = currentPrayerMember();
+  const board   = loadFamilyPrayers(today);
+  const mine    = board[me];
+  const textEl  = document.getElementById('prayerText');
+  const badge   = document.getElementById('prayerDoneBadge');
+  const saveBtn = document.getElementById('prayerSaveBtn');
+  const selfEl  = document.getElementById('prayerMemberSelf');
 
-  if(textEl && todayData){
-    textEl.value = todayData.text || '';
-    // 텍스트 길이 업데이트
-    updatePrayerTextLength();
+  if(selfEl) selfEl.textContent = me ? (me+'님의 오늘 기도') : '오늘의 기도';
+
+  // 본인 기도 입력칸 채우기 (사용자가 입력 중이 아니면)
+  if(textEl && document.activeElement!==textEl){
+    textEl.value = (mine && mine.text) || '';
+    if(typeof updatePrayerTextLength==='function') updatePrayerTextLength();
   }
-  if(badge) badge.style.display = (todayData?.done) ? 'inline-block' : 'none';
-  if(saveBtn) saveBtn.textContent = (todayData?.done) ? '🙏 기도 수정' : '🙏 기도 완료';
+  if(badge)   badge.style.display = (mine && mine.text) ? 'inline-block' : 'none';
+  if(saveBtn) saveBtn.textContent = (mine && mine.text) ? '🙏 기도 수정' : '🙏 기도 완료';
 
-  // 텍스트 입력 이벤트 리스너
   if(textEl && !textEl.__eventAdded){
     textEl.addEventListener('input', updatePrayerTextLength);
     textEl.__eventAdded=true;
   }
 
-  // 최근 7일 기도 기록
-  const histEl = document.getElementById('prayerHistory');
-  if(!histEl) return;
+  // 로컬 데이터로 즉시 렌더
+  renderPrayerChips(board);
+  renderPrayerFeed(board);
 
-  const records = [];
-  for(let i=0; i<7; i++){
-    const d = new Date(now);
-    d.setDate(now.getDate() - i);
-    const key  = d.toISOString().slice(0,10);
-    const data = loadPrayer(key);
-    if(data){
-      const label = i===0 ? '오늘' : i===1 ? '어제' :
-        (d.getMonth()+1)+'월 '+d.getDate()+'일 ('+days[d.getDay()]+')';
-      records.push({ label, text: data.text, done: data.done });
-    }
+  // Firebase에서 가족 전체 기도 병합 (다른 폰의 가족 포함)
+  if(window.PAT_DB && PAT_DB.ready && PAT_DB.ready() && PAT_DB.getPrayers){
+    PAT_DB.getPrayers(_prayerChurchCode(), today).then(res=>{
+      if(!res || !Array.isArray(res.prayers)) return;
+      const merged = loadFamilyPrayers(today);
+      res.prayers.forEach(p=>{
+        if(p.memberName) merged[p.memberName] = { text: p.text||'', savedAt: p.updatedAt||0 };
+      });
+      storeFamilyPrayers(today, merged);
+      renderPrayerChips(merged);
+      renderPrayerFeed(merged);
+      // 본인 기도칸도 서버값으로 보정 (입력 중이 아니면)
+      const tEl=document.getElementById('prayerText');
+      if(tEl && document.activeElement!==tEl){
+        const mn=merged[me];
+        tEl.value=(mn && mn.text) || '';
+        if(typeof updatePrayerTextLength==='function') updatePrayerTextLength();
+        const b=document.getElementById('prayerDoneBadge');
+        const sb=document.getElementById('prayerSaveBtn');
+        if(b)  b.style.display=(mn && mn.text)?'inline-block':'none';
+        if(sb) sb.textContent=(mn && mn.text)?'🙏 기도 수정':'🙏 기도 완료';
+      }
+    }).catch(()=>{});
   }
-
-  if(!records.length){
-    histEl.innerHTML = '<p class="muted" style="text-align:center;padding:16px 0">아직 기도 기록이 없습니다 🙏</p>';
-    return;
-  }
-
-  histEl.innerHTML = records.map(r => `
-    <div style="padding:12px 0;border-bottom:1px solid var(--line)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:calc(var(--fs)-3px);font-weight:700;color:var(--muted)">${r.label}</span>
-        <span style="font-size:calc(var(--fs)-4px);color:var(--accent)">✓ 완료</span>
-      </div>
-      ${r.text ? `<p style="font-size:calc(var(--fs)-2px);line-height:1.7;color:var(--text)">${esc(r.text)}</p>` : '<p class="muted" style="font-size:calc(var(--fs)-3px)">내용 없음</p>'}
-    </div>
-  `).join('').replace(/<div[^>]*>[\s\S]*?<\/div>\s*$/, s => s.replace('border-bottom:1px solid var(--line)','border-bottom:none'));
 }
