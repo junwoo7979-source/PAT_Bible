@@ -181,9 +181,11 @@ async function computeAggregatedData(){
     if(profile && familyId && window.PAT_DB && PAT_DB.ready()){
       const members = await PAT_DB.getFamilyProgress(DB.church.code, familyId, DB.verse.ref);
       if(Array.isArray(members)){
+        // ★ 기도 미션도 합산: 완료 = 암송(m.done) 또는 오늘 기도
+        const prayedSet = (typeof fetchPrayedMembersToday==='function') ? await fetchPrayedMembersToday() : new Set();
         result.familyTotal = members.length;
-        result.familyDone = members.filter(m => m.done).length;
-        console.log('[PAT-DASHBOARD-AGGREGATE] ✅ 가족 진도:', result.familyDone, '/', result.familyTotal);
+        result.familyDone = members.filter(m => m.done || prayedSet.has(m.displayName || m.name || '')).length;
+        console.log('[PAT-DASHBOARD-AGGREGATE] ✅ 가족 진도(암송+기도):', result.familyDone, '/', result.familyTotal);
       } else {
         console.log('[PAT-DASHBOARD-AGGREGATE] ⚠️ 가족 데이터 없음 (가족방 미입장)');
       }

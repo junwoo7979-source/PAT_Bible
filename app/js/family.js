@@ -566,6 +566,34 @@ function _isPrayerDoneToday(){
 function _isReadingDoneToday(){
   try{ return localStorage.getItem('pat_read_done_'+todayKey())==='1'; }catch(e){ return false; }
 }
+// ★ 오늘 기도한 가족 구성원 이름 Set (가족 미션 합계에 기도 포함용)
+//   본인 로컬은 항상 최신 반영, 가족 전체(getPrayers)는 3초 캐시 — 1초 폴링 과부하 방지.
+let _prayedNetCache = { t: 0, set: new Set() };
+async function fetchPrayedMembersToday(){
+  const set = new Set();
+  // 1) 본인 로컬(개인키) — 즉시 반영
+  try{
+    if(_isPrayerDoneToday()){
+      const p = loadFamilyProfile();
+      const me = (p && (p.memberName || p.leaderName)) || '';
+      if(me) set.add(me);
+    }
+  }catch(e){}
+  // 2) 가족 전체 (다른 구성원 포함) — 3초 캐시된 네트워크 조회
+  try{
+    const now = Date.now();
+    if(now - _prayedNetCache.t >= 3000 && window.PAT_DB && PAT_DB.ready() && PAT_DB.getPrayers){
+      const res = await PAT_DB.getPrayers(DB.church.code, todayKey());
+      const ns = new Set();
+      if(res && Array.isArray(res.prayers)){
+        res.prayers.forEach(p=>{ if(p.memberName && p.text && String(p.text).trim()) ns.add(p.memberName); });
+      }
+      _prayedNetCache = { t: now, set: ns };
+    }
+    _prayedNetCache.set.forEach(n=>set.add(n));
+  }catch(e){}
+  return set;
+}
 function updateHomeDisplay(){
   const recs  = loadRec();
   const today = todayKey();
@@ -655,6 +683,8 @@ async function syncFamilyProgressFromCloud(profile){
   const myNonce = ++familyProgressNonce;
 
   const cloudMembers = await PAT_DB.getFamilyProgress(DB.church.code, familyId, DB.verse.ref);
+  // ★ 기도 미션도 합산: 오늘 기도한 구성원 Set
+  const prayedSet = await fetchPrayedMembersToday();
 
   if(myNonce !== familyProgressNonce) return; // 더 최신 호출이 있음 → 폐기
   if(!Array.isArray(cloudMembers)) return;
@@ -673,10 +703,11 @@ async function syncFamilyProgressFromCloud(profile){
   const cloudNames = normalizeFamilyMemberNames(cloudMembers);
   const localNames = cloudNames.length ? cloudNames.slice() : familyMemberNames(freshProfile);
 
+  // ★ 완료 = 암송(doneMap) 또는 기도(prayedSet) — 두 미션 합산, 누락 없이
   const merged = localNames.map(name => ({
     name,
     me  : myName ? name === myName : false,
-    done: doneMap[name] || false,
+    done: (doneMap[name] || false) || prayedSet.has(name),
   }));
   if(!merged.find(m=>m.me) && merged.length) merged[0].me = true;
 
@@ -771,8 +802,8 @@ function renderFamily(){
   // memberName(이 기기 사용자 이름)으로 "나" 판별 — 없으면 leaderName, 없으면 첫 번째
   const myName  = (profile?.memberName || profile?.leaderName || '').trim();
   const familyId = localStorage.getItem('pat_family_id')||'';
-  // ★ 본인 완료 여부는 로컬 기록(현재 구절)으로 판정 — 등록만으로 완료 처리하지 않음
-  const myVerseDone = loadRec().some(r => r.ref === DB.verse.ref);
+  // ★ 본인 완료 여부 = 암송(현재 구절 기록) 또는 오늘 기도 — 두 미션 합산
+  const myVerseDone = loadRec().some(r => r.ref === DB.verse.ref) || _isPrayerDoneToday();
   if(profileMembers.length){
     DB.members = profileMembers.map((name,i)=>{
       const isMe = myName ? name === myName : i===0;
@@ -791,7 +822,7 @@ function renderFamily(){
       const names = familyMemberNames(freshProfile);
       const currentName = (freshProfile.memberName || freshProfile.leaderName || '').trim();
       if(names.length){
-        const myDone2 = loadRec().some(r => r.ref === DB.verse.ref);
+        const myDone2 = loadRec().some(r => r.ref === DB.verse.ref) || _isPrayerDoneToday();
         DB.members = names.map((name,i)=>{
           const isMe = currentName ? name === currentName : i===0;
           return { name, me: isMe, done: isMe ? myDone2 : false };
