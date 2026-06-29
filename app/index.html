@@ -775,6 +775,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-family');renderFamily()"><span style="font-size:20px">🏠</span><br>홈</button>
         <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-verse')"><span style="font-size:20px">📖</span><br>암송</button>
         <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-prayer')"><span style="font-size:20px">🙏</span><br>기도</button>
+        <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-reading')"><span style="font-size:20px">📚</span><br>읽기표</button>
         <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-dashboard');renderDashboard()"><span style="font-size:20px">📊</span><br>현황</button>
         <button style="flex:1;padding:12px 8px;border:none;background:var(--surface);border-radius:10px;cursor:pointer;font-size:calc(var(--fs) - 2px);font-weight:700" onclick="go('s-settings')"><span style="font-size:20px">⚙️</span><br>설정</button>
       </nav>
@@ -940,6 +941,28 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     </div>
   </section>
 
+  <!-- S7c: 성경읽기표 -->
+  <section class="screen" id="s-reading">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h1 style="margin:0">📚 성경읽기표</h1>
+      <button class="back" style="margin:0;background:var(--danger);color:white;font-size:calc(var(--fs) - 2px);padding:8px 12px" onclick="memberLogout()">로그아웃</button>
+    </div>
+    <p class="muted">읽은 장을 눌러 체크하세요</p>
+
+    <!-- 전체 진행률 -->
+    <div class="card" style="margin-top:14px;text-align:center" id="readingSummary"></div>
+
+    <!-- 구약 / 신약 탭 -->
+    <div style="display:flex;gap:6px;margin-top:14px">
+      <button class="read-tab" data-rtab="ot" onclick="switchReadingTab('ot')" style="flex:1;padding:9px 0;border:none;border-radius:10px;font-weight:700;font-size:calc(var(--fs) - 2px);cursor:pointer;background:var(--accent);color:#fff">구약 (39권)</button>
+      <button class="read-tab" data-rtab="nt" onclick="switchReadingTab('nt')" style="flex:1;padding:9px 0;border:none;border-radius:10px;font-weight:700;font-size:calc(var(--fs) - 2px);cursor:pointer;background:var(--surface);color:var(--text)">신약 (27권)</button>
+    </div>
+
+    <!-- 책 목록 -->
+    <div id="readingBookList" style="margin-top:4px"></div>
+    <div class="spacer"></div>
+  </section>
+
   <!-- S8: 설정 -->
   <section class="screen" id="s-settings">
     <h1>설정</h1>
@@ -1014,6 +1037,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <button class="tab active" data-screen="s-family" onclick="tabGo('s-family')"><span class="ico">🏠</span>홈</button>
     <button class="tab" data-screen="s-verse" onclick="tabGo('s-verse')"><span class="ico">📖</span>암송</button>
     <button class="tab" data-screen="s-prayer" onclick="tabGo('s-prayer')"><span class="ico">🙏</span>기도</button>
+    <button class="tab" data-screen="s-reading" onclick="tabGo('s-reading')"><span class="ico">📚</span>읽기표</button>
     <button class="tab" data-screen="s-dashboard" onclick="tabGo('s-dashboard');renderDashboard()"><span class="ico">📊</span>현황</button>
     <button class="tab" data-screen="s-settings" onclick="tabGo('s-settings')"><span class="ico">⚙️</span>설정</button>
   </nav>
@@ -1032,6 +1056,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <script src="js/groq-asr.js"></script>
 <script src="js/memorize.js"></script>
 <script src="js/prayer.js"></script>
+<script src="js/reading.js"></script>
 <script src="js/reset-pw.js"></script>
 <script src="js/admin.js"></script>
 <script>

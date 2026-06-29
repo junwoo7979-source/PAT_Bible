@@ -656,6 +656,7 @@ function go(id, resetScroll=true, animate=false){
     if(typeof startDashboardPolling === 'function') startDashboardPolling();
   }
   else if(id==='s-prayer'){ renderPrayer(); }
+  else if(id==='s-reading'){ if(typeof renderReading==='function') renderReading(); }
   else if(id !== 's-dashboard' && typeof stopDashboardPolling === 'function'){
     // 다른 화면으로 이동 시 폴링 중지
     stopDashboardPolling();
