@@ -2,18 +2,12 @@
 // 기도 기록 화면
 
 // ── 기도 음성 입력 ────────────────────────────────────
-// ★ 기도는 '자유 발화(긴 한국어 구어체)'라 정답 대조가 없어 인식 오류가 그대로 노출된다.
-//   → 1순위: 안드로이드/크롬 내장 음성인식(SpeechRecognition, ko-KR) — 실시간·환각 없음
-//   → 폴백: 내장 미지원 시에만 녹음(MediaRecorder) → Groq Whisper
-//   (소형 whisper-base 폴백은 기도에서 "온대 온대"식 환각으로 깨지므로 사용하지 않음)
+// ★ 암송 마이크와 100% 동일: 녹음(MediaRecorder, 정지 누를 때까지) → Groq Whisper large-v3 전사.
+//   내장 SpeechRecognition은 안드로이드에서 무음 시 자동 종료(마이크 꺼짐) 문제가 있어 사용하지 않는다.
+//   (깨짐의 원인이던 소형 whisper-base 폴백도 사용하지 않음 — 실패 시 안내 후 텍스트 입력 권장)
 let prayerRec=null, prayerChunks=[], prayerRecording=false, prayerStream=null;
 let prayerStartTime=0, prayerTimeoutId=null;
 const PRAYER_MAX_DURATION=90000; // 1분 30초
-
-// 내장 음성인식 상태
-const PRAYER_SR_SUPPORTED = (typeof window!=='undefined') &&
-  (('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window));
-let prayerRecog=null, prayerRecognizing=false, prayerFinalText='';
 
 function switchPrayerTab(tab){
   const textPanel=document.getElementById('prayerTextPanel');
@@ -40,87 +34,8 @@ function switchPrayerTab(tab){
 }
 
 function togglePrayerMic(){
-  if(prayerRecognizing || prayerRecording) stopPrayerMic();
+  if(prayerRecording) stopPrayerMic();
   else startPrayerMic();
-}
-
-// 진입점: 내장 음성인식 우선, 미지원 시 녹음+Groq 폴백
-function startPrayerMic(){
-  if(PRAYER_SR_SUPPORTED){ startPrayerSpeech(); return; }
-  startPrayerGroqRec();
-}
-
-// ── 1순위: 내장 음성인식(SpeechRecognition) — 한국어 자유 발화에 강함 ──
-function startPrayerSpeech(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let r;
-  try { r = new SR(); }
-  catch(e){ console.warn('[PRAYER-SR] 생성 실패 → Groq 폴백'); startPrayerGroqRec(); return; }
-  r.lang = 'ko-KR';
-  r.continuous = true;        // 긴 기도문 대응 (중간 멈춤에도 계속 듣기)
-  r.interimResults = true;    // 실시간 표시
-
-  // 기존 입력 내용에 이어쓰기
-  prayerFinalText = (document.getElementById('prayerText').value || '').trim();
-
-  r.onstart = () => {
-    prayerRecognizing = true;
-    const btn=document.getElementById('prayerMicBtn');
-    if(btn){ btn.classList.add('rec'); btn.textContent='⏹️'; }
-    const hint=document.getElementById('prayerMicHint');
-    if(hint) hint.textContent='듣고 있어요… 끝나면 종료를 누르세요';
-    const rec=document.getElementById('prayerRecognized');
-    if(rec) rec.textContent='🎙️ 말씀하세요...';
-  };
-
-  r.onresult = (e) => {
-    let interim='';
-    for(let i=e.resultIndex; i<e.results.length; i++){
-      const t=e.results[i][0].transcript;
-      if(e.results[i].isFinal) prayerFinalText=(prayerFinalText+' '+t).replace(/\s+/g,' ').trim();
-      else interim+=t;
-    }
-    const combined=(prayerFinalText+(interim?' '+interim:'')).trim().slice(0,300);
-    const ta=document.getElementById('prayerText');
-    if(ta){ ta.value=combined; if(typeof updatePrayerTextLength==='function') updatePrayerTextLength(); }
-    const rec=document.getElementById('prayerRecognized');
-    if(rec) rec.textContent = interim || '…';
-  };
-
-  r.onerror = (e) => {
-    prayerRecognizing=false;
-    const btn=document.getElementById('prayerMicBtn');
-    if(btn){ btn.classList.remove('rec'); btn.textContent='🎤'; }
-    const err=(e && e.error)||'';
-    if(err==='not-allowed' || err==='service-not-allowed'){
-      toast('마이크 권한을 허용해주세요 (설정 > 권한 > 마이크)');
-    } else if(err==='no-speech'){
-      toast('소리가 들리지 않았어요 — 다시 시도하세요');
-    } else if(err==='network'){
-      // 내장 인식 서버 연결 실패 → 녹음+Groq 폴백
-      toast('음성 인식 연결 실패 — 녹음 방식으로 시도합니다');
-      startPrayerGroqRec(); return;
-    } else if(err && err!=='aborted'){
-      toast('음성 인식 오류 — 다시 시도하거나 텍스트로 입력하세요');
-    }
-    const hint=document.getElementById('prayerMicHint');
-    if(hint) hint.textContent='탭하여 기도 녹음 시작';
-  };
-
-  r.onend = () => {
-    prayerRecognizing=false;
-    const btn=document.getElementById('prayerMicBtn');
-    if(btn){ btn.classList.remove('rec'); btn.textContent='🎤'; }
-    const hint=document.getElementById('prayerMicHint');
-    if(hint) hint.textContent='탭하여 기도 녹음 시작';
-    const rec=document.getElementById('prayerRecognized');
-    if(rec) rec.textContent='';
-    switchPrayerTab('text');
-  };
-
-  prayerRecog=r;
-  try { r.start(); }
-  catch(e){ console.warn('[PRAYER-SR] start 실패 → Groq 폴백'); prayerRecognizing=false; startPrayerGroqRec(); }
 }
 
 // Blob → base64 (data URL 접두사 제거) — groq-asr.js와 동일
@@ -140,8 +55,8 @@ function _prayerResetMicUI(){
   const tl=document.getElementById('prayerTimeLeft'); if(tl) tl.textContent='1:30';
 }
 
-// ── 폴백: 내장 음성인식 미지원 기기 — 녹음 → Groq Whisper ──
-async function startPrayerGroqRec(){
+// ── 녹음 → Groq Whisper large-v3 (암송 마이크와 동일 방식) ──
+async function startPrayerMic(){
   // 마이크 스트림 확보 (TWA/폰 환경)
   if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
     toast('이 기기에서는 음성 입력을 지원하지 않습니다'); return;
@@ -217,13 +132,7 @@ async function startPrayerGroqRec(){
 }
 
 function stopPrayerMic(){
-  // 1순위: 내장 음성인식 종료
-  if(prayerRecognizing){
-    prayerRecognizing=false;
-    try { if(prayerRecog) prayerRecog.stop(); } catch(e){}
-    return;
-  }
-  // 폴백: 녹음 종료 (전사는 onstop에서 비동기 처리)
+  // 녹음 종료 (전사는 onstop에서 비동기 처리)
   if(!prayerRecording) return;
   if(prayerTimeoutId){ clearInterval(prayerTimeoutId); prayerTimeoutId=null; }
   const btn=document.getElementById('prayerMicBtn');
