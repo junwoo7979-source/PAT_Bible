@@ -546,12 +546,21 @@ function toggleDailyTask(type){
 }
 // 오늘 본인 기도 완료 여부 (prayer.js 데이터 기준)
 function _isPrayerDoneToday(){
+  const today = todayKey();
+  // 1) 개인 호환 키 — savePrayer가 항상 직접 저장하므로 이름 매칭과 무관하게 가장 확실
   try{
-    if(typeof loadFamilyPrayers!=='function' || typeof currentPrayerMember!=='function') return false;
-    const board = loadFamilyPrayers(todayKey()) || {};
-    const me = currentPrayerMember();
-    return !!(me && board[me] && board[me].text);
-  }catch(e){ return false; }
+    const p = JSON.parse(localStorage.getItem('pat_prayer_'+today)||'null');
+    if(p && (p.done === true || (p.text && String(p.text).trim()))) return true;
+  }catch(e){}
+  // 2) 가족 기도 보드에서 본인 이름으로 확인 (보조)
+  try{
+    if(typeof loadFamilyPrayers==='function' && typeof currentPrayerMember==='function'){
+      const board = loadFamilyPrayers(today) || {};
+      const me = currentPrayerMember();
+      if(me && board[me] && board[me].text) return true;
+    }
+  }catch(e){}
+  return false;
 }
 // 오늘 통독(오늘의 바이블버스) 읽음 여부
 function _isReadingDoneToday(){
