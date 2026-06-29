@@ -98,7 +98,12 @@ function openTodayReading(track){
   const ref=_readingFullLabel(track, plan[map[track]]||'');
   _readingActiveTrack=track;
   // ★ 오늘 통독 읽음 기록 (홈 '오늘의 달성률' 점수에 반영)
-  try{ localStorage.setItem('pat_read_done_'+_readingTodayKey(),'1'); }catch(e){}
+  //   키는 점수계산(_isReadingDoneToday)과 동일하게 todayKey()(YYYY-MM-DD)로 통일.
+  //   (이전엔 _readingTodayKey()=MM-DD 라 키가 달라 통독이 점수에 안 잡혔음)
+  try{
+    const k = (typeof todayKey==='function') ? todayKey() : new Date().toISOString().slice(0,10);
+    localStorage.setItem('pat_read_done_'+k,'1');
+  }catch(e){}
   _highlightTrack(track);
   const pane=document.getElementById('todayReadingPane');
   const title=document.getElementById('todayReadingTitle');
