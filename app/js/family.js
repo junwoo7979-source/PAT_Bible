@@ -525,7 +525,16 @@ function checkInviteParam(){
 function memberHomeTitle(){ return DB.church.name+' PAT'; }
 
 // ── 홈 화면 일일 과제 (church-bible-challenge 스타일) ─────
-function todayKey(){ return new Date().toISOString().slice(0,10); }
+// ★ 로컬(기기/한국시간) 날짜 키 — 자정(00시)에 정확히 날짜가 바뀐다.
+//   (이전엔 toISOString()=UTC 라 한국시간 오전 9시에 날짜가 바뀌어,
+//    자정~9시 사이엔 어제 기도/통독이 그대로 보이는 문제가 있었음)
+function _localDateStr(d){
+  const x = (d instanceof Date) ? d : new Date(d);
+  if(isNaN(x.getTime())) return '';
+  const p=n=>(n<10?'0':'')+n;
+  return x.getFullYear()+'-'+p(x.getMonth()+1)+'-'+p(x.getDate());
+}
+function todayKey(){ return _localDateStr(new Date()); }
 function loadDailyTasks(){
   try{ return JSON.parse(localStorage.getItem('pat_daily_tasks_'+todayKey())||'{}'); }catch(e){ return {}; }
 }
@@ -599,7 +608,10 @@ function updateHomeDisplay(){
   const today = todayKey();
   // ★ 점수 연산 수정: 실제 활동 3가지에 연결 (암송 / 기도 / 통독)
   //   - (버그) 기존엔 r.date 를 봤으나 암송 기록은 completedAt 필드라 항상 0점이었음
-  const memorized = recs.some(r => String(r.completedAt || r.date || '').slice(0,10) === today);
+  const memorized = recs.some(r => {
+    const ts = r.completedAt || r.date;
+    return ts && _localDateStr(ts) === today; // UTC 저장값을 로컬 날짜로 환산해 오늘과 비교
+  });
   const prayed    = _isPrayerDoneToday();
   const read      = _isReadingDoneToday();
   const total     = (memorized?1:0) + (prayed?1:0) + (read?1:0);

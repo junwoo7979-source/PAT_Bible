@@ -261,8 +261,28 @@ function renderPrayerFeed(board){
   }).join('').replace(/<div([^>]*)>([\s\S]*?)<\/div>\s*$/, (m)=> m.replace('border-bottom:1px solid var(--line)','border-bottom:none'));
 }
 
+// ★ 앱을 켜둔 채 자정을 넘기면 어제 기도가 남아 보이지 않도록,
+//   날짜가 바뀌면 기도 화면(활성 상태)을 자동으로 다시 그린다.
+let _prayerDayWatch = null, _prayerWatchDay = '';
+function _ensurePrayerDayWatch(){
+  if(_prayerDayWatch) return;
+  _prayerDayWatch = setInterval(()=>{
+    const d = (typeof todayKey==='function') ? todayKey() : '';
+    if(!d) return;
+    if(_prayerWatchDay && d !== _prayerWatchDay){
+      _prayerWatchDay = d;
+      const sc = document.getElementById('s-prayer');
+      if(sc && sc.classList.contains('active')) renderPrayer();
+    } else {
+      _prayerWatchDay = d;
+    }
+  }, 30000);
+}
+
 function renderPrayer(){
   const today = todayKey();
+  _prayerWatchDay = today;
+  _ensurePrayerDayWatch();
   const now   = new Date();
   const days  = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
 
