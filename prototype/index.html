@@ -13,6 +13,12 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    // 자동 JSX 런타임(import 생성) 대신 전역 React를 쓰는 클래식 런타임으로 고정
+    Babel.registerPreset('react-classic', {
+      presets: [[Babel.availablePresets.react, { runtime: 'classic' }]]
+    });
+  </script>
 
   <script>
     tailwind.config = {
@@ -45,7 +51,7 @@
 <body>
   <div id="root"></div>
 
-  <script type="text/babel" data-presets="react">
+  <script type="text/babel" data-presets="react-classic">
     const { useState, useEffect, useRef, useCallback } = React;
 
     /* ─────────────────────────────────────────────
