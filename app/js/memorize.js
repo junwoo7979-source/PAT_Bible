@@ -279,6 +279,11 @@ async function renderDashboard(){
     familyEl.textContent = familyPct + '%';
     console.log('[PAT-DASHBOARD] ✅ 가족 달성률:', data.familyDone, '/', data.familyTotal, '=', familyPct, '%');
   }
+  // 가족 패널 진행바 + 상세 (개인/가족/교구/교회 탭)
+  const familyBar = document.getElementById('dFamilyBar');
+  if(familyBar) familyBar.style.width = familyPct + '%';
+  const familyDetail = document.getElementById('dFamilyDetail');
+  if(familyDetail) familyDetail.textContent = '완료 ' + data.familyDone + ' / ' + data.familyTotal + '명';
 
   // 3️⃣ 교구별 현황 (실제 수집 데이터) — 완료/전체 + 실천율 + 참가인원
   renderParishStatsFromAggregated(data.byParish, data.totalDone, data.registeredByParish);
@@ -297,11 +302,33 @@ async function renderDashboard(){
   console.log('[PAT-DASHBOARD] ===== 렌더링 완료 =====\n');
 }
 
+// 실천율 단위 탭 전환 (개인 · 가족 · 교구 · 교회)
+function switchDashTab(tab){
+  const tabs = ['personal','family','parish','church'];
+  if(!tabs.includes(tab)) tab = 'personal';
+  tabs.forEach(t => {
+    const panel = document.getElementById('dashPanel-' + t);
+    if(panel) panel.style.display = (t === tab) ? 'block' : 'none';
+    const btn = document.querySelector('.dash-tab[data-dtab="' + t + '"]');
+    if(btn){
+      const on = (t === tab);
+      btn.style.background = on ? 'var(--accent)' : 'var(--surface)';
+      btn.style.color = on ? '#fff' : 'var(--text)';
+    }
+  });
+  try { localStorage.setItem('pat_dash_tab', tab); } catch(e) {}
+}
+
 // 현황 대시보드 폴링 시작 (5초마다 자동 갱신)
 function startDashboardPolling(){
   if(dashboardPollTimer) clearInterval(dashboardPollTimer);
 
   console.log('[PAT-DASHBOARD] 폴링 시작 (5초 간격)');
+
+  // 진입 시 마지막으로 본 탭(기본: 개인) 복원
+  let _dt = 'personal';
+  try { _dt = localStorage.getItem('pat_dash_tab') || 'personal'; } catch(e) {}
+  if(typeof switchDashTab === 'function') switchDashTab(_dt);
 
   // 즉시 한 번 렌더링
   renderDashboard();

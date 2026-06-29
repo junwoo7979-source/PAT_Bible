@@ -887,29 +887,56 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <h1 style="margin:0">📊 실천율</h1>
       <button class="back" style="margin:0;background:var(--danger);color:white;font-size:calc(var(--fs) - 2px);padding:8px 12px" onclick="memberLogout()">로그아웃</button>
     </div>
-    <p class="muted">개인 · 가족 · 교구 · 교회</p>
-    <div class="row" style="margin-top:16px">
-      <div class="stat"><b id="dMyCount">0</b><small>내 완료(주)</small></div>
-      <div class="stat"><b id="dStreak">0</b><small>연속 일수</small></div>
+    <p class="muted">보고 싶은 단위를 선택하세요</p>
+
+    <!-- 실천율 단위 탭: 개인 · 가족 · 교구 · 교회 -->
+    <div style="display:flex;gap:6px;margin-top:12px">
+      <button class="dash-tab" data-dtab="personal" onclick="switchDashTab('personal')" style="flex:1;padding:9px 0;border:none;border-radius:10px;font-weight:700;font-size:calc(var(--fs) - 3px);cursor:pointer;background:var(--accent);color:#fff">👤 개인</button>
+      <button class="dash-tab" data-dtab="family" onclick="switchDashTab('family')" style="flex:1;padding:9px 0;border:none;border-radius:10px;font-weight:700;font-size:calc(var(--fs) - 3px);cursor:pointer;background:var(--surface);color:var(--text)">👨‍👩‍👧 가족</button>
+      <button class="dash-tab" data-dtab="parish" onclick="switchDashTab('parish')" style="flex:1;padding:9px 0;border:none;border-radius:10px;font-weight:700;font-size:calc(var(--fs) - 3px);cursor:pointer;background:var(--surface);color:var(--text)">🧭 교구</button>
+      <button class="dash-tab" data-dtab="church" onclick="switchDashTab('church')" style="flex:1;padding:9px 0;border:none;border-radius:10px;font-weight:700;font-size:calc(var(--fs) - 3px);cursor:pointer;background:var(--surface);color:var(--text)">⛪ 교회</button>
     </div>
-    <div class="row" style="margin-top:12px">
-      <div class="stat"><b id="dFamily">0%</b><small>우리가족 달성률</small></div>
-      <div class="stat"><b id="dBadge">0</b><small>획득 뱃지</small></div>
+
+    <!-- 개인 -->
+    <div class="dash-panel" id="dashPanel-personal">
+      <div class="row" style="margin-top:16px">
+        <div class="stat"><b id="dMyCount">0</b><small>내 완료(주)</small></div>
+        <div class="stat"><b id="dStreak">0</b><small>연속 일수</small></div>
+        <div class="stat"><b id="dBadge">0</b><small>획득 뱃지</small></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h2>🏆 이번 주 암송왕</h2>
+        <div class="member"><span>1. 김은혜 집사</span><span class="tag-ok">7회</span></div>
+        <div class="member"><span>2. 박소망 성도</span><span class="tag-ok">6회</span></div>
+        <div class="member"><span id="dMyRank">3. 나</span><span class="tag-ok" id="dMyScore">0회</span></div>
+      </div>
     </div>
-    <div class="card" style="margin-top:16px">
-      <h2>🧭 교구별 현황</h2>
-      <div id="dParishList" style="margin-top:6px"></div>
+
+    <!-- 가족 -->
+    <div class="dash-panel" id="dashPanel-family" style="display:none">
+      <div class="card" style="margin-top:16px;text-align:center">
+        <h2 style="margin-bottom:8px">👨‍👩‍👧 우리 가족 달성률</h2>
+        <div style="font-size:calc(var(--fs) + 20px);font-weight:800;color:var(--accent);line-height:1.1" id="dFamily">0%</div>
+        <div class="bar" style="margin-top:12px"><span id="dFamilyBar" style="width:0%"></span></div>
+        <p class="muted" id="dFamilyDetail" style="margin-top:8px">완료 0 / 0명</p>
+      </div>
     </div>
-    <div class="card" style="margin-top:16px">
-      <h2>🔥 교회 전체 현황</h2>
-      <p class="muted" id="dChurch" style="margin-top:6px"></p>
-      <div class="bar"><span id="dChurchBar"></span></div>
+
+    <!-- 교구 -->
+    <div class="dash-panel" id="dashPanel-parish" style="display:none">
+      <div class="card" style="margin-top:16px">
+        <h2>🧭 교구별 현황</h2>
+        <div id="dParishList" style="margin-top:6px"></div>
+      </div>
     </div>
-    <div class="card">
-      <h2>🏆 이번 주 암송왕</h2>
-      <div class="member"><span>1. 김은혜 집사</span><span class="tag-ok">7회</span></div>
-      <div class="member"><span>2. 박소망 성도</span><span class="tag-ok">6회</span></div>
-      <div class="member"><span id="dMyRank">3. 나</span><span class="tag-ok" id="dMyScore">0회</span></div>
+
+    <!-- 교회 -->
+    <div class="dash-panel" id="dashPanel-church" style="display:none">
+      <div class="card" style="margin-top:16px">
+        <h2>🔥 교회 전체 현황</h2>
+        <p class="muted" id="dChurch" style="margin-top:6px"></p>
+        <div class="bar"><span id="dChurchBar"></span></div>
+      </div>
     </div>
   </section>
 
