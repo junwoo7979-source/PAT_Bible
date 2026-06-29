@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>은혜의 뜰 — 가족 암송 · 기도</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- React + Babel -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Pretendard"', 'system-ui', '-apple-system', 'sans-serif'] },
+          colors: {
+            cream: '#faf7f2',
+            sand: '#f3ede3',
+            clay: { 50:'#fdf6f0', 100:'#f8e6d8', 200:'#efc9ad', 300:'#e3a87f', 400:'#d68a57', 500:'#c4703a', 600:'#a85a2c', 700:'#854726' },
+            sage: { 50:'#f2f6f1', 100:'#dfeada', 400:'#7ba36a', 500:'#5e8a4f', 600:'#4a7040' },
+          },
+          boxShadow: { soft: '0 6px 24px -8px rgba(120,90,60,0.18)' },
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    html, body { background:#efe7da; -webkit-tap-highlight-color: transparent; }
+    .no-scrollbar::-webkit-scrollbar { display:none; }
+    .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+    @keyframes pop { 0%{transform:scale(.96);opacity:0} 100%{transform:scale(1);opacity:1} }
+    .pop { animation: pop .18s ease-out; }
+    @keyframes pulsemic { 0%{box-shadow:0 0 0 0 rgba(196,112,58,.45)} 100%{box-shadow:0 0 0 22px rgba(196,112,58,0)} }
+    .mic-live { animation: pulsemic 1.3s infinite; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    /* ─────────────────────────────────────────────
+       유틸: localStorage 훅
+    ───────────────────────────────────────────── */
+    function useLocalStorage(key, initial) {
+      const [value, setValue] = useState(() => {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : initial;
+        } catch (e) { return initial; }
+      });
+      useEffect(() => {
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+      }, [key, value]);
+      return [value, setValue];
+    }
+
+    const uid = () => Math.random().toString(36).slice(2, 9);
+    const todayStr = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
+    const nowTime = () => {
+      const d = new Date();
+      const h = d.getHours(); const m = String(d.getMinutes()).padStart(2,'0');
+      const ap = h < 12 ? '오전' : '오후';
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${ap} ${h12}:${m}`;
+    };
+
+    /* ─────────────────────────────────────────────
+       유틸: 텍스트 정규화 + 유사도(레벤슈타인)
+    ───────────────────────────────────────────── */
+    const normalize = (s) => (s || '')
+      .replace(/[.,!?~"'“”‘’()·:;\-—\[\]…]/g, '')
+      .replace(/\s+/g, '')
+      .toLowerCase();
+
+    function levenshtein(a, b) {
+      const m = a.length, n = b.length;
+      if (!m) return n; if (!n) return m;
+      let prev = Array.from({ length: n + 1 }, (_, i) => i);
+      let curr = new Array(n + 1);
+      for (let i = 1; i <= m; i++) {
+        curr[0] = i;
+        for (let j = 1; j <= n; j++) {
+          const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+          curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+        }
+        [prev, curr] = [curr, prev];
+      }
+      return prev[n];
+    }
+
+    function similarity(original, spoken) {
+      const a = normalize(original), b = normalize(spoken);
+      if (!a.length) return 0;
+      const dist = levenshtein(a, b);
+      const score = Math.max(0, Math.round((1 - dist / Math.max(a.length, b.length)) * 100));
+      return score;
+    }
+
+    // 단어 단위 매칭(피드백 하이라이트용)
+    function wordMatch(original, spoken) {
+      const spokenSet = normalize(spoken);
+      return (original || '').split(/(\s+)/).map((tok) => {
+        if (/^\s+$/.test(tok) || tok === '') return { tok, space: true };
+        const matched = spokenSet.includes(normalize(tok));
+        return { tok, matched };
+      });
+    }
+
+    /* ─────────────────────────────────────────────
+       초기 더미 데이터
+    ───────────────────────────────────────────── */
+    const SEED_MEMBERS = [
+      { id: 'm_dad', name: '아빠', emoji: '👨' },
+      { id: 'm_mom', name: '엄마', emoji: '👩' },
+      { id: 'm_kid', name: '딸',   emoji: '👧' },
+    ];
+    const SEED_VERSES = [
+      {
+        id: 'v_seed',
+        title: '이 주의 말씀',
+        ref: '빌립보서 4:13',
+        text: '내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라',
+        createdAt: todayStr(),
+      },
+    ];
+
+    /* ─────────────────────────────────────────────
+       공통 컴포넌트
+    ───────────────────────────────────────────── */
+    function Header({ icon, title, subtitle }) {
+      return (
+        <div className="px-5 pt-7 pb-4">
+          <div className="flex items-center gap-2 text-clay-600">
+            <i className={`fa-solid ${icon}`}></i>
+            <span className="text-xs font-semibold tracking-wide">{subtitle}</span>
+          </div>
+          <h1 className="mt-1 text-2xl font-extrabold text-stone-800">{title}</h1>
+        </div>
+      );
+    }
+
+    function EmptyState({ icon, text }) {
+      return (
+        <div className="flex flex-col items-center justify-center py-14 text-stone-400">
+          <i className={`fa-solid ${icon} text-3xl mb-3 opacity-60`}></i>
+          <p className="text-sm">{text}</p>
+        </div>
+      );
+    }
+
+    /* ─────────────────────────────────────────────
+       1) 가족 관리
+    ───────────────────────────────────────────── */
+    function FamilyScreen({ members, setMembers }) {
+      const [name, setName] = useState('');
+      const EMOJIS = ['🧑','👨','👩','👧','👦','👴','👵','🙂'];
+
+      const add = () => {
+        const n = name.trim();
+        if (!n) return;
+        setMembers([...members, { id: uid(), name: n, emoji: EMOJIS[members.length % EMOJIS.length] }]);
+        setName('');
+      };
+      const remove = (id) => setMembers(members.filter(m => m.id !== id));
+
+      return (
+        <div>
+          <Header icon="fa-people-roof" subtitle="FAMILY" title="가족 관리" />
+          <div className="px-5">
+            <div className="bg-white rounded-2xl shadow-soft p-4">
+              <label className="text-xs font-semibold text-stone-500">가족 구성원 추가</label>
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && add()}
+                  placeholder="이름을 입력하세요 (예: 할머니)"
+                  className="flex-1 rounded-xl bg-sand border border-stone-200 px-4 py-3 text-sm outline-none focus:border-clay-400"
+                />
+                <button onClick={add}
+                  className="rounded-xl bg-clay-500 active:bg-clay-600 text-white px-4 font-bold shadow-soft">
+                  <i className="fa-solid fa-plus"></i>
+                </button>
+              </div>
+            </div>
+
+            <p className="mt-6 mb-2 px-1 text-xs font-semibold text-stone-500">
+              우리 가족 · {members.length}명
+            </p>
+
+            {members.length === 0
+              ? <EmptyState icon="fa-user-plus" text="가족을 추가해 보세요" />
+              : (
+                <ul className="space-y-2 pb-4">
+                  {members.map((m) => (
+                    <li key={m.id}
+                      className="pop flex items-center gap-3 bg-white rounded-2xl shadow-soft px-4 py-3">
+                      <div className="w-10 h-10 rounded-full bg-clay-100 flex items-center justify-center text-lg">
+                        {m.emoji}
+                      </div>
+                      <span className="flex-1 font-bold text-stone-800">{m.name}</span>
+                      <button onClick={() => remove(m.id)}
+                        className="w-9 h-9 rounded-full text-stone-400 hover:text-clay-600 hover:bg-clay-50">
+                        <i className="fa-solid fa-trash-can"></i>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </div>
+        </div>
+      );
+    }
+
+    /* ─────────────────────────────────────────────
+       2) 성경 암송 + STT 테스트
+    ───────────────────────────────────────────── */
+    function MemorizeScreen({ verses, setVerses }) {
+      const [open, setOpen] = useState(false);
+      const [form, setForm] = useState({ title: '', ref: '', text: '' });
+      const [testing, setTesting] = useState(null); // 테스트 중인 verse
+
+      const save = () => {
+        if (!form.text.trim()) return;
+        setVerses([{ id: uid(), createdAt: todayStr(), ...form,
+          title: form.title.trim() || '말씀', ref: form.ref.trim() }, ...verses]);
+        setForm({ title: '', ref: '', text: '' });
+        setOpen(false);
+      };
+      const remove = (id) => setVerses(verses.filter(v => v.id !== id));
+
+      return (
+        <div>
+          <Header icon="fa-book-bible" subtitle="MEMORIZE" title="성경 암송" />
+
+          <div className="px-5">
+            {!open ? (
+              <button onClick={() => setOpen(true)}
+                className="w-full rounded-2xl border-2 border-dashed border-clay-200 text-clay-600 bg-clay-50/50 py-4 font-bold active:scale-[.99]">
+                <i className="fa-solid fa-plus mr-2"></i>새 말씀 등록하기
+              </button>
+            ) : (
+              <div className="pop bg-white rounded-2xl shadow-soft p-4 space-y-3">
+                <div className="flex gap-2">
+                  <input value={form.title} onChange={(e)=>setForm({...form,title:e.target.value})}
+                    placeholder="제목 (예: 이 주의 말씀)"
+                    className="flex-1 rounded-xl bg-sand border border-stone-200 px-3 py-2.5 text-sm outline-none focus:border-clay-400" />
+                  <input value={form.ref} onChange={(e)=>setForm({...form,ref:e.target.value})}
+                    placeholder="장:절"
+                    className="w-28 rounded-xl bg-sand border border-stone-200 px-3 py-2.5 text-sm outline-none focus:border-clay-400" />
+                </div>
+                <textarea value={form.text} onChange={(e)=>setForm({...form,text:e.target.value})}
+                  rows="3" placeholder="말씀 본문을 입력하세요"
+                  className="w-full rounded-xl bg-sand border border-stone-200 px-3 py-2.5 text-sm outline-none focus:border-clay-400 resize-none" />
+                <div className="flex gap-2">
+                  <button onClick={()=>{setOpen(false);setForm({title:'',ref:'',text:''});}}
+                    className="flex-1 rounded-xl bg-stone-100 text-stone-600 py-2.5 font-bold">취소</button>
+                  <button onClick={save}
+                    className="flex-1 rounded-xl bg-clay-500 active:bg-clay-600 text-white py-2.5 font-bold shadow-soft">저장</button>
+                </div>
+              </div>
+            )}
+
+            <p className="mt-6 mb-2 px-1 text-xs font-semibold text-stone-500">
+              저장된 말씀 · {verses.length}개
+            </p>
+
+            {verses.length === 0
+              ? <EmptyState icon="fa-book-open" text="말씀을 등록해 암송을 시작하세요" />
+              : (
+                <ul className="space-y-3 pb-4">
+                  {verses.map((v) => (
+                    <li key={v.id} className="pop bg-white rounded-2xl shadow-soft p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-[11px] font-bold text-clay-500 tracking-wide">{v.title}</p>
+                          {v.ref && <p className="text-xs text-stone-400 mt-0.5">{v.ref}</p>}
+                        </div>
+                        <button onClick={()=>remove(v.id)}
+                          className="text-stone-300 hover:text-clay-500 w-7 h-7">
+                          <i className="fa-solid fa-xmark"></i>
+                        </button>
+                      </div>
+                      <p className="mt-2 text-[15px] leading-relaxed text-stone-800 font-medium">
+                        “{v.text}”
+                      </p>
+                      <button onClick={()=>setTesting(v)}
+                        className="mt-3 w-full rounded-xl bg-sage-500 active:bg-sage-600 text-white py-2.5 font-bold shadow-soft">
+                        <i className="fa-solid fa-microphone-lines mr-2"></i>암송 테스트 하기
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </div>
+
+          {testing && <TestModal verse={testing} onClose={()=>setTesting(null)} />}
+        </div>
+      );
+    }
+
+    /* STT 테스트 모달 */
+    function TestModal({ verse, onClose }) {
+      const [listening, setListening] = useState(false);
+      const [transcript, setTranscript] = useState('');
+      const [score, setScore] = useState(null);
+      const [error, setError] = useState('');
+      const recogRef = useRef(null);
+
+      const supported = typeof window !== 'undefined' &&
+        ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+
+      const start = () => {
+        setError(''); setScore(null); setTranscript('');
+        if (!supported) { setError('이 브라우저는 음성 인식을 지원하지 않아요. (크롬 권장)'); return; }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const r = new SR();
+        r.lang = 'ko-KR';
+        r.interimResults = true;
+        r.continuous = false;
+        r.maxAlternatives = 1;
+        let finalText = '';
+        r.onstart = () => setListening(true);
+        r.onresult = (e) => {
+          let interim = '';
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            const t = e.results[i][0].transcript;
+            if (e.results[i].isFinal) finalText += t; else interim += t;
+          }
+          setTranscript((finalText + interim).trim());
+        };
+        r.onerror = (e) => {
+          setListening(false);
+          if (e.error === 'not-allowed') setError('마이크 권한을 허용해 주세요.');
+          else if (e.error === 'no-speech') setError('소리가 들리지 않았어요. 다시 시도해 주세요.');
+          else setError('인식 중 오류가 발생했어요.');
+        };
+        r.onend = () => {
+          setListening(false);
+          const said = (finalText || '').trim();
+          setTranscript(said);
+          if (said) setScore(similarity(verse.text, said));
+        };
+        recogRef.current = r;
+        try { r.start(); } catch (e) {}
+      };
+
+      const stop = () => { try { recogRef.current && recogRef.current.stop(); } catch(e){} };
+
+      useEffect(() => () => { try { recogRef.current && recogRef.current.abort(); } catch(e){} }, []);
+
+      const tier = (s) => {
+        if (s >= 90) return { label:'완벽해요! 🎉', color:'sage', desc:'말씀을 정확히 암송했어요.' };
+        if (s >= 70) return { label:'훌륭해요! 👏', color:'sage', desc:'거의 다 외웠어요. 조금만 더!' };
+        if (s >= 50) return { label:'거의 다 왔어요 🙂', color:'clay', desc:'핵심 단어를 잘 기억하고 있어요.' };
+        return { label:'다시 도전해요 💪', color:'clay', desc:'천천히 다시 한 번 외워볼까요?' };
+      };
+      const words = score !== null ? wordMatch(verse.text, transcript) : null;
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}>
+          <div className="pop w-full max-w-md bg-cream rounded-t-3xl p-5 pb-8" onClick={(e)=>e.stopPropagation()}>
+            <div className="flex justify-center"><div className="w-10 h-1.5 rounded-full bg-stone-300 mb-4"></div></div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold text-clay-500">{verse.title}</p>
+                {verse.ref && <p className="text-xs text-stone-400">{verse.ref}</p>}
+              </div>
+              <button onClick={onClose} className="w-8 h-8 rounded-full bg-stone-100 text-stone-500">
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            {/* 원본 말씀 + 채점 하이라이트 */}
+            <div className="mt-3 rounded-2xl bg-white shadow-soft p-4">
+              <p className="text-[15px] leading-relaxed font-medium text-stone-800">
+                {words
+                  ? words.map((w, i) => w.space
+                      ? <span key={i}>{w.tok}</span>
+                      : <span key={i} className={w.matched ? 'text-sage-600 font-bold' : 'text-stone-300 line-through'}>{w.tok}</span>)
+                  : <>“{verse.text}”</>}
+              </p>
+            </div>
+
+            {/* 인식 결과 */}
+            {(listening || transcript) && (
+              <div className="mt-3 rounded-2xl bg-clay-50 border border-clay-100 p-3">
+                <p className="text-[11px] font-bold text-clay-500 mb-1">
+                  <i className="fa-solid fa-waveform-lines mr-1"></i>들린 내용
+                </p>
+                <p className="text-sm text-stone-700 min-h-[1.2rem]">
+                  {transcript || <span className="text-stone-400">말씀해 주세요…</span>}
+                </p>
+              </div>
+            )}
+
+            {/* 점수 피드백 */}
+            {score !== null && (() => {
+              const t = tier(score);
+              return (
+                <div className={`pop mt-3 rounded-2xl p-4 text-center bg-${t.color}-50 border border-${t.color}-100`}>
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="relative w-16 h-16">
+                      <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
+                        <path d="M18 2a16 16 0 1 1 0 32 16 16 0 0 1 0-32" fill="none" stroke="#e7ddcf" strokeWidth="3"/>
+                        <path d="M18 2a16 16 0 1 1 0 32 16 16 0 0 1 0-32" fill="none"
+                          stroke={t.color==='sage' ? '#5e8a4f' : '#c4703a'} strokeWidth="3"
+                          strokeDasharray={`${score} 100`} strokeLinecap="round"/>
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center font-extrabold text-stone-800">{score}</span>
+                    </div>
+                    <div className="text-left">
+                      <p className="font-extrabold text-stone-800">{t.label}</p>
+                      <p className="text-xs text-stone-500 mt-0.5">{t.desc}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {error && <p className="mt-3 text-center text-sm text-clay-600">{error}</p>}
+
+            {/* 마이크 버튼 */}
+            <div className="mt-5 flex flex-col items-center">
+              <button
+                onClick={listening ? stop : start}
+                className={`w-20 h-20 rounded-full text-white text-2xl shadow-soft flex items-center justify-center
+                  ${listening ? 'bg-clay-600 mic-live' : 'bg-clay-500 active:bg-clay-600'}`}>
+                <i className={`fa-solid ${listening ? 'fa-stop' : 'fa-microphone'}`}></i>
+              </button>
+              <p className="mt-2 text-xs text-stone-500">
+                {listening ? '듣고 있어요… (다시 누르면 종료)' : (score !== null ? '다시 시도하려면 누르세요' : '버튼을 누르고 말씀을 외워보세요')}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─────────────────────────────────────────────
+       3) 가족 기도실
+    ───────────────────────────────────────────── */
+    function PrayerScreen({ members, prayers, setPrayers }) {
+      const [selected, setSelected] = useState(members[0]?.id || null);
+      const [text, setText] = useState('');
+
+      useEffect(() => {
+        if (!members.find(m => m.id === selected)) setSelected(members[0]?.id || null);
+      }, [members]);
+
+      const member = members.find(m => m.id === selected);
+      const today = todayStr();
+      const todayPrayers = prayers.filter(p => p.date === today)
+        .sort((a,b) => b.ts - a.ts);
+
+      const submit = () => {
+        if (!member || !text.trim()) return;
+        setPrayers([{
+          id: uid(), memberId: member.id, memberName: member.name, emoji: member.emoji,
+          title: `${member.name}를 위한 기도`, content: text.trim(),
+          date: today, time: nowTime(), ts: Date.now(),
+        }, ...prayers]);
+        setText('');
+      };
+      const remove = (id) => setPrayers(prayers.filter(p => p.id !== id));
+
+      return (
+        <div>
+          <Header icon="fa-hands-praying" subtitle="PRAYER ROOM" title="가족 기도실" />
+
+          {/* 가족 칩 */}
+          <div className="px-5">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {members.length === 0 && (
+                <p className="text-sm text-stone-400 py-2">가족 관리에서 구성원을 먼저 추가하세요.</p>
+              )}
+              {members.map((m) => {
+                const on = m.id === selected;
+                return (
+                  <button key={m.id} onClick={()=>setSelected(m.id)}
+                    className={`flex-shrink-0 flex items-center gap-2 rounded-full pl-2 pr-4 py-2 border font-bold text-sm transition
+                      ${on ? 'bg-clay-500 text-white border-clay-500 shadow-soft' : 'bg-white text-stone-600 border-stone-200'}`}>
+                    <span className={`w-7 h-7 rounded-full flex items-center justify-center ${on ? 'bg-white/20' : 'bg-clay-50'}`}>{m.emoji}</span>
+                    {m.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 작성창 */}
+          {member && (
+            <div className="px-5 mt-3">
+              <div className="bg-white rounded-2xl shadow-soft p-4">
+                <p className="text-sm font-bold text-stone-700">
+                  <span className="text-clay-600">{member.name}</span>님을 위한 기도
+                </p>
+                <textarea value={text} onChange={(e)=>setText(e.target.value)} rows="3"
+                  placeholder={`${member.name}를 위해 어떤 기도를 드릴까요?`}
+                  className="mt-2 w-full rounded-xl bg-sand border border-stone-200 px-3 py-2.5 text-sm outline-none focus:border-clay-400 resize-none" />
+                <button onClick={submit}
+                  className="mt-2 w-full rounded-xl bg-sage-500 active:bg-sage-600 text-white py-2.5 font-bold shadow-soft">
+                  <i className="fa-solid fa-paper-plane mr-2"></i>기도 등록하기
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 오늘의 기도 피드 */}
+          <div className="px-5 mt-6">
+            <div className="flex items-center justify-between px-1 mb-2">
+              <p className="text-xs font-semibold text-stone-500">오늘의 가족 기도</p>
+              <p className="text-[11px] text-stone-400">{today} · {todayPrayers.length}건</p>
+            </div>
+
+            {todayPrayers.length === 0
+              ? <EmptyState icon="fa-feather" text="오늘 등록된 기도가 아직 없어요" />
+              : (
+                <ul className="space-y-3 pb-4">
+                  {todayPrayers.map((p) => (
+                    <li key={p.id} className="pop bg-white rounded-2xl shadow-soft p-4">
+                      <div className="flex items-center gap-2">
+                        <span className="w-8 h-8 rounded-full bg-clay-100 flex items-center justify-center">{p.emoji || '🙏'}</span>
+                        <div className="flex-1">
+                          <p className="font-bold text-stone-800 text-sm">{p.title}</p>
+                          <p className="text-[11px] text-stone-400">{p.time}</p>
+                        </div>
+                        <button onClick={()=>remove(p.id)} className="text-stone-300 hover:text-clay-500 w-7 h-7">
+                          <i className="fa-solid fa-xmark"></i>
+                        </button>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-stone-600">{p.content}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </div>
+        </div>
+      );
+    }
+
+    /* ─────────────────────────────────────────────
+       하단 탭 바 + 앱 셸
+    ───────────────────────────────────────────── */
+    const TABS = [
+      { id:'memorize', label:'성경 암송', icon:'fa-book-bible' },
+      { id:'prayer',   label:'가족 기도실', icon:'fa-hands-praying' },
+      { id:'family',   label:'가족 관리', icon:'fa-people-roof' },
+    ];
+
+    function App() {
+      const [tab, setTab] = useState('memorize');
+      const [members, setMembers] = useLocalStorage('pat_proto_members', SEED_MEMBERS);
+      const [verses, setVerses]   = useLocalStorage('pat_proto_verses', SEED_VERSES);
+      const [prayers, setPrayers] = useLocalStorage('pat_proto_prayers', []);
+
+      return (
+        <div className="min-h-screen flex justify-center">
+          <div className="relative w-full max-w-md bg-cream min-h-screen shadow-2xl flex flex-col">
+            {/* 상태바 느낌의 브랜드 헤더 */}
+            <div className="flex items-center justify-center gap-2 pt-3 text-clay-600">
+              <i className="fa-solid fa-seedling"></i>
+              <span className="text-[13px] font-extrabold tracking-tight">은혜의 뜰</span>
+            </div>
+
+            <main className="flex-1 overflow-y-auto no-scrollbar pb-24">
+              {tab === 'memorize' && <MemorizeScreen verses={verses} setVerses={setVerses} />}
+              {tab === 'prayer'   && <PrayerScreen members={members} prayers={prayers} setPrayers={setPrayers} />}
+              {tab === 'family'   && <FamilyScreen members={members} setMembers={setMembers} />}
+            </main>
+
+            {/* 하단 탭 바 */}
+            <nav className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-stone-200 px-3 pb-[env(safe-area-inset-bottom)]">
+              <div className="flex">
+                {TABS.map((t) => {
+                  const on = tab === t.id;
+                  return (
+                    <button key={t.id} onClick={()=>setTab(t.id)}
+                      className={`flex-1 flex flex-col items-center gap-1 py-2.5 ${on ? 'text-clay-600' : 'text-stone-400'}`}>
+                      <i className={`fa-solid ${t.icon} text-lg ${on ? 'scale-110' : ''} transition`}></i>
+                      <span className={`text-[11px] ${on ? 'font-extrabold' : 'font-medium'}`}>{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
