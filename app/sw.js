@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pat-bible-app-v93';
+const CACHE_NAME = 'pat-bible-app-v94';
 const APP_SHELL = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ const APP_SHELL = [
   './js/progress-store.js',
   './js/memorize.js',
   './js/prayer.js',
+  './js/reading-plan.js',
   './js/reading.js',
   './js/reset-pw.js',
   './js/admin.js',
