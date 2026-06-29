@@ -133,9 +133,9 @@ async function tryAutoRecoverFamily(){
     const confirmedNames = Object.keys(JSON.parse(localStorage.getItem('pat_member_confirmed') || '{}'));
     let match = null;
 
-    if(data.families.length === 1){
-      match = data.families[0];
-    } else if(confirmedNames.length){
+    // ★ 보안(C): 단일 가족이어도 '이름 확인(pat_member_confirmed)'이 있을 때만 자동 복구.
+    //   (빈 기기에서 교회코드만으로 그 가족 방이 무단 노출되는 것을 차단)
+    if(confirmedNames.length){
       match = data.families.find(f =>
         f.memberNames.some(n => confirmedNames.includes(n)) ||
         confirmedNames.includes(f.leaderName)
@@ -354,7 +354,9 @@ function openFamilyRegister(tab){
   document.getElementById('familyLeaderName').value = profile?.leaderName||'';
   populateFamilyParishOptions(profile?.parish||'');
   document.getElementById('familyDistrict').value   = profile?.district||'';
-  document.getElementById('familyPassword').value   = profile?.familyPassword||DB.church.code;
+  // ★ 보안(B): 교회코드(공통)는 자동입력하지 않음 — 실제 가족 비번만 표시(없으면 비움)
+  const _pf = profile?.familyPassword;
+  document.getElementById('familyPassword').value   = (_pf && _pf !== DB.church.code) ? _pf : '';
   renderMemberRows(profile?.members||[]);
   go('s-family-register');
 }
@@ -371,7 +373,11 @@ function saveFamilyProfileAsLeader(){
     return;
   }
 
-  if(!familyPassword) familyPassword = DB.church.code;
+  // ★ 보안(B): 가족 비밀번호 필수 + 교회코드(공통)와 동일 금지 + 4자 이상
+  //   (기본 비번이 교회코드가 되어 다른 가족이 들어오는 구멍 차단)
+  if(!familyPassword){ toast('가족 비밀번호를 설정하세요'); return; }
+  if(familyPassword === DB.church.code){ toast('교회 코드와 다른 비밀번호를 설정하세요'); return; }
+  if(familyPassword.length < 4){ toast('비밀번호는 4자 이상으로 설정하세요'); return; }
 
   // ★ 대표자만 members에 자동 추가 (1번 위치)
   const members = [leaderName];

@@ -742,6 +742,14 @@ function enterMemberHome(){
   renderMemberDateLabels();
   renderFamily();
   go('s-family');
+  // ★ 보안 안내(B): 기본 비번(=교회코드)을 그대로 쓰는 방이면 변경 유도 (세션 1회)
+  try{
+    const p = loadFamilyProfile();
+    if(p && p.familyPassword && p.familyPassword === DB.church.code && !sessionStorage.getItem('pat_pw_nudge')){
+      sessionStorage.setItem('pat_pw_nudge','1');
+      setTimeout(()=>toast('보안을 위해 가족 비밀번호를 변경하세요'), 900);
+    }
+  }catch(e){}
 }
 
 async function enterChurch(){
@@ -760,6 +768,11 @@ async function enterChurch(){
 
   // 2) 이미 선택된 교회 코드와 일치 → 그 교회로 입장
   if(DB.church.code && code === DB.church.code){
+    // ★ 보안(A): 가족방이 있는데 교회코드(공통)만 입력하면 방 입장 거부 → 가족 비번 요구.
+    //   (비번을 바꾼 방을 교회코드로 여는 우회 차단. 1번 분기에서 famPw 일치는 이미 입장 처리됨)
+    if(profile && profile.familyPassword && profile.familyPassword !== code){
+      toast('가족 비밀번호를 입력하세요'); return;
+    }
     enterMemberHome();
     return;
   }
