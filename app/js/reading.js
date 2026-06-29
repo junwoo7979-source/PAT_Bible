@@ -148,7 +148,8 @@ function renderTodayPlan(){
   let html='';
   _READING_TRACKS.forEach(t=>{
     const raw=plan[t.i]||'';
-    const label=_readingFullLabel(t.k, raw);
+    // 시편/잠언은 트랙명이 곧 책이름이라 값(숫자)만 표시, 구약/신약은 정식 책이름+장
+    const label=(t.k==='si'||t.k==='pr') ? raw : _readingFullLabel(t.k, raw);
     html+='<button onclick="openTodayReading(\''+t.k+'\')" '+
       'style="text-align:left;padding:12px 14px;border:none;border-radius:12px;cursor:pointer;background:var(--surface)">'+
       '<div class="muted" style="font-size:calc(var(--fs)-5px);font-weight:700">'+t.emoji+' '+t.name+'</div>'+
