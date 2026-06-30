@@ -96,7 +96,14 @@ async function refreshFamilyProfileByPassword(profile, password){
   try{
     const found = await PAT_DB.findFamilyByPassword(DB.church.code, password, myFamilyId);
     if(!found || !found.id || found.id !== myFamilyId) return profile;
-    const members = normalizeFamilyMemberNames(found.members);
+    // ★ 버그 수정: found.members 는 대표가 "선언한 명단"만 담겨 입장만 한 구성원이 빠진다.
+    //   이를 그대로 쓰면 로컬 프로필의 입장 구성원이 사라지고 분모가 줄어든다(0/1 등).
+    //   → 로컬 보유 members(입장 구성원 포함) ∪ 서버 선언 members 의 합집합으로 보존.
+    const serverMembers = normalizeFamilyMemberNames(found.members);
+    const localMembers  = familyMemberNames(profile);
+    const mergedMembers = Array.from(new Set(
+      [...localMembers, ...serverMembers].map(s => String(s || '').trim()).filter(Boolean)
+    ));
     const nextProfile = {
       ...profile,
       roomName: found.roomName || profile.roomName || '',
@@ -105,7 +112,7 @@ async function refreshFamilyProfileByPassword(profile, password){
       district: found.district || profile.district || '',
       familyPassword: password,
       memberName: profile.memberName || profile.leaderName || found.leaderName || '',
-      members: members.length ? members : familyMemberNames({ ...profile, ...found }),
+      members: mergedMembers.length ? mergedMembers : localMembers,
     };
     localStorage.setItem('pat_family_id', found.id);
     setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));

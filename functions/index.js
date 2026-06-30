@@ -747,14 +747,33 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
     const familyToParish = {};
     families.forEach(f => { familyToParish[f.id] = f.parish; });
 
-    // ✅ 4️⃣ 교구별 "진도" 집계 — 현재 구절을 실제 완료한 멤버 수 (records 기반)
-    //    등록만 하고 암송 안 한 사람은 0. 진도가 없으면 byParish 도 0.
+    // ✅ 4️⃣ 교구별 "진도" 집계 — 완료 = 암송(현재 구절 기록) OR 오늘 기도
+    //    ★ 기준 통일: 가족 실천(암송 OR 기도)과 동일 기준으로 교구도 집계.
+    //      (이전엔 암송 records 만 봐서, 기도만 한 구성원이 가족 실천엔 잡히나
+    //       교구 현황엔 0으로 빠져 두 화면 수치가 어긋났음)
     const records = recordsSnap.docs.map(doc => doc.data());
-    const { byParish, completedMembers } = countCompletedMembersByParish(records, familyToParish, groups);
+    // 오늘(KST) 기도한 구성원을 완료 레코드로 합산
+    const kstToday = (() => { const k = new Date(Date.now() + 9 * 3600 * 1000); return k.toISOString().slice(0, 10); })();
+    const prayerRecords = [];
+    await Promise.all(familiesSnap.docs.map(async fdoc => {
+      const psnap = await fdoc.ref.collection('prayers').get();
+      psnap.docs.forEach(p => {
+        const pd = p.data();
+        if (pd && pd.date === kstToday && pd.memberName && pd.text && String(pd.text).trim()) {
+          prayerRecords.push({
+            familyId: fdoc.id,
+            memberName: String(pd.memberName).trim(),
+            parish: (fdoc.data().parish || '').trim(),
+          });
+        }
+      });
+    }));
+    const completionRecords = records.concat(prayerRecords);  // 암송 ∪ 기도 (멤버 중복은 집계에서 1명 처리)
+    const { byParish, completedMembers } = countCompletedMembersByParish(completionRecords, familyToParish, groups);
 
-    // 완료한 가정 수 (교회 전체/블레싱 현황용)
+    // 완료한 가정 수 (교회 전체/블레싱 현황용) — 암송/기도 둘 다 포함
     const completedFamilies = new Set();
-    records.forEach(r => { if (r.familyId) completedFamilies.add(r.familyId); });
+    completionRecords.forEach(r => { if (r.familyId) completedFamilies.add(r.familyId); });
     const completedTotal = completedFamilies.size;  // 완료한 가정 수
     const totalFamilies = familiesSnap.size;        // 등록된 모든 가정 수
 
