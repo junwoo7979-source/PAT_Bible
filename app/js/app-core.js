@@ -26,11 +26,27 @@ function saveVerses(v){ localStorage.setItem('pat_verses', JSON.stringify(v)); }
 // ── 교구/목장 그룹 설정 ───────────────────────────────────
 // 교회별 설정이 없으면 기본값(세광 호환: 교구 1·2·3 + 블레싱)으로 폴백.
 const PARISH_DEFAULT = { term: '교구', groups: ['1교구','2교구','3교구','블레싱'] };
+// 한글 인코딩 깨짐(mojibake) 감지 — 교구명에 대체문자(U+FFFD '�') 또는
+// CJK 통합 한자(U+4E00–U+9FFF: 한국 교회 교구명엔 거의 안 쓰임)가 섞이면
+// 깨진 값으로 간주. 깨진 parishConfig가 교구 집계 매칭을 망가뜨리는 것 방지.
+function _isBrokenParishText(s){
+  return /[�一-鿿]/.test(String(s == null ? '' : s));
+}
+function _parishConfigBroken(cfg){
+  if(!cfg || typeof cfg !== 'object') return false;
+  const groups = Array.isArray(cfg.groups) ? cfg.groups : [];
+  return _isBrokenParishText(cfg.term) || groups.some(_isBrokenParishText);
+}
 function getParishConfig(){
   try {
     const raw = localStorage.getItem('pat_parish_config');
     if(raw){
       const c = JSON.parse(raw);
+      // ★ 깨진 캐시 방어: mojibake가 섞였으면 캐시 삭제 후 기본값으로 폴백
+      if(_parishConfigBroken(c)){
+        try { localStorage.removeItem('pat_parish_config'); } catch(e){}
+        return { term: PARISH_DEFAULT.term, groups: PARISH_DEFAULT.groups.slice() };
+      }
       const groups = Array.isArray(c && c.groups) ? c.groups.map(g=>String(g).trim()).filter(Boolean) : [];
       if(groups.length) return { term: (c.term && String(c.term).trim()) || '교구', groups };
     }
@@ -67,8 +83,14 @@ function applyCloudConfig(config){
     try { localStorage.setItem('pat_admin_parish_edit', JSON.stringify(config.parishTotals)); } catch(e){}
   }
   // ★ 교회별 교구/그룹 설정도 미러링 (없으면 기본 1·2·3교구+블레싱으로 폴백 — getParishConfig())
+  //   단, 서버값이 깨진(mojibake) 경우 미러링하지 않음 → 교구 집계 매칭 깨짐 방지.
   if(config.parishConfig && typeof config.parishConfig === 'object'){
-    try { localStorage.setItem('pat_parish_config', JSON.stringify(config.parishConfig)); } catch(e){}
+    if(typeof _parishConfigBroken === 'function' && _parishConfigBroken(config.parishConfig)){
+      console.warn('[PAT] 깨진 parishConfig 무시(서버 데이터 손상):', config.parishConfig);
+      try { localStorage.removeItem('pat_parish_config'); } catch(e){}
+    } else {
+      try { localStorage.setItem('pat_parish_config', JSON.stringify(config.parishConfig)); } catch(e){}
+    }
   }
   if(Object.prototype.hasOwnProperty.call(config, 'appTitle')) {
     const title = (config.appTitle || '').trim();

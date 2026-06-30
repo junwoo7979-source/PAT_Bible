@@ -364,9 +364,12 @@ function renderParishStatsFromAggregated(byParish, totalDone, registeredByParish
 
   const rows = cfg.groups.map(g => {
     const done  = Number(byParish[g]) || 0;
-    const total = (totals[g] != null && Number(totals[g]) > 0) ? Number(totals[g]) : 0;
-    const pct   = total > 0 ? Math.round(done / total * 100) : 0;
     const reg   = Number(registeredByParish[g]) || 0;
+    // ★ 분모(전체인원): 관리자가 교구 전체인원을 입력했으면 그 값(교인 전체 기준),
+    //   미입력(0)이면 실제 등록 참가 인원(registeredByParish)으로 폴백.
+    //   → 관리자 미설정 교회도 "완료/참가" 기준으로 실천율이 0%에 막히지 않고 정상 표시.
+    const total = (totals[g] != null && Number(totals[g]) > 0) ? Number(totals[g]) : reg;
+    const pct   = total > 0 ? Math.round(done / total * 100) : 0;
     const isMine = profile?.parish && (profile.parish === g || (profile.parish || '').includes(g));
     return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)">
       <span style="min-width:56px;font-weight:700;${isMine?'color:var(--accent)':''}">${esc(g)}${isMine?' ★':''}</span>
