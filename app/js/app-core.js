@@ -759,7 +759,10 @@ async function enterChurch(){
   const famPw = profile?.familyPassword;
 
   // 1) 내 가족 비밀번호로 입장 (이미 가족방이 있는 기기, 로컬 즉시 경로)
-  if(famPw && code === famPw){
+  //   ★ 단, 입력값이 '교회코드'면 이 빠른 경로를 쓰지 않는다.
+  //     (구성원의 로컬 저장 비번이 옛 기본값=교회코드인 경우, 교회코드 입력이
+  //      가족 비번으로 오인돼 DB 검증 없이 입장되던 버그 차단 → 항상 분기2에서 DB 검증)
+  if(famPw && code === famPw && code !== DB.church.code){
     if(typeof refreshFamilyProfileByPassword === 'function') await refreshFamilyProfileByPassword(profile, famPw);
     if(DB.church.code && typeof loadChurchConfig === 'function') await loadChurchConfig();
     enterMemberHome();
@@ -809,13 +812,33 @@ async function enterChurch(){
     }catch(e){ console.warn('[PAT] 가족 비밀번호 입장 조회 실패:', e && e.message); }
   }
 
-  // 2) 이미 선택된 교회 코드와 일치 → 그 교회로 입장
+  // 2) 입력값이 (선택된) 교회 코드와 일치
   if(DB.church.code && code === DB.church.code){
-    // ★ 보안(A): 가족방이 있는데 교회코드(공통)만 입력하면 방 입장 거부 → 가족 비번 요구.
-    //   (비번을 바꾼 방을 교회코드로 여는 우회 차단. 1번 분기에서 famPw 일치는 이미 입장 처리됨)
-    if(profile && profile.familyPassword && profile.familyPassword !== code){
-      toast('가족 비밀번호를 입력하세요'); return;
+    // ★ 보안(A) 강화: 이 기기가 '가족방 소속'이면 교회코드로는 입장 불가 → 가족 비밀번호 요구.
+    //   대표/구성원 모두 동일하게 '가족 비밀번호로만' 입장하도록 통일.
+    //   (이전 버그: 저장 비번이 교회코드와 같은 구성원은 차단을 우회해 교회코드로 입장됐음)
+    //   예외: 가족 비밀번호가 아직 기본값(=교회코드)인 레거시 가족만 허용 — DB로 실제 검증.
+    const myFid = (function(){ try{ return localStorage.getItem('pat_family_id')||''; }catch(e){ return ''; } })();
+    const belongsToFamily = !!myFid ||
+      !!(profile && (profile.familyPassword || profile.leaderName || (profile.members && profile.members.length)));
+    if(belongsToFamily){
+      let churchCodeIsMyFamilyPw = false;
+      if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword && myFid){
+        try{
+          const f = await PAT_DB.findFamilyByPassword(DB.church.code, code, myFid);
+          churchCodeIsMyFamilyPw = !!(f && f.id === myFid); // 교회코드가 우리 가족 실제 비번일 때만 true
+        }catch(e){}
+      } else {
+        // 오프라인/DB 미준비 폴백: 저장된 가족 비번이 교회코드와 같을 때만 허용
+        churchCodeIsMyFamilyPw = !!(profile && profile.familyPassword && profile.familyPassword === code);
+      }
+      if(!churchCodeIsMyFamilyPw){
+        toast('가족 비밀번호를 입력하세요'); return;
+      }
+      // 레거시 기본비번 가족 → 최신 정보로 갱신 후 입장
+      if(typeof refreshFamilyProfileByPassword === 'function') await refreshFamilyProfileByPassword(profile, code);
     }
+    if(DB.church.code && typeof loadChurchConfig === 'function') await loadChurchConfig();
     enterMemberHome();
     return;
   }
