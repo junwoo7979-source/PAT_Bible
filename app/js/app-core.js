@@ -758,12 +758,55 @@ async function enterChurch(){
   const profile = loadFamilyProfile();
   const famPw = profile?.familyPassword;
 
-  // 1) 내 가족 비밀번호로 입장 (이미 가족방이 있는 기기)
+  // 1) 내 가족 비밀번호로 입장 (이미 가족방이 있는 기기, 로컬 즉시 경로)
   if(famPw && code === famPw){
     if(typeof refreshFamilyProfileByPassword === 'function') await refreshFamilyProfileByPassword(profile, famPw);
     if(DB.church.code && typeof loadChurchConfig === 'function') await loadChurchConfig();
     enterMemberHome();
     return;
+  }
+
+  // 1.5) ★ 가족 비밀번호 DB 조회로 입장 (구성원 입장 버그 수정)
+  //   - 대표가족이 가족 비밀번호를 바꾼 뒤, 구성원이 '새 비밀번호'로 들어오는 경우
+  //     로컬 famPw(=옛 비번)와 달라 분기1을 못 타고, 예전엔 교회코드 조회로 빠져 실패했음.
+  //   - 교회가 선택돼 있어야(DB.church.code) 가족 조회 가능. 교회코드 자체는 제외(보안 분기 유지).
+  //   - findFamilyByPassword는 저장된 pat_family_id를 기본으로 써서 '내 가족'만 검증(타가족 무단열람 차단).
+  if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword
+     && DB.church.code && code !== DB.church.code){
+    try{
+      const found = await PAT_DB.findFamilyByPassword(DB.church.code, code);
+      if(found && found.id){
+        const members = (typeof normalizeFamilyMemberNames === 'function')
+          ? normalizeFamilyMemberNames(found.members)
+          : (Array.isArray(found.members) ? found.members : []);
+        // 내 이름: 기존 프로필 이름 유지(없으면 비움 → 이름 입력 유도)
+        const prevName = (profile && (profile.memberName || profile.leaderName)) || '';
+        const nextProfile = {
+          ...(profile || {}),
+          roomName:   found.roomName   || (profile && profile.roomName)   || '',
+          leaderName: found.leaderName || (profile && profile.leaderName) || '',
+          parish:     found.parish     || (profile && profile.parish)     || '',
+          district:   found.district   || (profile && profile.district)   || '',
+          familyPassword: code,                 // ★ 바뀐 비밀번호로 로컬 갱신
+          memberName: prevName,
+          members: members.length ? members : ((profile && profile.members) || [])
+        };
+        try{ localStorage.setItem('pat_family_id', found.id); }catch(e){}
+        if(typeof setFamilyStorage === 'function')
+          setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
+        else localStorage.setItem('pat_family_profile', JSON.stringify(nextProfile));
+        if(typeof loadChurchConfig === 'function') await loadChurchConfig();
+        if(prevName){
+          enterMemberHome();              // 이미 등록된 구성원 → 바로 입장
+        } else {
+          // 새 기기/이름 미확정 → 가족방으로 보내 이름만 입력하면 합류
+          if(typeof renderFamily === 'function') renderFamily();
+          go('s-family');
+          toast('가족방을 찾았어요 — 이름을 입력해 합류하세요');
+        }
+        return;
+      }
+    }catch(e){ console.warn('[PAT] 가족 비밀번호 입장 조회 실패:', e && e.message); }
   }
 
   // 2) 이미 선택된 교회 코드와 일치 → 그 교회로 입장
