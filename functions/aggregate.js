@@ -87,6 +87,7 @@ function countCompletedMembersByParish(records, familyToParish, groups) {
 // records:  [{ familyId, memberName, verseRef }]  (전체 구절 기록)
 // totalVerses: 교회에 등록된 총 구절 수 (분모)
 // 멤버 실천율 = 그 멤버가 완료한 구절 수 / 총 구절 수, 가족 평균 = 멤버 평균.
+// ★ 버그 수정: memberNames에 없지만 records에는 있는 사람도 포함 (암송/기도 완료했지만 members에 미등록된 경우)
 function rankFamilies(families, records, totalVerses) {
   const tv = totalVerses > 0 ? totalVerses : 1;
   // familyId → memberName → Set(verseRef)
@@ -101,11 +102,24 @@ function rankFamilies(families, records, totalVerses) {
   }
   const ranked = (families || []).map(f => {
     const memberMap = map[f.id] || {};
-    const names = Array.isArray(f.memberNames) ? f.memberNames : [];
-    const members = names.map(name => {
+    const names = new Set();
+
+    // 1) memberNames(선언된 members + 입장한 members) 추가
+    if (Array.isArray(f.memberNames)) {
+      f.memberNames.forEach(n => names.add(n));
+    }
+
+    // 2) memberNames에는 없지만 records에 있는 사람도 추가
+    // (예: 암송/기도 완료했지만 초기 members에 미등록된 구성원)
+    Object.keys(memberMap).forEach(name => {
+      if (name) names.add(name);
+    });
+
+    const members = Array.from(names).map(name => {
       const done = memberMap[name] ? memberMap[name].size : 0;
       return { name, rate: Math.min(100, Math.round((done / tv) * 100)) };
     });
+
     const averageRate = members.length
       ? Math.round(members.reduce((s, m) => s + m.rate, 0) / members.length) : 0;
     return { familyId: f.id, familyName: f.roomName || '가족', memberCount: members.length, members, averageRate };
