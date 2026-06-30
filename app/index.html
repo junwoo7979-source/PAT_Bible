@@ -44,8 +44,8 @@
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=120"></script>
-<script src="firebase-db.js?v=120"></script>
+<script src="firebase-config.js?v=121"></script>
+<script src="firebase-db.js?v=121"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -786,10 +786,13 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <p class="muted" style="margin:10px 0 4px">방 기본 정보를 입력하세요</p>
       <div class="card" style="margin-top:8px">
         <label class="lbl">방 종류</label>
-        <select class="field" id="familyGroupType" onchange="onGroupTypeChange()">
-          <option value="가정">가정 (가족방)</option>
-          <option value="구역">구역 (구역모임)</option>
-        </select>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button type="button" id="gtSegGajeong" onclick="selectGroupType('가정')"
+            style="flex:1;padding:12px 8px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;font-size:calc(var(--fs)-1px)">🏠 가정 (가족방)</button>
+          <button type="button" id="gtSegGuyeok" onclick="selectGroupType('구역')"
+            style="flex:1;padding:12px 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text);font-weight:800;cursor:pointer;font-size:calc(var(--fs)-1px)">🧩 구역 (구역방)</button>
+        </div>
+        <input type="hidden" id="familyGroupType" value="가정">
         <label class="lbl" id="familyRoomNameLabel">가족방 이름</label>
         <input class="field" id="familyRoomName" placeholder="예: 믿음 가족방">
         <label class="lbl" id="familyLeaderLabel">가족 대표 이름</label>
@@ -1102,21 +1105,21 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 </div>
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/app-core.js?v=120"></script>
-<script src="js/verse.js?v=120"></script>
-<script src="js/family.js?v=120"></script>
-<script src="js/history.js?v=120"></script>
-<script src="js/voice.js?v=120"></script>
-<script src="js/voice-ui.js?v=120"></script>
-<script src="js/progress-store.js?v=120"></script>
-<script src="js/whisper-asr.js?v=120"></script>
-<script src="js/groq-asr.js?v=120"></script>
-<script src="js/memorize.js?v=120"></script>
-<script src="js/prayer.js?v=120"></script>
-<script src="js/reading-plan.js?v=120"></script>
-<script src="js/reading.js?v=120"></script>
-<script src="js/reset-pw.js?v=120"></script>
-<script src="js/admin.js?v=120"></script>
+<script src="js/app-core.js?v=121"></script>
+<script src="js/verse.js?v=121"></script>
+<script src="js/family.js?v=121"></script>
+<script src="js/history.js?v=121"></script>
+<script src="js/voice.js?v=121"></script>
+<script src="js/voice-ui.js?v=121"></script>
+<script src="js/progress-store.js?v=121"></script>
+<script src="js/whisper-asr.js?v=121"></script>
+<script src="js/groq-asr.js?v=121"></script>
+<script src="js/memorize.js?v=121"></script>
+<script src="js/prayer.js?v=121"></script>
+<script src="js/reading-plan.js?v=121"></script>
+<script src="js/reading.js?v=121"></script>
+<script src="js/reset-pw.js?v=121"></script>
+<script src="js/admin.js?v=121"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';

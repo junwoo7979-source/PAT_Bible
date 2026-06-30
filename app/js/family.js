@@ -434,6 +434,22 @@ function populateFamilyParishOptions(selected){
   sel.innerHTML = html;
   sel.value = selected || '';
 }
+// 등록 폼: 방 종류 토글 버튼 선택 (가정/구역) — 숨김 input(familyGroupType)에 값 보관
+function selectGroupType(type){
+  const t = (type === '구역') ? '구역' : '가정';
+  const hid = document.getElementById('familyGroupType');
+  if(hid) hid.value = t;
+  const a = document.getElementById('gtSegGajeong');
+  const b = document.getElementById('gtSegGuyeok');
+  const paint = (el, on) => {
+    if(!el) return;
+    el.style.background = on ? 'var(--accent)' : 'var(--surface)';
+    el.style.color      = on ? '#fff' : 'var(--text)';
+  };
+  paint(a, t === '가정');
+  paint(b, t === '구역');
+  onGroupTypeChange();
+}
 // 등록 폼: 방 종류 선택에 따라 라벨/플레이스홀더 전환 (데이터 영향 없음)
 function onGroupTypeChange(){
   const sel = document.getElementById('familyGroupType');
@@ -449,9 +465,7 @@ function onGroupTypeChange(){
 function openFamilyRegister(tab){
   const profile = loadFamilyProfile();
   const _gt = groupTypeOf(profile);
-  const gtSel = document.getElementById('familyGroupType');
-  if(gtSel){ gtSel.value = _gt; }
-  if(typeof onGroupTypeChange === 'function') onGroupTypeChange();
+  if(typeof selectGroupType === 'function') selectGroupType(_gt); // 값+토글 버튼 상태 동기화
   document.getElementById('familyRoomName').value   = profile?.roomName||'';
   document.getElementById('familyLeaderName').value = profile?.leaderName||'';
   populateFamilyParishOptions(profile?.parish||'');
