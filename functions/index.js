@@ -419,7 +419,20 @@ exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
     if (!assertChurchCode(churchCode, res)) return;
     const familyData = sanitizeFamilyDataForSave(churchCode, data);
     const col = db.collection(`churches/${churchCode}/families`);
+    // ★ 비번 중복 방지: 같은 교회 안에서 다른 방이 이미 쓰는 비밀번호면 거부.
+    //   (한 비번이 두 방을 가리키면 입장 시 엉뚱한 방으로 들어가 사생활이 노출됨)
+    //   selfId(또는 재등록 대상 dup) 는 제외하고 검사한다.
+    const clashesPassword = async (selfId) => {
+      if (!data.familyPassword) return false;
+      const hash = hashFamilyPassword(churchCode, data.familyPassword);
+      const snap = await col.where('familyPasswordHash', '==', hash).get();
+      return snap.docs.some(d => d.id !== (selfId || ''));
+    };
     if (familyId) {
+      if (await clashesPassword(familyId)) {
+        res.status(409).json({ error: 'DUPLICATE_PASSWORD', message: '이미 다른 방에서 사용 중인 비밀번호입니다. 다른 비밀번호를 사용하세요.' });
+        return;
+      }
       await col.doc(familyId).set({
         ...familyData,
         familyPassword: FieldValue.delete(),
@@ -433,16 +446,25 @@ exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
       //   쌓이지 않게 — "가족방 초기화 → 중복 누적" 근본 차단. (구역은 최신값으로 갱신)
       const leaderName = String(familyData.leaderName || '').trim();
       const parish = String(familyData.parish || '').trim();
+      // 재등록 대상(dup)을 먼저 찾는다 — 비번 중복 검사에서 '내 방'은 제외하기 위함
+      let dup = null;
       if (leaderName && parish) {
         const sameLeader = await col.where('leaderName', '==', leaderName).get(); // 단일 equality(인덱스 불필요)
         // ★ 2단계: 같은 대표+교구라도 방 종류(가정/구역)가 다르면 다른 방으로 취급(병합 금지).
         //   한 사람이 가정 대표이면서 구역장도 될 수 있게 함.
         const newType = (familyData.groupType === '구역') ? '구역' : '가정';
-        const dup = sameLeader.docs.find(d => {
+        dup = sameLeader.docs.find(d => {
           const dd = d.data();
           const dType = (dd.groupType === '구역') ? '구역' : '가정';
           return String((dd.parish) || '').trim() === parish && dType === newType;
-        });
+        }) || null;
+      }
+      // ★ 비번 중복 방지: 재등록 대상(dup)이 아닌 다른 방이 같은 비번이면 거부
+      if (await clashesPassword(dup ? dup.id : '')) {
+        res.status(409).json({ error: 'DUPLICATE_PASSWORD', message: '이미 다른 방에서 사용 중인 비밀번호입니다. 다른 비밀번호를 사용하세요.' });
+        return;
+      }
+      {
         if (dup) {
           const exist = dup.data();
           const names = new Set();   // 멤버는 합집합으로 보존(기존 + 신규)

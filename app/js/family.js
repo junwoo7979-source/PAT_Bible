@@ -479,7 +479,7 @@ function openFamilyRegister(tab){
   go('s-family-register');
 }
 // ── 대표 등록 (대표자만, 자동 확인) ────────────────────────────
-function saveFamilyProfileAsLeader(){
+async function saveFamilyProfileAsLeader(){
   const roomName   = document.getElementById('familyRoomName').value.trim();
   const leaderName = document.getElementById('familyLeaderName').value.trim();
   const parish     = document.getElementById('familyParish').value.trim();
@@ -500,6 +500,19 @@ function saveFamilyProfileAsLeader(){
   if(!familyPassword){ toast('가족 비밀번호를 설정하세요'); return; }
   if(familyPassword === DB.church.code){ toast('교회 코드와 다른 비밀번호를 설정하세요'); return; }
   if(familyPassword.length < 4){ toast('비밀번호는 4자 이상으로 설정하세요'); return; }
+
+  // ★ A: 비번 중복 방지 — 같은 교회에서 다른 방이 이미 쓰는 비번이면 거부.
+  //   (한 비번이 두 방을 가리키면 구역원이 엉뚱한 방(가족방)에 입장해 사생활이 노출됨)
+  if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPasswordGlobal){
+    const myFamilyId = window._creatingNewRoom ? '' : (localStorage.getItem('pat_family_id') || '');
+    try{
+      const dupRoom = await PAT_DB.findFamilyByPasswordGlobal(DB.church.code, familyPassword);
+      if(dupRoom && dupRoom.id && dupRoom.id !== myFamilyId){
+        toast('이미 다른 방에서 쓰는 비밀번호예요. 다른 비밀번호를 사용하세요');
+        return;
+      }
+    }catch(e){ /* 네트워크 오류 시 서버 측 거부(409)로 한 번 더 막힘 */ }
+  }
 
   // ★ 대표자만 members에 자동 추가 (1번 위치)
   const members = [leaderName];
