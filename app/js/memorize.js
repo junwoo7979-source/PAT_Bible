@@ -86,7 +86,26 @@ function completeMemorize(){
   if(!memorizeCompleted){
     const recs = loadRec(); recs.push(record); saveRec(recs);
     memorizeCompleted = true;
-    if(window.PAT_DB && PAT_DB.ready()){ PAT_DB.saveRecord(DB.church.code, record); }
+    if(window.PAT_DB && PAT_DB.ready()){
+      // ★ 3단계: 1회 완료 → 내가 속한 '모든 방'에 기록(그룹 단위 시상 반영).
+      //   각 방의 컨텍스트(familyId/교구/이름/종류)로 1건씩 저장. 방 목록이 없으면 활성 방.
+      const _rooms = (typeof loadRooms === 'function') ? loadRooms() : [];
+      if(_rooms.length && PAT_DB.saveRecordCtx){
+        _rooms.forEach(room => {
+          if(!room || !room.familyId) return;
+          PAT_DB.saveRecordCtx(DB.church.code, record, {
+            familyId:   room.familyId,
+            parish:     room.parish || '',
+            district:   room.district || '',
+            leaderName: room.leaderName || '',
+            memberName: room.memberName || room.leaderName || '',
+            groupType:  (room.groupType === '구역') ? '구역' : '가정',
+          });
+        });
+      } else {
+        PAT_DB.saveRecord(DB.church.code, record); // 폴백(활성 방)
+      }
+    }
   }else{
     const recs  = loadRec();
     const index = recs.map(r=>r.ref).lastIndexOf(DB.verse.ref);

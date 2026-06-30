@@ -414,27 +414,39 @@ window.PAT_DB = (() => {
   // ════════════════════════════════════════════════════════════════
   // 암송 기록 (Records)
   // ════════════════════════════════════════════════════════════════
+  // 활성 방(localStorage)에 저장 — 기존 호출 호환
   async function saveRecord(churchCode, record) {
     if (!ready()) return false;
+    const familyId = localStorage.getItem('pat_family_id') || '';
+    if (!familyId) { console.warn('[PAT_DB] pat_family_id 없음 — 가족방 미등록'); return false; }
+    const profile = (() => {
+      try { return JSON.parse(localStorage.getItem('pat_family_profile') || 'null'); }
+      catch { return null; }
+    })();
+    return saveRecordCtx(churchCode, record, {
+      familyId,
+      parish: profile?.parish || '',
+      district: profile?.district || '',
+      leaderName: profile?.leaderName || '',
+      memberName: profile?.memberName || '',
+      groupType: profile?.groupType || '가정',
+    });
+  }
+
+  // ★ 3단계: 명시한 방(ctx)에 기록 저장 — '1회 완료 → 모든 소속 그룹 반영'에 사용.
+  //   add-only(서버 .add) — 어떤 기존 기록도 덮어쓰지 않는다.
+  async function saveRecordCtx(churchCode, record, ctx) {
+    if (!ready()) return false;
     try {
-      const deviceId = getDeviceId();
-      const familyId = localStorage.getItem('pat_family_id') || '';
-      if (!familyId) {
-        console.warn('[PAT_DB] pat_family_id 없음 — 가족방 미등록');
-        return false;
-      }
-
-      const profile = (() => {
-        try { return JSON.parse(localStorage.getItem('pat_family_profile') || 'null'); }
-        catch { return null; }
-      })();
-
+      ctx = ctx || {};
+      if (!ctx.familyId) { console.warn('[PAT_DB] saveRecordCtx: familyId 없음'); return false; }
       const payload = {
-        churchCode, deviceId, familyId,
-        parish: profile?.parish || '',
-        district: profile?.district || '',
-        leaderName: profile?.leaderName || '',
-        memberName: profile?.memberName || '',
+        churchCode, deviceId: getDeviceId(), familyId: ctx.familyId,
+        parish: ctx.parish || '',
+        district: ctx.district || '',
+        leaderName: ctx.leaderName || '',
+        memberName: ctx.memberName || '',
+        groupType: (ctx.groupType === '구역') ? '구역' : '가정',
         verseRef: record.ref,
         voiceScore1: record.voiceScore1 || 0,
         voiceScore2: record.voiceScore2 || 0,
@@ -442,12 +454,11 @@ window.PAT_DB = (() => {
         typeScore2: record.typeScore2 || 0,
         badge: record.badge || 'weekly_complete',
       };
-
       await apiPost('saveRecord', payload);
-      console.log('[PAT_DB] ✅ saveRecord 저장 성공');
+      console.log('[PAT_DB] ✅ saveRecord 저장:', ctx.familyId, payload.memberName);
       return true;
     } catch (e) {
-      console.error('[PAT_DB] ❌ saveRecord 오류:', e.message);
+      console.error('[PAT_DB] ❌ saveRecordCtx 오류:', e.message);
       return false;
     }
   }
@@ -574,7 +585,7 @@ window.PAT_DB = (() => {
     saveVerse, getLatestVerse, subscribeVerse,
     saveFamily, findFamilyByPassword, findFamilyByPasswordGlobal, joinFamily, removeFamilyMember,
     getFamilyMembers, getFamilyInfo, subscribeFamily,
-    saveRecord, hasRecord,
+    saveRecord, saveRecordCtx, hasRecord,
     getDashboardStats, getFamilyStats, getFamilyProgress,
     transcribeAudio, getAwardRanking, getFamiliesList,
     resetFamilyPassword,
