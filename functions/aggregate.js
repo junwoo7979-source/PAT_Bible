@@ -70,7 +70,11 @@ function countCompletedMembersByParish(records, familyToParish, groups) {
   const seen = new Set();
   for (const r of (records || [])) {
     const familyId = r.familyId || '';
-    const memberId = r.deviceId || r.memberName || '';
+    // ★ 멤버 식별: 이름 우선(참가 인원과 동일 기준) → 같은 사람이 여러 기기/브라우저로
+    //   완료해도 1명으로 집계. 이름 없을 때만 deviceId 폴백.
+    //   (이전엔 deviceId 우선이라 한 사람이 여러 기기로 완료 시 중복 카운트돼
+    //    완료>참가 = 300% 같은 비정상 실천율이 발생했음)
+    const memberId = String(r.memberName || '').trim() || r.deviceId || '';
     if (!familyId && !memberId) continue; // 식별 불가 기록 무시
     const key = familyId + '|' + memberId;
     if (seen.has(key)) continue;
