@@ -210,8 +210,9 @@ function renderRegisteredFamilyRoom(){
       membersEl.innerHTML = names.length
         ? `<div class="family-member-chips">${names.map(name=>{
             const canDelete    = name !== profile.leaderName;
+            const arming       = (_famDelArm.name === name && _famDelArm.count > 0);
             const deleteButton = canDelete
-              ? `<button class="family-member-delete" onclick="deleteFamilyMember('${encodeURIComponent(name)}')">삭제</button>`
+              ? `<button class="family-member-delete" onclick="armDeleteFamilyMember('${encodeURIComponent(name)}')">${arming?`한 번 더 (${3-_famDelArm.count})`:'삭제'}</button>`
               : '';
             return `<span class="family-member-chip">${esc(name)}<small>등록</small>${deleteButton}</span>`;
           }).join('')}</div>`
@@ -235,16 +236,48 @@ function switchRegTab(tab){
   document.getElementById('tabMember').style.color      = isLeader?'var(--text)':'#fff';
   renderRegisteredFamilyRoom();
 }
+// ── 삭제 안전장치(v119): '3번 연속 터치'로만 삭제 실행 ───────────────
+//   실수 터치로 즉시 삭제되는 것을 막는다. 진행 카운트는 전역 상태로 보관해
+//   1초 폴링 재렌더(renderFamilyMemberList)에도 유지된다. 일정시간(3초) 내
+//   다음 터치가 없으면 카운트 자동 리셋.
+let _famDelArm = { name: '', count: 0, timer: null };
+function _resetFamDelArm(){
+  if(_famDelArm.timer){ try{ clearTimeout(_famDelArm.timer); }catch(e){} }
+  _famDelArm = { name: '', count: 0, timer: null };
+}
+function _rerenderMemberListSafe(){
+  try{ if(Array.isArray(DB.members)) renderFamilyMemberList(DB.members); }catch(e){}
+}
+function armDeleteFamilyMember(encodedName){
+  const name = decodeURIComponent(encodedName);
+  // 다른 구성원 버튼을 누르면 카운트 새로 시작
+  if(_famDelArm.name !== name){ _resetFamDelArm(); _famDelArm.name = name; }
+  if(_famDelArm.timer){ try{ clearTimeout(_famDelArm.timer); }catch(e){} _famDelArm.timer = null; }
+  _famDelArm.count += 1;
+
+  if(_famDelArm.count >= 3){
+    const target = name;
+    _resetFamDelArm();
+    deleteFamilyMember(encodeURIComponent(target));   // 3번째 → 실제 삭제
+    return;
+  }
+  if(_famDelArm.count === 1 && typeof toast === 'function'){
+    toast('실수 방지 — 삭제하려면 3번 연속 누르세요');
+  }
+  // 3초 내 다음 터치 없으면 리셋(원상복구)
+  _famDelArm.timer = setTimeout(()=>{ _resetFamDelArm(); _rerenderMemberListSafe(); }, 3000);
+  _rerenderMemberListSafe();   // 버튼 라벨 즉시 "한 번 더 (N)"로 갱신
+}
+
 // ★★ 데이터 분리 원칙(v117): 구성원 삭제는 '가족방 명단(roster) 정보'만 변경한다.
 //   - 변경 대상: pat_family_profile.members / 서버 family 문서 members 배열 + 입장기록(서브컬렉션)
 //   - 절대 미접촉: pat_records(미션 수행 기록), pat_prayer_*, pat_read_done_*, 서버 records 컬렉션
 //   서버 records를 지우는 함수는 deleteFamily(관리자 전용)뿐이며, 이 경로에서는 호출하지 않는다.
+//   ※ 실삭제 게이트는 armDeleteFamilyMember(3연속 터치)가 담당 — 직접 호출 시 즉시 삭제됨.
 async function deleteFamilyMember(encodedName){
   const name    = decodeURIComponent(encodedName);
   const profile = loadFamilyProfile();
   if(!profile) return;
-  // ★ 실수 삭제 방지 — 확인창
-  if(typeof confirm === 'function' && !confirm(`'${name}' 구성원을 삭제할까요?`)) return;
 
   // ★ 대표 포함 전체 명단(familyMemberNames)에서 제외 — members 배열에 대표가
   //   없더라도 fallback으로 다시 살아나지 않도록 전체 명단 기준으로 재구성.
@@ -717,9 +750,15 @@ function renderFamilyMemberList(members){
     const status = m.done
       ? '<span style="margin-left:8px;font-size:calc(var(--fs)-2px);color:var(--accent)">✓ 완료</span>'
       : '<span style="margin-left:8px;font-size:calc(var(--fs)-2px);color:var(--muted)">· 미완료</span>';
-    // ★ 잘못 입력 시 즉시 삭제할 수 있도록 구성원마다 삭제 버튼 표시
+    // ★ 실수 방지: 삭제는 '3번 연속 터치'로만 실행 (armDeleteFamilyMember).
+    //   진행 중이면 카운트를 라벨로 표시 — 폴링 재렌더에도 전역상태(_famDelArm)로 유지.
+    const arming = (_famDelArm.name === m.name && _famDelArm.count > 0);
+    const remain = 3 - _famDelArm.count;
+    const delLabel = arming ? `한 번 더 (${remain})` : '✕ 삭제';
+    const delStyle = `margin-left:8px;flex-shrink:0;font-size:calc(var(--fs)-3px)`
+      + (arming ? ';background:var(--danger);color:#fff;border-radius:8px;padding:4px 8px;font-weight:800' : '');
     const delBtn = hasProfile
-      ? `<button class="family-member-delete" title="구성원 삭제" onclick="deleteFamilyMember('${encodeURIComponent(m.name)}')" style="margin-left:8px;flex-shrink:0;font-size:calc(var(--fs)-3px)">✕ 삭제</button>`
+      ? `<button class="family-member-delete${arming?' arming':''}" title="실수 방지 — 3번 연속 눌러야 삭제" onclick="armDeleteFamilyMember('${encodeURIComponent(m.name)}')" style="${delStyle}">${delLabel}</button>`
       : '';
     return `<div class="member" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
               <div style="flex:1;min-width:0">

@@ -152,4 +152,50 @@ function readRecords(ctx) {
   console.log('  ✓ 대표 삭제 시 기록 보존 + 대표 승계');
 })();
 
+// ── 4) 3번 연속 터치 안전장치: 1~2번은 삭제 안 됨, 3번째에만 삭제 ──
+(function testTripleTapGate() {
+  const ctx = makeContext();
+  ctx._storage.set('pat_family_profile', JSON.stringify({
+    roomName: '테스트네 가족', leaderName: '아빠', parish: '1교구', district: '1구역',
+    familyPassword: 'pw1234', memberName: '아빠', members: ['아빠', '엄마', '아들'],
+  }));
+  seedRecords(ctx, [{ ref: '시편 23:1', completedAt: '2021-01-01T00:00:00.000Z', memberName: '아들' }]);
+  ctx.renderFamily = () => {};
+  ctx.toast = () => {};
+  // DB.members 세팅 → _rerenderMemberListSafe가 renderFamilyMemberList를 호출해도 안전
+
+  const enc = ctx.encodeURIComponent('아들');
+  ctx.armDeleteFamilyMember(enc); // 1번째
+  let p = JSON.parse(ctx._storage.get('pat_family_profile'));
+  assert.ok(p.members.includes('아들'), '1번 터치로는 삭제되지 않는다');
+
+  ctx.armDeleteFamilyMember(enc); // 2번째
+  p = JSON.parse(ctx._storage.get('pat_family_profile'));
+  assert.ok(p.members.includes('아들'), '2번 터치로도 삭제되지 않는다');
+
+  ctx.armDeleteFamilyMember(enc); // 3번째 → 삭제
+  p = JSON.parse(ctx._storage.get('pat_family_profile'));
+  assert.ok(!p.members.includes('아들'), '3번째 연속 터치에서 삭제된다');
+  assert.equal(readRecords(ctx).length, 1, '3연타 삭제도 미션 기록은 보존');
+  console.log('  ✓ 3번 연속 터치 안전장치 (1~2번 무시, 3번째 삭제, 기록 보존)');
+})();
+
+// ── 5) 다른 구성원을 누르면 카운트 리셋(엉뚱한 사람 삭제 방지) ──────
+(function testArmResetOnDifferentMember() {
+  const ctx = makeContext();
+  ctx._storage.set('pat_family_profile', JSON.stringify({
+    roomName: '테스트네 가족', leaderName: '아빠', parish: '1교구', district: '1구역',
+    familyPassword: 'pw1234', memberName: '아빠', members: ['아빠', '엄마', '아들'],
+  }));
+  ctx.renderFamily = () => {};
+  ctx.toast = () => {};
+
+  ctx.armDeleteFamilyMember(ctx.encodeURIComponent('아들')); // 아들 1
+  ctx.armDeleteFamilyMember(ctx.encodeURIComponent('아들')); // 아들 2
+  ctx.armDeleteFamilyMember(ctx.encodeURIComponent('엄마')); // 엄마로 전환 → 카운트 리셋(엄마 1)
+  let p = JSON.parse(ctx._storage.get('pat_family_profile'));
+  assert.ok(p.members.includes('아들') && p.members.includes('엄마'), '대상 전환 시 누구도 삭제되지 않는다');
+  console.log('  ✓ 다른 구성원 터치 시 카운트 리셋');
+})();
+
 console.log('\n✅ family-delete-preserves-records: 모든 테스트 통과');
