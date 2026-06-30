@@ -238,22 +238,47 @@ function switchRegTab(tab){
 async function deleteFamilyMember(encodedName){
   const name    = decodeURIComponent(encodedName);
   const profile = loadFamilyProfile();
-  if(!profile || !Array.isArray(profile.members)) return;
-  const members     = profile.members.filter(member => member !== name);
+  if(!profile) return;
+  // ★ 실수 삭제 방지 — 확인창
+  if(typeof confirm === 'function' && !confirm(`'${name}' 구성원을 삭제할까요?`)) return;
+
+  // ★ 대표 포함 전체 명단(familyMemberNames)에서 제외 — members 배열에 대표가
+  //   없더라도 fallback으로 다시 살아나지 않도록 전체 명단 기준으로 재구성.
+  const members     = familyMemberNames(profile).filter(member => member !== name);
   const nextProfile = { ...profile, members };
+
+  // ★ 대표(leaderName) 삭제 시 → 남은 첫 구성원으로 대표 승계(없으면 비움).
+  //   안 비우면 familyMemberNames fallback / 서버 폴링이 옛 대표를 부활시킴.
+  if(profile.leaderName === name){
+    nextProfile.leaderName = members[0] || '';
+  }
+  // ★ 이 기기 사용자(memberName) 삭제 시 → 대표/남은 구성원으로 대체
+  if(profile.memberName === name){
+    nextProfile.memberName = nextProfile.leaderName || members[0] || '';
+  }
+
   setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
+  // ★ 대표 백업도 동기화 (자동복구가 옛 명단/옛 대표를 되살리지 않도록)
+  try{
+    const fid = localStorage.getItem('pat_family_id') || '';
+    localStorage.setItem('pat_leader_family_profile', JSON.stringify({ ...nextProfile, _familyId: fid }));
+  }catch(e){}
+
   if(window.PAT_DB && PAT_DB.ready()){
     const familyId = localStorage.getItem('pat_family_id') || '';
-    // ★ #2 수정: 배열 + 입장기록(서브컬렉션) 동시 정리 → 삭제한 멤버가 폴링에서 부활하지 않도록.
-    //   새 엔드포인트 실패(미배포 등) 시 기존 saveFamily로 폴백(최소한 배열은 갱신 — 회귀 방지).
-    let ok = false;
+    // ★ 배열 + 입장기록(서브컬렉션) 동시 정리 → 삭제한 멤버가 폴링에서 부활하지 않도록.
     if(familyId && PAT_DB.removeFamilyMember){
-      ok = await PAT_DB.removeFamilyMember(DB.church.code, familyId, name);
+      await PAT_DB.removeFamilyMember(DB.church.code, familyId, name);
     }
-    if(!ok){ PAT_DB.saveFamily(DB.church.code, nextProfile); }
+    // ★ 대표 승계/명단 변경을 서버에도 반영 (leaderName 갱신 위해 saveFamily 호출)
+    if(familyId){
+      await PAT_DB.saveFamily(DB.church.code, { ...nextProfile, id: familyId });
+    } else {
+      PAT_DB.saveFamily(DB.church.code, nextProfile);
+    }
   }
-  renderRegisteredFamilyRoom();
-  renderFamilyProfile();
+  renderFamily();
+  if(typeof toast === 'function') toast(`✓ '${name}' 삭제 완료`);
 }
 
 // ── 가족 등록 폼 (수동 참여) ─────────────────────────────
@@ -681,17 +706,24 @@ function renderFamilyMemberList(members){
   document.getElementById('familyProgress').textContent = `이번 주 달성률 ${confirmedCount}/${safeMembers.length}명`;
   document.getElementById('familyBar').style.width = pct+'%';
 
+  // ★ 가족방이 등록된 경우에만 삭제 버튼 노출 (대표 포함 모든 구성원 삭제 가능)
+  const hasProfile = !!loadFamilyProfile();
   const list = safeMembers.map((m, idx) => {
     const orderNum = idx + 1; // ★ 등록 순서 번호
     const status = m.done
       ? '<span style="margin-left:8px;font-size:calc(var(--fs)-2px);color:var(--accent)">✓ 완료</span>'
       : '<span style="margin-left:8px;font-size:calc(var(--fs)-2px);color:var(--muted)">· 미완료</span>';
-    return `<div class="member" style="display:flex;justify-content:space-between;align-items:center">
-              <div style="flex:1">
+    // ★ 잘못 입력 시 즉시 삭제할 수 있도록 구성원마다 삭제 버튼 표시
+    const delBtn = hasProfile
+      ? `<button class="family-member-delete" title="구성원 삭제" onclick="deleteFamilyMember('${encodeURIComponent(m.name)}')" style="margin-left:8px;flex-shrink:0;font-size:calc(var(--fs)-3px)">✕ 삭제</button>`
+      : '';
+    return `<div class="member" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <div style="flex:1;min-width:0">
                 <span style="color:var(--muted);margin-right:8px;font-weight:700;font-size:calc(var(--fs)-2px)">${orderNum}.</span>
                 <span>${esc(m.name)}</span>
                 ${status}
               </div>
+              ${delBtn}
             </div>`;
   }).join('');
 
