@@ -112,7 +112,9 @@ function applyStoredData(){
   if(params.has('reset')){
     console.log('[PAT] ?reset=1 감지 — localStorage 초기화 → 로그인 화면');
     // ★ 가족 데이터는 reset에서도 보존 (기기 귀속 데이터)
-    const keepKeys = ['pat_family_profile','pat_family_id','pat_leader_family_profile'];
+    //   pat_device_id 필수 보존: 삭제 시 새 deviceId가 생성돼 기존 미션 완료기록
+    //   (deviceId로 식별)이 끊기고 같은 사람이 중복 레코드를 만든다(데이터 초기화처럼 보임).
+    const keepKeys = ['pat_family_profile','pat_family_id','pat_leader_family_profile','pat_device_id'];
     const saved = {};
     keepKeys.forEach(k => { saved[k] = localStorage.getItem(k); });
     localStorage.clear();
@@ -540,7 +542,10 @@ function memberLogout(){
   localStorage.removeItem('pat_family_profile');
   localStorage.removeItem('pat_family_id');
   localStorage.removeItem('pat_leader_family_profile');
-  localStorage.removeItem('pat_device_id');
+  // ★ pat_device_id 는 로그아웃에서도 보존한다. 삭제하면 재입장 시 새 deviceId가
+  //   생성돼 기존 미션 완료기록(deviceId 식별)과 끊기고 중복 레코드가 쌓인다
+  //   (= 사용자에게 "오늘 미션 데이터 초기화"처럼 보이던 근본 원인). 기기 식별자는 비민감.
+  // localStorage.removeItem('pat_device_id');  // ← 의도적으로 제거하지 않음
 
   // ⚠️ sessionStorage 백업도 제거 (세션 종료)
   try { sessionStorage.removeItem('pat_family_profile'); } catch(e) {}
