@@ -350,6 +350,16 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] findFamilyByPassword:', e.message); return null; }
   }
 
+  // 전역(현재 방 무관) 비밀번호 검색 — '다른 방 참여'용. familyId를 보내지 않아
+  // 현재 활성 방에 묶이지 않고 교회 전체에서 비번 해시로 방을 찾는다.
+  async function findFamilyByPasswordGlobal(churchCode, familyPassword) {
+    if (!ready() || !familyPassword) return null;
+    try {
+      const data = await apiPost('findFamily', { churchCode, familyPassword });
+      return data.family || null;
+    } catch (e) { console.warn('[PAT_DB] findFamilyByPasswordGlobal:', e.message); return null; }
+  }
+
   async function joinFamily(churchCode, familyId, displayName) {
     if (!ready() || !familyId) return;
     try {
@@ -562,7 +572,7 @@ window.PAT_DB = (() => {
     registerChurch, adminLogin, checkChurchCode, checkAdminId,
     submitReport, getReports, deleteReport,
     saveVerse, getLatestVerse, subscribeVerse,
-    saveFamily, findFamilyByPassword, joinFamily, removeFamilyMember,
+    saveFamily, findFamilyByPassword, findFamilyByPasswordGlobal, joinFamily, removeFamilyMember,
     getFamilyMembers, getFamilyInfo, subscribeFamily,
     saveRecord, hasRecord,
     getDashboardStats, getFamilyStats, getFamilyProgress,

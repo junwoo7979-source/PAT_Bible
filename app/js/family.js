@@ -371,6 +371,7 @@ async function joinFamilyManual(){
           members
         }));
         await PAT_DB.joinFamily(DB.church.code, found.id, name);
+        if(typeof upsertRoom === 'function') upsertRoom({ familyId: found.id, ...(loadFamilyProfile()||{}), isLeader:false });
         renderFamilyProfile();
         go('s-family');
         toast('✓ '+(found.roomName||'가족방')+'에 등록되었습니다! 🎉');
@@ -463,7 +464,8 @@ function onGroupTypeChange(){
   ph('familyLeaderName', type==='구역' ? '예: 김구역장' : '예: 김민수');
 }
 function openFamilyRegister(tab){
-  const profile = loadFamilyProfile();
+  // ★ 2단계: '다른 방 만들기' 모드면 기존 방 값으로 채우지 않고 빈 폼으로 시작
+  const profile = window._creatingNewRoom ? null : loadFamilyProfile();
   const _gt = groupTypeOf(profile);
   if(typeof selectGroupType === 'function') selectGroupType(_gt); // 값+토글 버튼 상태 동기화
   document.getElementById('familyRoomName').value   = profile?.roomName||'';
@@ -522,14 +524,19 @@ function saveFamilyProfileAsLeader(){
   // ★ localStorage에 저장된 값을 메모리에도 캐시 (다른 폴링이 읽을 수 있도록)
   window._lastSavedFamilyProfile = profileData;
 
+  // ★ 2단계: '다른 방 만들기' 모드면 기존 활성방 id를 쓰지 않고 새 방 생성
+  const _creating = !!window._creatingNewRoom;
+  if(_creating){ try{ localStorage.removeItem('pat_family_id'); }catch(e){} }
+
   if(window.PAT_DB && PAT_DB.ready()){
     // ★ BUG-FIX: 기존 가족이 있으면 업데이트, 없으면 새로 생성
-    const existingFamilyId = localStorage.getItem('pat_family_id');
+    const existingFamilyId = _creating ? null : localStorage.getItem('pat_family_id');
 
     if(existingFamilyId) {
       // 기존 가족 업데이트
       console.log('[PAT-FAMILY] 기존 가족 업데이트:', existingFamilyId);
       profileData.id = existingFamilyId;
+      if(typeof upsertRoom === 'function') upsertRoom({ familyId: existingFamilyId, ...profileData, isLeader:true });
       PAT_DB.saveFamily(DB.church.code, profileData)
         .then(familyId=>{
           if(familyId) {
@@ -544,15 +551,19 @@ function saveFamilyProfileAsLeader(){
           if(familyId) {
             localStorage.setItem('pat_family_id', familyId);
             PAT_DB.joinFamily(DB.church.code, familyId, leaderName);
+            // ★ 새 방을 내 방 목록에 등록 + 활성으로
+            if(typeof upsertRoom === 'function') upsertRoom({ familyId, ...profileData, isLeader:true });
             console.log('[PAT-FAMILY] 새로운 가족 생성 완료:', familyId);
+            if(typeof renderRoomSwitcher === 'function') renderRoomSwitcher();
           }
         });
     }
   }
+  window._creatingNewRoom = false; // 모드 해제
 
   renderFamily();
   go('s-family');
-  toast('✓ 가족방 설정이 저장되었습니다');
+  toast('✓ ' + _L.room + ' 설정이 저장되었습니다');
 }
 
 // ── 초대 링크 ─────────────────────────────────────────────
@@ -619,6 +630,7 @@ async function joinFamilyFromInvite(){
       members,
     }));
     if(familyId) await PAT_DB.joinFamily(DB.church.code, familyId, myName);
+    if(familyId && typeof upsertRoom === 'function') upsertRoom({ familyId, ...(loadFamilyProfile()||{}), isLeader:false });
     // ★ Firebase 동기화 즉시 실행 — 다른 멤버들의 정보를 받아오기
     await syncFamilyProgressFromCloud(loadFamilyProfile());
   } else {
@@ -959,7 +971,13 @@ function startFamilyProgressPolling(profile){
   }, 1000); // 1초 (기존 10초 → 1초로 단축)
 }
 function renderFamily(){
+  // ★ 2단계: 홈으로 돌아오면 '새 방 만들기' 모드 해제(취소 후 잔존 방지)
+  window._creatingNewRoom = false;
   const profile = loadFamilyProfile();
+
+  // ★ 2단계: 내 방 목록 시드(기존 단일방 사용자 호환) + 방 전환 UI 렌더
+  if(typeof seedRoomsIfNeeded === 'function') seedRoomsIfNeeded();
+  if(typeof renderRoomSwitcher === 'function') renderRoomSwitcher();
 
   // ★ 가족 데이터 없으면 Firebase 자동 복구 시도 후 재렌더
   if(!profile && window.PAT_DB && PAT_DB.ready()){
@@ -1112,6 +1130,7 @@ async function submitFamilyJoinManual(){
         };
         setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
         await PAT_DB.joinFamily(DB.church.code, found.id, name);
+        if(typeof upsertRoom === 'function') upsertRoom({ familyId: found.id, ...profileData, isLeader:false });
         renderFamily();
         go('s-family');
         toast(`✓ ${found.roomName || '가족방'}에 등록되었습니다! 🎉`);

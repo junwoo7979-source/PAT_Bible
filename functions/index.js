@@ -435,7 +435,14 @@ exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
       const parish = String(familyData.parish || '').trim();
       if (leaderName && parish) {
         const sameLeader = await col.where('leaderName', '==', leaderName).get(); // 단일 equality(인덱스 불필요)
-        const dup = sameLeader.docs.find(d => String((d.data().parish) || '').trim() === parish);
+        // ★ 2단계: 같은 대표+교구라도 방 종류(가정/구역)가 다르면 다른 방으로 취급(병합 금지).
+        //   한 사람이 가정 대표이면서 구역장도 될 수 있게 함.
+        const newType = (familyData.groupType === '구역') ? '구역' : '가정';
+        const dup = sameLeader.docs.find(d => {
+          const dd = d.data();
+          const dType = (dd.groupType === '구역') ? '구역' : '가정';
+          return String((dd.parish) || '').trim() === parish && dType === newType;
+        });
         if (dup) {
           const exist = dup.data();
           const names = new Set();   // 멤버는 합집합으로 보존(기존 + 신규)

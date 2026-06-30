@@ -1,4 +1,4 @@
-// PAT Bible — Self-destructing Service Worker  (v121)
+// PAT Bible — Self-destructing Service Worker  (v122)
 // ──────────────────────────────────────────────────────────────
 // 목적: 과거 버전에서 설치된 "옛 서비스워커"가 옛 index.html / 옛 JS 를
 //   캐시로 계속 제공해, 기기마다 화면(달성률 만점 2 vs 3 등)이 달라지는

@@ -118,7 +118,8 @@ function applyStoredData(){
     const keepPrefixes = [
       'pat_family','pat_leader_family','pat_device_id','pat_records',
       'pat_prayer','pat_read_done','pat_memorize','pat_church_code','pat_streak',
-      'pat_hist'  // ★ 수행 기록(history) 로컬 미러 — reset에서도 절대 삭제 금지
+      'pat_hist',  // ★ 수행 기록(history) 로컬 미러 — reset에서도 절대 삭제 금지
+      'pat_rooms'  // ★ 2단계: 내 방 목록 — reset에서도 보존
     ];
     try {
       const allKeys = [];
@@ -552,6 +553,7 @@ function memberLogout(){
   localStorage.removeItem('pat_family_profile');
   localStorage.removeItem('pat_family_id');
   localStorage.removeItem('pat_leader_family_profile');
+  localStorage.removeItem('pat_rooms');  // ★ 2단계: 내 방 목록도 로그아웃 시 정리(다음 입장 시 재구성)
   // ★ pat_device_id 는 로그아웃에서도 보존한다. 삭제하면 재입장 시 새 deviceId가
   //   생성돼 기존 미션 완료기록(deviceId 식별)과 끊기고 중복 레코드가 쌓인다
   //   (= 사용자에게 "오늘 미션 데이터 초기화"처럼 보이던 근본 원인). 기기 식별자는 비민감.

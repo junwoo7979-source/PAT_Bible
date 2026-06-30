@@ -44,8 +44,8 @@
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=121"></script>
-<script src="firebase-db.js?v=121"></script>
+<script src="firebase-config.js?v=122"></script>
+<script src="firebase-db.js?v=122"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -694,6 +694,9 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       </div>
     </div>
 
+    <!-- 내 모임 전환 (다중 소속) -->
+    <div id="roomSwitcher"></div>
+
     <!-- 가족방 카드 -->
     <div class="hm-card">
       <div class="hm-family-header">
@@ -711,7 +714,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
     <!-- 등록 버튼 -->
     <div style="display:flex;gap:8px;margin:8px 0">
-      <button class="btn" style="flex:1;margin:0" onclick="openFamilyRegister('leader')">👑 대표 등록</button>
+      <button class="btn" style="flex:1;margin:0" onclick="window._creatingNewRoom=false;openFamilyRegister('leader')">👑 대표 등록</button>
       <button class="btn" style="flex:1;margin:0" onclick="openFamilyJoinManual()">👨‍👩‍👧 가족 등록</button>
     </div>
     <button class="btn ghost" id="inviteLinkBtn" onclick="copyInviteLink()" style="display:none">📎 초대 링크 복사</button>
@@ -736,6 +739,36 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     </div>
     <div id="historyPicker" style="margin-bottom:12px"></div>
     <div id="historyBody"><p class="muted">불러오는 중…</p></div>
+  </section>
+
+  <!-- S-add-room: 다른 모임 추가 (선택) -->
+  <section class="screen" id="s-add-room">
+    <button class="back" onclick="go('s-family')">‹ 가족방</button>
+    <h1 style="margin-top:8px">➕ 다른 모임 추가</h1>
+    <p class="muted" style="margin:6px 0 16px">한 사람이 가정·구역 등 여러 모임에 속할 수 있어요. 만든 뒤엔 상단에서 전환합니다.</p>
+    <div class="card">
+      <h2>🏠 새 모임 만들기</h2>
+      <p class="muted" style="margin:6px 0 12px">내가 대표/구역장이 되어 새 방을 만듭니다</p>
+      <button class="btn" onclick="startCreateRoom()">새 모임 만들기</button>
+    </div>
+    <div class="card">
+      <h2>🔑 기존 모임 참여</h2>
+      <p class="muted" style="margin:6px 0 12px">이미 만들어진 모임에 비밀번호로 참여합니다</p>
+      <button class="btn" onclick="openJoinAnotherRoom()">기존 모임 참여</button>
+    </div>
+  </section>
+
+  <!-- S-join-room: 기존 모임 참여(비밀번호) -->
+  <section class="screen" id="s-join-room">
+    <button class="back" onclick="go('s-add-room')">‹ 뒤로</button>
+    <h1 style="margin-top:8px">🔑 기존 모임 참여</h1>
+    <div class="card" style="margin-top:12px">
+      <label class="lbl">내 이름</label>
+      <input class="field" id="joinRoomName" type="text" placeholder="예: 김민수" autocomplete="off">
+      <label class="lbl" style="margin-top:12px">모임 비밀번호</label>
+      <div class="pw-wrap"><input class="field" id="joinRoomPw" type="password" placeholder="모임 대표에게 물어보세요"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+      <button class="btn" style="margin-top:12px" onclick="joinAnotherRoom()">참여하기</button>
+    </div>
   </section>
 
   <!-- S3b: 가족 등록 (구성원 자가 입력) -->
@@ -1105,21 +1138,22 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 </div>
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/app-core.js?v=121"></script>
-<script src="js/verse.js?v=121"></script>
-<script src="js/family.js?v=121"></script>
-<script src="js/history.js?v=121"></script>
-<script src="js/voice.js?v=121"></script>
-<script src="js/voice-ui.js?v=121"></script>
-<script src="js/progress-store.js?v=121"></script>
-<script src="js/whisper-asr.js?v=121"></script>
-<script src="js/groq-asr.js?v=121"></script>
-<script src="js/memorize.js?v=121"></script>
-<script src="js/prayer.js?v=121"></script>
-<script src="js/reading-plan.js?v=121"></script>
-<script src="js/reading.js?v=121"></script>
-<script src="js/reset-pw.js?v=121"></script>
-<script src="js/admin.js?v=121"></script>
+<script src="js/app-core.js?v=122"></script>
+<script src="js/verse.js?v=122"></script>
+<script src="js/family.js?v=122"></script>
+<script src="js/rooms.js?v=122"></script>
+<script src="js/history.js?v=122"></script>
+<script src="js/voice.js?v=122"></script>
+<script src="js/voice-ui.js?v=122"></script>
+<script src="js/progress-store.js?v=122"></script>
+<script src="js/whisper-asr.js?v=122"></script>
+<script src="js/groq-asr.js?v=122"></script>
+<script src="js/memorize.js?v=122"></script>
+<script src="js/prayer.js?v=122"></script>
+<script src="js/reading-plan.js?v=122"></script>
+<script src="js/reading.js?v=122"></script>
+<script src="js/reset-pw.js?v=122"></script>
+<script src="js/admin.js?v=122"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';
