@@ -198,4 +198,30 @@ function readRecords(ctx) {
   console.log('  ✓ 다른 구성원 터치 시 카운트 리셋');
 })();
 
+// ── 6) groupType: 기본 '가정'(하위호환) + 대표 등록 시 종류 저장 ──
+(function testGroupType() {
+  const ctx = makeContext();
+  // 기본값: 누락 시 '가정'
+  assert.equal(ctx.groupTypeOf(null), '가정', '프로필 없으면 가정');
+  assert.equal(ctx.groupTypeOf({}), '가정', 'groupType 누락 시 가정(하위호환)');
+  assert.equal(ctx.groupTypeOf({ groupType: '구역' }), '구역', '구역 반영');
+
+  // 대표 등록 시 종류 저장 — 폼 입력값 세팅
+  ctx.go = () => {}; ctx.toast = () => {}; ctx.renderFamily = () => {};
+  const setVal = (id, v) => { ctx.document.getElementById(id).value = v; };
+  setVal('familyGroupType', '구역');
+  setVal('familyRoomName', '3구역 모임');
+  setVal('familyLeaderName', '김구역장');
+  setVal('familyParish', '1교구');
+  setVal('familyDistrict', '3구역');
+  setVal('familyPassword', 'pw1234');
+
+  ctx.saveFamilyProfileAsLeader();
+  const p = JSON.parse(ctx._storage.get('pat_family_profile'));
+  assert.equal(p.groupType, '구역', '대표 등록 시 groupType=구역 저장');
+  assert.equal(p.roomName, '3구역 모임');
+  assert.equal(p.leaderName, '김구역장');
+  console.log('  ✓ groupType 기본 가정 + 구역 등록 저장');
+})();
+
 console.log('\n✅ family-delete-preserves-records: 모든 테스트 통과');

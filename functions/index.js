@@ -635,6 +635,7 @@ exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, asy
       leaderName: familyData.leaderName || '',
       parish: familyData.parish || '',
       district: familyData.district || '',
+      groupType: familyData.groupType || '',
       members: members.map(m => {
         const name = (m.displayName || m.name || '').trim();
         const done = !!(doneByName[name] || (m.deviceId && doneByDevice[m.deviceId]));
@@ -1007,6 +1008,7 @@ exports.getFamiliesList = onRequest({ cors: true, region: 'us-central1' }, async
         familyId: doc.id,
         roomName: d.roomName || '', leaderName: d.leaderName || '',
         parish: d.parish || '', district: d.district || '',
+        groupType: d.groupType || '',
         memberCount: names.size, memberNames: Array.from(names),
       };
     }));

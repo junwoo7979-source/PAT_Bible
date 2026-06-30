@@ -36,7 +36,7 @@ function verifyFamilyPassword(churchCode, password, storedHash, pepper) {
 }
 
 // 클라이언트가 saveFamily로 저장할 수 있는 허용 필드 (화이트리스트)
-const FAMILY_ALLOWED_FIELDS = ['roomName', 'leaderName', 'parish', 'district', 'members'];
+const FAMILY_ALLOWED_FIELDS = ['roomName', 'leaderName', 'parish', 'district', 'members', 'groupType'];
 
 function sanitizeFamilyDataForSave(churchCode, data, pepper) {
   // allowlist만 복사 — 임의 필드(isAdmin, role 등) 주입 차단

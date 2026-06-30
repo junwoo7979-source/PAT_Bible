@@ -332,6 +332,7 @@ window.PAT_DB = (() => {
         leaderName: profile.leaderName,
         parish: profile.parish,
         district: profile.district,
+        groupType: profile.groupType || undefined,
         familyPassword: profile.familyPassword || undefined,
         members: Array.isArray(profile.members) ? profile.members : [],
       });
@@ -381,6 +382,7 @@ window.PAT_DB = (() => {
         leaderName: data.leaderName || '',
         parish: data.parish || '',
         district: data.district || '',
+        groupType: data.groupType || '',
         members: data.members || [],
       };
     } catch (e) { return null; }

@@ -58,6 +58,18 @@ function loadFamilyProfile(){
 
   return null;
 }
+// ── 방 종류(가정/구역) 헬퍼 (1단계) ──────────────────────────
+//   기존 데이터(누락)는 '가정'으로 간주 → 하위호환 100%.
+function groupTypeOf(profile){
+  const t = profile && profile.groupType;
+  return (t === '구역') ? '구역' : '가정';
+}
+// 종류별 표시 라벨 모음 (UI 문구만 바뀜, 데이터/구조 동일)
+function groupLabels(type){
+  return (type === '구역')
+    ? { room:'구역방', roomName:'구역 이름', leader:'구역장 이름', icon:'🧩', emptyTitle:'구역방' }
+    : { room:'가족방', roomName:'가족방 이름', leader:'가족 대표 이름', icon:'👨‍👩‍👧', emptyTitle:'우리 가족방' };
+}
 function familyRoomName(profile){
   if(!profile) return '';
   return profile.roomName || (profile.memberName ? familyNameFromMember(profile.memberName) : '');
@@ -110,6 +122,7 @@ async function refreshFamilyProfileByPassword(profile, password){
       leaderName: found.leaderName || profile.leaderName || '',
       parish: found.parish || profile.parish || '',
       district: found.district || profile.district || '',
+      groupType: found.groupType || profile.groupType || '',
       familyPassword: password,
       memberName: profile.memberName || profile.leaderName || found.leaderName || '',
       members: mergedMembers.length ? mergedMembers : localMembers,
@@ -156,6 +169,7 @@ async function tryAutoRecoverFamily(){
       leaderName: match.leaderName,
       parish: match.parish,
       district: match.district || '',
+      groupType: match.groupType || '',
       familyPassword: DB.church.code,
       members: match.memberNames,
       memberName: confirmedNames.find(n => match.memberNames.includes(n)) || match.leaderName,
@@ -177,17 +191,19 @@ async function tryAutoRecoverFamily(){
 function renderFamilyProfile(){
   const profile = loadFamilyProfile();
   const roomName = familyRoomName(profile);
+  const L = groupLabels(groupTypeOf(profile));
   document.getElementById('familyRoomTitle').textContent = profile
-    ? `👨‍👩‍👧 ${roomName || '우리 가족방'}`
-    : '👨‍👩‍👧 우리 가족방';
+    ? `${L.icon} ${roomName || L.emptyTitle}`
+    : `${L.icon} ${L.emptyTitle}`;
   if(profile){
     const parishLabel   = profile.parish   ? (/교구$/.test(profile.parish)   ? profile.parish   : profile.parish+'교구')   : '';
     const districtLabel = profile.district ? (/구역$/.test(profile.district) ? profile.district : profile.district+'구역') : '';
-    const leaderLabel   = profile.leaderName ? '대표 '+profile.leaderName : (profile.memberName || '');
+    const leaderTitle   = groupTypeOf(profile) === '구역' ? '구역장 ' : '대표 ';
+    const leaderLabel   = profile.leaderName ? leaderTitle+profile.leaderName : (profile.memberName || '');
     const parts = [leaderLabel, parishLabel, districtLabel].filter(Boolean);
     document.getElementById('familyProfile').textContent = parts.join(' ');
   } else {
-    document.getElementById('familyProfile').textContent = '가족방을 등록해주세요';
+    document.getElementById('familyProfile').textContent = '방을 등록해주세요';
   }
   // ★ 가족방 정보가 업데이트되면 등록된 가족방 카드도 즉시 반영
   renderRegisteredFamilyRoom();
@@ -348,6 +364,7 @@ async function joinFamilyManual(){
           leaderName:found.leaderName||'',
           parish:found.parish||'',
           district:found.district||'',
+          groupType:found.groupType||'',
           familyPassword:found.familyPassword||pw,
           memberName:name,
           isLeader:false,
@@ -417,8 +434,24 @@ function populateFamilyParishOptions(selected){
   sel.innerHTML = html;
   sel.value = selected || '';
 }
+// 등록 폼: 방 종류 선택에 따라 라벨/플레이스홀더 전환 (데이터 영향 없음)
+function onGroupTypeChange(){
+  const sel = document.getElementById('familyGroupType');
+  const type = sel ? sel.value : '가정';
+  const L = groupLabels(type);
+  const set = (id, txt) => { const e = document.getElementById(id); if(e) e.textContent = txt; };
+  const ph  = (id, txt) => { const e = document.getElementById(id); if(e) e.placeholder = txt; };
+  set('familyRoomNameLabel', L.roomName);
+  set('familyLeaderLabel', L.leader);
+  ph('familyRoomName', type==='구역' ? '예: 3구역 모임' : '예: 믿음 가족방');
+  ph('familyLeaderName', type==='구역' ? '예: 김구역장' : '예: 김민수');
+}
 function openFamilyRegister(tab){
   const profile = loadFamilyProfile();
+  const _gt = groupTypeOf(profile);
+  const gtSel = document.getElementById('familyGroupType');
+  if(gtSel){ gtSel.value = _gt; }
+  if(typeof onGroupTypeChange === 'function') onGroupTypeChange();
   document.getElementById('familyRoomName').value   = profile?.roomName||'';
   document.getElementById('familyLeaderName').value = profile?.leaderName||'';
   populateFamilyParishOptions(profile?.parish||'');
@@ -436,9 +469,13 @@ function saveFamilyProfileAsLeader(){
   const parish     = document.getElementById('familyParish').value.trim();
   const district   = document.getElementById('familyDistrict').value.trim();
   let familyPassword = document.getElementById('familyPassword').value.trim();
+  // ★ 1단계: 방 종류(가정/구역). 누락 시 '가정'(하위호환)
+  const _gtSel = document.getElementById('familyGroupType');
+  const groupType = (_gtSel && _gtSel.value === '구역') ? '구역' : '가정';
+  const _L = groupLabels(groupType);
 
   if(!roomName||!leaderName||!parish||!district){
-    toast('가족방 이름, 대표 이름, 교구와 구역을 입력하세요');
+    toast(`${_L.roomName}, ${_L.leader}, 교구와 구역을 입력하세요`);
     return;
   }
 
@@ -452,7 +489,7 @@ function saveFamilyProfileAsLeader(){
   const members = [leaderName];
 
   // memberName: 대표자 기기에선 대표자가 "나"
-  const profileData = { roomName, leaderName, parish, district, familyPassword, members, memberName: leaderName };
+  const profileData = { roomName, leaderName, parish, district, familyPassword, members, memberName: leaderName, groupType };
 
   setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
 
@@ -562,6 +599,7 @@ async function joinFamilyFromInvite(){
       leaderName:   found.leaderName   || data.leaderName,
       parish:       found.parish       || data.parish,
       district:     found.district     || data.district,
+      groupType:    found.groupType    || data.groupType || '',
       familyPassword: pw,
       memberName:   myName,
       members,
@@ -874,6 +912,10 @@ function startFamilyProgressPolling(profile){
       if(fbInfo.district && fbInfo.district !== freshProfile.district) {
         shouldUpdate.district = fbInfo.district;
       }
+      // ★ 1단계: 방 종류(groupType) 동기화 — 값이 있을 때만 갱신(하위호환)
+      if(fbInfo.groupType && fbInfo.groupType !== freshProfile.groupType) {
+        shouldUpdate.groupType = fbInfo.groupType;
+      }
 
       // 2. members 동기화 (대표가 저장한 최신 구성원 목록으로 교체)
       if(Array.isArray(fbInfo.members)){
@@ -1049,6 +1091,7 @@ async function submitFamilyJoinManual(){
           leaderName: found.leaderName || '',
           parish: found.parish || '',
           district: found.district || '',
+          groupType: found.groupType || '',
           familyPassword: pw,
           memberName: name,
           members
