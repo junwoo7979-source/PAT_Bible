@@ -235,6 +235,10 @@ function switchRegTab(tab){
   document.getElementById('tabMember').style.color      = isLeader?'var(--text)':'#fff';
   renderRegisteredFamilyRoom();
 }
+// ★★ 데이터 분리 원칙(v117): 구성원 삭제는 '가족방 명단(roster) 정보'만 변경한다.
+//   - 변경 대상: pat_family_profile.members / 서버 family 문서 members 배열 + 입장기록(서브컬렉션)
+//   - 절대 미접촉: pat_records(미션 수행 기록), pat_prayer_*, pat_read_done_*, 서버 records 컬렉션
+//   서버 records를 지우는 함수는 deleteFamily(관리자 전용)뿐이며, 이 경로에서는 호출하지 않는다.
 async function deleteFamilyMember(encodedName){
   const name    = decodeURIComponent(encodedName);
   const profile = loadFamilyProfile();

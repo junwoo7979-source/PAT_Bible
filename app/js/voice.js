@@ -68,32 +68,21 @@ function resetMemorizeProgress(){
   memorizeCompleted = false;
   reviewMode = false;
 
-  // ★ 어제 이전 기록만 정리하고 "오늘 완료한 기록은 보존" — 날짜 오판이 생겨도
-  //   오늘 미션 데이터가 통째로 날아가지 않게 하는 안전장치.
+  // ★★ 재발방지(v117): 날짜가 바뀌어도 미션 수행 기록(pat_records)은 절대 삭제/정리하지 않는다.
+  //   - 과거엔 "어제 이전 기록 정리(오늘 것만 보존)"를 했으나, 이는 날짜별 수행 이력을
+  //     영구 삭제하는 부작용이 있었다. 배포 시 자기파괴 SW의 강제 새로고침 + 날짜 오판이
+  //     겹치면 과거 기록이 통째로 사라져 "데이터 초기화 재발"의 근본 원인이 됐다.
+  //   - 오늘의 달성률·완료 표시는 updateHomeDisplay 등에서 '오늘 날짜로 필터링'해 계산하므로,
+  //     기록을 100% 보존해도 화면은 정상이다. → 완료 기록은 보존하고, '진행 중' 세션만 초기화.
   try {
-    const today = getTodayDateString();
-    const recs = JSON.parse(localStorage.getItem('pat_records') || '[]');
-    if (Array.isArray(recs)) {
-      const kept = recs.filter(r => {
-        const ts = r && (r.completedAt || r.date);
-        if (!ts) return false;
-        const d = new Date(ts);                       // completedAt(UTC ISO)
-        const local = d.getFullYear() + '-' +
-          String(d.getMonth() + 1).padStart(2, '0') + '-' +
-          String(d.getDate()).padStart(2, '0');       // → 로컬 날짜로 환산
-        return local === today;                        // 오늘 것만 보존
-      });
-      if (kept.length) localStorage.setItem('pat_records', JSON.stringify(kept));
-      else localStorage.removeItem('pat_records');
-    }
-    localStorage.removeItem('pat_daily_tasks');
+    // 진행 중이던 암송 세션(음성/타이핑 입력 단계)만 정리 — 완료 기록(pat_records)은 손대지 않음
     if (typeof clearMemorizeState === 'function') clearMemorizeState();
-    console.log('[DATE-RESET] ✅ 어제 기록 정리(오늘 기록 보존)');
+    console.log('[DATE-RESET] ✅ 진행중 세션만 초기화 — 미션 기록(pat_records) 전량 보존');
   } catch(e) {
-    console.error('[DATE-RESET] localStorage 정리 실패:', e.message);
+    console.error('[DATE-RESET] 세션 초기화 실패:', e.message);
   }
 
-  console.log('[DATE-RESET] ✅ 암송 진행 상태 완전 초기화 완료');
+  console.log('[DATE-RESET] ✅ 암송 진행 상태 초기화 완료(기록 보존)');
 }
 
 // ── 환경 감지 ─────────────────────────────────────────────

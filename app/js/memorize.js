@@ -401,8 +401,13 @@ function toggleLenient(){
   toast(LENIENT?'관대 모드 ON (기준 완화)':'관대 모드 OFF');
 }
 function resetData(){
+  // ★ 보호장치(v117): 미션 기록 '전체 삭제'는 위험 → 명시적 확인 필수.
+  //   (체험용 버튼이 실수로 눌려 실제 수행 데이터가 사라지는 것을 방지)
+  if(typeof confirm === 'function' &&
+     !confirm('정말로 이 기기의 모든 미션 기록을 삭제할까요?\n(체험용 기능 — 실제 수행 기록이 모두 사라집니다)')) return;
   localStorage.removeItem('pat_records');
-  DB.members.find(m=>m.me).done = false;
+  const me = DB.members && DB.members.find(m=>m.me);
+  if(me) me.done = false;
   toast('기록이 초기화되었습니다');
   renderFamily();
 }
