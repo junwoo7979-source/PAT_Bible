@@ -715,6 +715,28 @@ async function syncFamilyProgressFromCloud(profile){
   const freshProfile = loadFamilyProfile() || profile;
   const myName = freshProfile.memberName || freshProfile.leaderName || '';
 
+  // ★ 개인 실천율 서버 재동기화(FIX): 서버가 '오늘(KST) 현재구절 완료(doneToday)'를
+  //   확인하면, 로컬 미러(pat_records)에 오늘 기록이 없을 때만 추가한다.
+  //   - 삭제/덮어쓰기 절대 없음(add-only), 오늘 기록이 이미 있으면 아무것도 안 함.
+  //   - 기기 교체·재설치·캐시초기화·멀티폰으로 로컬이 비어도 개인 점수가
+  //     0으로 잘못 표시되는 문제(데이터 초기화처럼 보임)를 막는다.
+  try {
+    const myNameT = String(myName).trim();
+    if (myNameT && DB.verse && DB.verse.ref) {
+      const mineCloud = cloudMembers.find(m => ((m.displayName || m.name || '').trim()) === myNameT);
+      if (mineCloud && mineCloud.doneToday) {
+        const recs = loadRec();
+        const today = todayKey();
+        const hasToday = recs.some(r => { const ts = r.completedAt || r.date; return ts && _localDateStr(ts) === today; });
+        if (!hasToday) {
+          recs.push({ ref: DB.verse.ref, completedAt: new Date().toISOString(), badge: 'weekly_complete', _src: 'server-sync' });
+          saveRec(recs);
+          if (typeof updateHomeDisplay === 'function') updateHomeDisplay();
+        }
+      }
+    }
+  } catch(e) {}
+
   // Firebase는 완료 여부를 가져오고, 구성원 목록이 있으면 대표가 저장한 목록을 기준으로 삼음
   const doneMap = {};
   cloudMembers.forEach(m => {

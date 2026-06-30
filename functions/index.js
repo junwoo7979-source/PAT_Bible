@@ -607,14 +607,27 @@ exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, asy
     // ★ done = 현재 구절을 실제로 완료(기록 존재)한 멤버만 true.
     //   등록/입장만으로 done 처리하지 않는다(발생하지 않은 데이터 반영 금지).
     const doneByName = {}, doneByDevice = {};
+    // ★ doneToday = '오늘(KST)' 현재 구절을 완료한 멤버. 개인 실천율을 기기 데이터가
+    //   비어도 서버 기준으로 복구하기 위함(멀티폰/재설치/캐시초기화 대비). 기존 done은 유지.
+    const doneTodayByName = {}, doneTodayByDevice = {};
+    const todayKst = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+    const kstDate = (ts) => {
+      try { return new Date(ts.toDate().getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10); }
+      catch (e) { return ''; }
+    };
     if (verseRef) {
       const recSnap = await db.collection(`churches/${churchCode}/records`)
         .where('familyId', '==', familyId).get();
       recSnap.docs.forEach(doc => {
         const r = doc.data();
         if (r.verseRef !== verseRef) return;
-        if (r.memberName) doneByName[String(r.memberName).trim()] = true;
+        const nm = r.memberName ? String(r.memberName).trim() : '';
+        if (nm) doneByName[nm] = true;
         if (r.deviceId) doneByDevice[r.deviceId] = true;
+        if (r.createdAt && kstDate(r.createdAt) === todayKst) {
+          if (nm) doneTodayByName[nm] = true;
+          if (r.deviceId) doneTodayByDevice[r.deviceId] = true;
+        }
       });
     }
     res.json({
@@ -625,7 +638,8 @@ exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, asy
       members: members.map(m => {
         const name = (m.displayName || m.name || '').trim();
         const done = !!(doneByName[name] || (m.deviceId && doneByDevice[m.deviceId]));
-        return { ...m, done };
+        const doneToday = !!(doneTodayByName[name] || (m.deviceId && doneTodayByDevice[m.deviceId]));
+        return { ...m, done, doneToday };
       })
     });
   } catch (e) { errRes(res, e); }
