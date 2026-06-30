@@ -21,17 +21,25 @@
      사용자가 수동으로 Ctrl+F5 한 번만 하면 완전히 초기화됨. -->
 <script>
 (function() {
-  if (!('serviceWorker' in navigator)) return;
-  // 모든 SW 해제 (reload 없이)
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-    regs.forEach(function(r) { r.unregister(); });
-  }).catch(function() {});
-  // 모든 캐시 삭제
+  // 캐시 즉시 삭제 (SW 유무와 무관) — 옛 JS/HTML 잔존 방지
   if (window.caches) {
-    caches.keys().then(function(keys) {
-      keys.forEach(function(k) { caches.delete(k); });
-    }).catch(function() {});
+    try { caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); }).catch(function() {}); } catch(e) {}
   }
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    var hadSW = regs.length > 0;          // 옛 서비스워커가 실제로 있었는지
+    regs.forEach(function(r) { r.unregister(); });
+    // ★ 옛 SW가 있었고(=옛 캐시 버전을 보던 기기), 이번 세션에 아직 정리 안 했으면
+    //   1회만 강제 새로고침 → 다음 로드는 SW 없이 최신 index.html + 최신 JS(?v=NNN)를 받음.
+    //   (옛 SW가 옛 index/JS를 계속 제공해 ?v 캐시버스팅이 무력화되는 데드락 자동 해소.
+    //    sessionStorage 플래그로 세션당 1회만 실행 → 무한 새로고침 방지.)
+    try {
+      if (hadSW && !sessionStorage.getItem('pat_sw_purged')) {
+        sessionStorage.setItem('pat_sw_purged', '1');
+        location.reload();
+      }
+    } catch(e) {}
+  }).catch(function() {});
 })();
 </script>
 
