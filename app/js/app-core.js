@@ -510,32 +510,37 @@ function adminLogout(){
 function memberLogout(){
   const code = document.getElementById('churchCode');
   if(code) code.value = '';
-  // ★ 가족 데이터는 기기에 영구 보존 — 로그아웃해도 삭제하지 않음
-  //   가족방은 기기(사람) 단위로 귀속되므로, 재로그인 후 즉시 복원되어야 함
-  //   삭제하면: 재로그인 시 가족방 초기화 → 재등록 시 중복 생성 반복 (근본 버그)
-  // localStorage.removeItem('pat_family_profile');    ← 삭제하지 않음!
-  // localStorage.removeItem('pat_family_id');         ← 삭제하지 않음!
-  // localStorage.removeItem('pat_leader_family_profile'); ← 삭제하지 않음!
+
+  // ★ 혼합형 로그아웃: 가족 데이터 삭제 (다음 입장 시 비밀번호 재입력 유도)
+  //   - 평소: 앱을 열면 자동 입장 (편의)
+  //   - 로그아웃: 가족 데이터 지워 다음 입장 시 비밀번호 요구 (보안)
+  //   - 중복 생성 버그 우려 없음: loadFamilyProfile이 백업(pat_leader_family_profile)에서 복구 가능
+  localStorage.removeItem('pat_family_profile');
+  localStorage.removeItem('pat_family_id');
+  localStorage.removeItem('pat_leader_family_profile');
   localStorage.removeItem('pat_device_id');
-  // ⚠️ sessionStorage 백업만 제거 (세션 종료 시 자동 소멸되므로 명시 제거)
-  // ★ localStorage 쓰기 실패 시 남았을 수 있는 sessionStorage 백업까지 제거
-  //   (loadFamilyProfile 이 sessionStorage 백업을 읽어 새로고침 시 가족화면 복원 → 튕김 방지)
+
+  // ⚠️ sessionStorage 백업도 제거 (세션 종료)
   try { sessionStorage.removeItem('pat_family_profile'); } catch(e) {}
+
   // 폴링 중지
   if(window.familyProgressPollTimer) clearInterval(window.familyProgressPollTimer);
   window.familyProgressPollTimer = null;
   window.familyProgressPollKey = '';
+
   // ★ 새로고침(당겨서 새로고침) 시 이전 화면으로 튕기지 않도록 — go('s-login')과 동일한 보호 플래그.
   try { sessionStorage.setItem('pat_stay_login', '1'); } catch(e) {}
-  // 로그아웃 후 뒤로가기에서 이전 페이지로 돌아가지 않도록 replaceState 사용
+
+  // 로그아웃 후 뒤로가기에서 이전 페이지로 돌아가지 않도록
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
   const target = document.getElementById('s-login');
   if(target) target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
   if(tabbar) tabbar.style.display = 'none';
+
   // 누적된 히스토리를 루트로 접어 — 로그인 화면에서 back 한 번에 폰 홈으로 종료되게 함
   collapseHistoryToLogin();
-  toast('로그아웃되었습니다');
+  toast('로그아웃되었습니다. 다음 입장 시 비밀번호를 입력해주세요');
 }
 function syncAdminVerseFields(){
   document.getElementById('inRef').value = DB.verse.ref || '';
