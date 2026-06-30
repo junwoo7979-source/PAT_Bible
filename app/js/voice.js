@@ -18,7 +18,15 @@ let micPermissionRequestedThisSession=false;
 // ★ BUG-FIX: _memorizeSessionDate를 localStorage에서 로드하여 초기값 설정
 //   (로그아웃/재로그인 시 동일 날짜이면 records를 보존하도록 수정)
 let _memorizeSessionDate = null;  // 현재 암송 세션이 시작된 날짜
-function getTodayDateString(){ return new Date().toISOString().slice(0, 10); }
+// ★ 로컬(KST) 날짜 — UTC(toISOString) 사용 시 한국시간 자정~오전9시에 날짜가 어긋나
+//   "날짜 변경"으로 오판 → pat_records(미션 기록)가 오전 9시에 삭제되던 치명 버그 수정.
+//   (todayKey/_localDateStr 등 다른 날짜 로직과 동일하게 로컬 기준으로 통일)
+function getTodayDateString(){
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
 function initMemorizeSessionDate(){
   // localStorage에서 저장된 세션 날짜 로드 (처음 실행 시)
   const saved = localStorage.getItem('pat_memorize_session_date');
@@ -60,14 +68,29 @@ function resetMemorizeProgress(){
   memorizeCompleted = false;
   reviewMode = false;
 
-  // ★ 중요: localStorage의 어제 기록도 초기화
+  // ★ 어제 이전 기록만 정리하고 "오늘 완료한 기록은 보존" — 날짜 오판이 생겨도
+  //   오늘 미션 데이터가 통째로 날아가지 않게 하는 안전장치.
   try {
-    localStorage.removeItem('pat_records');
+    const today = getTodayDateString();
+    const recs = JSON.parse(localStorage.getItem('pat_records') || '[]');
+    if (Array.isArray(recs)) {
+      const kept = recs.filter(r => {
+        const ts = r && (r.completedAt || r.date);
+        if (!ts) return false;
+        const d = new Date(ts);                       // completedAt(UTC ISO)
+        const local = d.getFullYear() + '-' +
+          String(d.getMonth() + 1).padStart(2, '0') + '-' +
+          String(d.getDate()).padStart(2, '0');       // → 로컬 날짜로 환산
+        return local === today;                        // 오늘 것만 보존
+      });
+      if (kept.length) localStorage.setItem('pat_records', JSON.stringify(kept));
+      else localStorage.removeItem('pat_records');
+    }
     localStorage.removeItem('pat_daily_tasks');
     if (typeof clearMemorizeState === 'function') clearMemorizeState();
-    console.log('[DATE-RESET] ✅ localStorage도 초기화됨');
+    console.log('[DATE-RESET] ✅ 어제 기록 정리(오늘 기록 보존)');
   } catch(e) {
-    console.error('[DATE-RESET] localStorage 초기화 실패:', e.message);
+    console.error('[DATE-RESET] localStorage 정리 실패:', e.message);
   }
 
   console.log('[DATE-RESET] ✅ 암송 진행 상태 완전 초기화 완료');
