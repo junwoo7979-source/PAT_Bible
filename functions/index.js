@@ -763,7 +763,11 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
 
     // ✅ 1️⃣ 모든 등록된 가정(families) 조회
     const familiesSnap = await db.collection(`churches/${churchCode}/families`).get();
-    console.log(`[PAT-DASHBOARD] ✅ 등록된 가정 수집: ${familiesSnap.size}개 가정`);
+    // ★ 4단계: 교구 현황은 '가정'만 집계(구역 등 소그룹이 가족/교구 통계를 오염시키지 않게).
+    //   groupType 누락 = 가정(하위호환). 구역은 별도 시상으로만 본다.
+    const _isGajeong = (d) => ((d.data().groupType === '구역') ? '구역' : '가정') === '가정';
+    const gajeongDocs = familiesSnap.docs.filter(_isGajeong);
+    console.log(`[PAT-DASHBOARD] ✅ 등록된 가정 수집: ${gajeongDocs.length}개 가정(전체 ${familiesSnap.size})`);
 
     // ✅ 2️⃣ 해당 구절의 모든 암송 기록(records) 조회
     const recordsSnap = await db.collection(`churches/${churchCode}/records`)
@@ -772,7 +776,7 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
 
     // ✅ 3️⃣ 가정별 등록 인원(헤드카운트) + 가정→교구 매핑
     //    각 가정의 인원 = 선언 members + 입장 members(서브컬렉션) 이름 합집합.
-    const families = await Promise.all(familiesSnap.docs.map(async doc => {
+    const families = await Promise.all(gajeongDocs.map(async doc => {
       const data = doc.data();
       const joinedSnap = await doc.ref.collection('members').get();
       return {
@@ -796,11 +800,13 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
     //    ★ 기준 통일: 가족 실천(암송 OR 기도)과 동일 기준으로 교구도 집계.
     //      (이전엔 암송 records 만 봐서, 기도만 한 구성원이 가족 실천엔 잡히나
     //       교구 현황엔 0으로 빠져 두 화면 수치가 어긋났음)
-    const records = recordsSnap.docs.map(doc => doc.data());
+    // ★ 4단계: 가정 기록만 집계(구역 기록 제외). groupType 누락 = 가정(하위호환)
+    const records = recordsSnap.docs.map(doc => doc.data())
+      .filter(r => ((r.groupType === '구역') ? '구역' : '가정') === '가정');
     // 오늘(KST) 기도한 구성원을 완료 레코드로 합산
     const kstToday = (() => { const k = new Date(Date.now() + 9 * 3600 * 1000); return k.toISOString().slice(0, 10); })();
     const prayerRecords = [];
-    await Promise.all(familiesSnap.docs.map(async fdoc => {
+    await Promise.all(gajeongDocs.map(async fdoc => {
       const psnap = await fdoc.ref.collection('prayers').get();
       psnap.docs.forEach(p => {
         const pd = p.data();
@@ -820,7 +826,7 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
     const completedFamilies = new Set();
     completionRecords.forEach(r => { if (r.familyId) completedFamilies.add(r.familyId); });
     const completedTotal = completedFamilies.size;  // 완료한 가정 수
-    const totalFamilies = familiesSnap.size;        // 등록된 모든 가정 수
+    const totalFamilies = gajeongDocs.length;       // 등록된 '가정' 수(구역 제외)
 
     console.log(`\n[PAT-DASHBOARD] ===== 최종 결과 =====`);
     console.log(`  등록 가정: ${totalFamilies}개, 등록 인원: ${totalMembers}명`);
@@ -980,16 +986,20 @@ exports.transcribeAudio = onRequest({ cors: true, region: 'us-central1', secrets
 exports.getAwardRanking = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
   if (!begin(req, res)) return;
   try {
-    const { churchCode } = req.query;
+    const { churchCode, groupType } = req.query;
     if (!assertChurchCode(churchCode, res)) return;
+    // ★ 4단계: 종류별 시상 분리. 미지정 시 '가정'(하위호환 — 기존 호출은 가정 순위).
+    const wantType = (groupType === '구역') ? '구역' : '가정';
 
     // 총 구절 수(분모)
     const versesSnap = await db.collection(`churches/${churchCode}/verses`).get();
     const totalVerses = versesSnap.size;
 
-    // 가족 + 멤버명(선언 members + 입장 members 합집합)
+    // 가족 + 멤버명(선언 members + 입장 members 합집합) — 요청 종류(wantType)만
     const familiesSnap = await db.collection(`churches/${churchCode}/families`).get();
-    const families = await Promise.all(familiesSnap.docs.map(async doc => {
+    const families = await Promise.all(familiesSnap.docs
+      .filter(doc => ((doc.data().groupType === '구역') ? '구역' : '가정') === wantType)
+      .map(async doc => {
       const data = doc.data();
       const names = new Set();
       if (Array.isArray(data.members)) {
@@ -1011,7 +1021,7 @@ exports.getAwardRanking = onRequest({ cors: true, region: 'us-central1' }, async
     const records = recordsSnap.docs.map(d => d.data());
 
     const ranking = rankFamilies(families, records, totalVerses);
-    res.json({ ranking, totalVerses });
+    res.json({ ranking, totalVerses, groupType: wantType });
   } catch (e) { errRes(res, e); }
 });
 

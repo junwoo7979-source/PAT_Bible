@@ -488,10 +488,12 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] getFamiliesList:', e.message); return null; }
   }
 
-  async function getAwardRanking(churchCode) {
+  async function getAwardRanking(churchCode, groupType) {
     if (!ready()) return null;
     try {
-      return await apiGet('getAwardRanking', { churchCode });
+      const params = { churchCode };
+      if (groupType) params.groupType = groupType;
+      return await apiGet('getAwardRanking', params);
     } catch (e) { console.warn('[PAT_DB] getAwardRanking:', e.message); return null; }
   }
 

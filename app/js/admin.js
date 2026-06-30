@@ -193,12 +193,19 @@ function calculateFamilyPracticeRate(familyId, churchCode) {
   };
 }
 
+// ★ 4단계: 시상 순위 종류(가정/구역) 상태. 기본 '가정'.
+let _awardGroupType = '가정';
+function setAwardGroupType(type){
+  _awardGroupType = (type === '구역') ? '구역' : '가정';
+  renderAwardRanking();
+}
+
 // ── 교회 내 모든 가족 순위 (Firestore 통합 — 교구별 현황과 동일 소스) ──
-async function getRankedFamilies(churchCode) {
+async function getRankedFamilies(churchCode, groupType) {
   // ★ 시상관리 = 가족별 실천율(완료 구절 수 / 총 구절 수) 순위.
   //   서버(getAwardRanking)가 가족·멤버·기록·총구절수로 계산 → 교구별 현황과 동일 데이터로 통합.
   if (window.PAT_DB && PAT_DB.ready && PAT_DB.ready() && PAT_DB.getAwardRanking) {
-    const data = await PAT_DB.getAwardRanking(churchCode);
+    const data = await PAT_DB.getAwardRanking(churchCode, groupType || _awardGroupType);
     if (data && Array.isArray(data.ranking)) return data.ranking;
   }
   return [];
@@ -207,7 +214,12 @@ async function getRankedFamilies(churchCode) {
 // ── 시상 순위 렌더링 ────────────────────────────────────
 async function renderAwardRanking() {
   const churchCode = DB?.church?.code || '11111';
-  const rankings = await getRankedFamilies(churchCode);
+  // 종류 토글 버튼 활성 상태 갱신
+  const ga = document.getElementById('awardTypeGajeong');
+  const gu = document.getElementById('awardTypeGuyeok');
+  const paint = (el,on)=>{ if(!el) return; el.style.background = on?'var(--accent)':'var(--surface)'; el.style.color = on?'#fff':'var(--text)'; };
+  paint(ga, _awardGroupType==='가정'); paint(gu, _awardGroupType==='구역');
+  const rankings = await getRankedFamilies(churchCode, _awardGroupType);
 
   // 실천율 기준 정렬
   rankings.sort((a, b) => b.averageRate - a.averageRate);
