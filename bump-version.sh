@@ -14,13 +14,13 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 HTML="$DIR/app/index.html"
 SW="$DIR/app/sw.js"
 
-# ① index.html: 모든 .js script src 에 ?v=V (이미 ?v 있으면 교체)
+# ① index.html: 모든 .js script src 에 ?v=V (이미 ?v 있으면 교체) — 핵심 캐시버스팅
 sed -i -E "s|(<script src=\"[^\"]+\.js)(\?v=[0-9]+)?\"|\1?v=$V\"|g" "$HTML"
-# ② sw.js: CACHE_NAME 버전
-sed -i -E "s|(const CACHE_NAME = 'pat-bible-app-v)[0-9]+';|\1$V';|" "$SW"
+# ② sw.js: 자기파괴 SW의 버전 주석 갱신 (바이트 변경 → 옛 SW가 업데이트로 받아 자가 파괴)
+sed -i -E "s|(Self-destructing Service Worker  \(v)[0-9]+\)|\1$V)|" "$SW"
 
 echo "✅ v$V 적용 완료"
 echo "   - index.html JS script: ?v=$V"
-echo "   - sw.js CACHE_NAME: pat-bible-app-v$V"
+echo "   - sw.js (self-destruct) 버전 주석: v$V"
 echo ""
 echo "다음: firebase deploy --only hosting  (functions 수정 시 functions 도 포함)"
