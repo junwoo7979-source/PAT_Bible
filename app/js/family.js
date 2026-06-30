@@ -606,16 +606,19 @@ async function fetchPrayedMembersToday(){
 function updateHomeDisplay(){
   const recs  = loadRec();
   const today = todayKey();
-  // ★ 점수 연산 수정: 실제 활동 3가지에 연결 (암송 / 기도 / 통독)
+  // ★ 점수 연산: 실제 활동 = 암송 / 기도 (2점 만점)
   //   - (버그) 기존엔 r.date 를 봤으나 암송 기록은 completedAt 필드라 항상 0점이었음
+  //   - (수정 v108) 통독(읽기표)은 대한성서공회 API 미승인으로 실질 콘텐츠가 없어
+  //     분모에 넣으면 암송+기도를 다 해도 최대 67%(2/3)에 막힘. 가족방 미션 기준
+  //     (암송 OR 기도)과도 불일치. → 통독을 점수에서 제외(암송/기도 2점 만점).
+  //     ※ 통독 API 연동 시 read 변수와 +(read?1:0)/maxScore 3 복구하면 됨.
   const memorized = recs.some(r => {
     const ts = r.completedAt || r.date;
     return ts && _localDateStr(ts) === today; // UTC 저장값을 로컬 날짜로 환산해 오늘과 비교
   });
   const prayed    = _isPrayerDoneToday();
-  const read      = _isReadingDoneToday();
-  const total     = (memorized?1:0) + (prayed?1:0) + (read?1:0);
-  const maxScore  = 3;
+  const total     = (memorized?1:0) + (prayed?1:0);
+  const maxScore  = 2;
   const pct       = Math.round(total/maxScore*100);
 
   const el = id => document.getElementById(id);
