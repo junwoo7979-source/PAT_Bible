@@ -117,7 +117,8 @@ function applyStoredData(){
     //    사용자 데이터를 파괴하는 것이 아님)
     const keepPrefixes = [
       'pat_family','pat_leader_family','pat_device_id','pat_records',
-      'pat_prayer','pat_read_done','pat_memorize','pat_church_code','pat_streak'
+      'pat_prayer','pat_read_done','pat_memorize','pat_church_code','pat_streak',
+      'pat_hist'  // ★ 수행 기록(history) 로컬 미러 — reset에서도 절대 삭제 금지
     ];
     try {
       const allKeys = [];

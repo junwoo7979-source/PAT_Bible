@@ -808,6 +808,75 @@ exports.getDashboard = onRequest({ cors: true, region: 'us-central1' }, async (r
   } catch (e) { errRes(res, e); }
 });
 
+// ── 수행 기록(history) 조회 — 날짜 범위로 records(∪ 기도) 반환 ────────────
+//   · 가족 단위: GET ?churchCode&familyId&from&to (familyId 보유 = 가족 본인 인증)
+//   · 교회 전체(연말 시상): POST {churchCode,from,to} + 관리자 인증 (familyId 없음)
+//   ⚠️ 읽기 전용 — 어떤 데이터도 생성/수정/삭제하지 않는다(시상 근거 보존 보장).
+//   ⚠️ records 는 add-only 누적 저장소라, 이 조회는 과거 기록을 그대로 반환한다.
+exports.getMissionHistory = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  try {
+    const src = req.method === 'POST' ? (req.body || {}) : (req.query || {});
+    const { churchCode, familyId, from, to } = src;
+    if (!assertChurchCode(churchCode, res)) return;
+    // familyId 없는 전체 조회는 관리자 전용 (무단 교회 전체 덤프 차단)
+    if (!familyId) {
+      if (!(await assertChurchAdmin(req, res, churchCode))) return;
+    }
+    const fromD = from || '0000-01-01';
+    const toD = to || '9999-12-31';
+    const kstDate = (ts) => {
+      try { return new Date(ts.toDate().getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10); }
+      catch (e) { return ''; }
+    };
+
+    // 1) 암송 records (읽기/쓰기 체크 포함)
+    let q = db.collection(`churches/${churchCode}/records`);
+    if (familyId) q = q.where('familyId', '==', familyId); // 단일 equality(인덱스 불필요)
+    const snap = await q.get();
+    const items = [];
+    snap.docs.forEach(doc => {
+      const r = doc.data();
+      const date = kstDate(r.createdAt);
+      if (!date || date < fromD || date > toD) return;
+      items.push({
+        date,
+        familyId: r.familyId || '',
+        memberName: String(r.memberName || '').trim(),
+        verseRef: r.verseRef || '',
+        mission: 'memorize',
+        read: !!(r.voiceScore1 || r.voiceScore2),   // 읽기(음성) 체크
+        write: !!(r.typeScore1 || r.typeScore2),     // 쓰기(타이핑) 체크
+        completed: true,
+        parish: r.parish || '',
+        leaderName: r.leaderName || '',
+      });
+    });
+
+    // 2) 가족 단위 조회 시 기도(prayer)도 완료로 합산 (홈/가족 화면 기준과 통일: 암송 ∪ 기도)
+    if (familyId) {
+      try {
+        const psnap = await db.collection(`churches/${churchCode}/families/${familyId}/prayers`).get();
+        psnap.docs.forEach(p => {
+          const pd = p.data() || {};
+          const date = String(pd.date || '').slice(0, 10);
+          if (!date || date < fromD || date > toD) return;
+          if (pd.memberName && pd.text && String(pd.text).trim()) {
+            items.push({
+              date, familyId,
+              memberName: String(pd.memberName).trim(),
+              verseRef: '', mission: 'prayer',
+              read: false, write: false, completed: true,
+            });
+          }
+        });
+      } catch (e) { /* prayers 없음/오류는 무시 — records 만으로도 동작 */ }
+    }
+
+    res.json({ items, count: items.length });
+  } catch (e) { errRes(res, e); }
+});
+
 // ── 가족 비밀번호 재설정 (본인 확인: 대표자 이름 + 교구 + 구역) ──
 exports.resetFamilyPassword = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
   if (!begin(req, res)) return;

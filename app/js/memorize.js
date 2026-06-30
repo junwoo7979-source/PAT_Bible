@@ -92,6 +92,26 @@ function completeMemorize(){
     const index = recs.map(r=>r.ref).lastIndexOf(DB.verse.ref);
     if(index>=0){ recs[index]={...recs[index],...record}; saveRec(recs); }
   }
+  // ★ 수행 기록(history) 누적 — 오늘 상태와 분리된 '날짜별 영구 기록'. 덮어쓰기/삭제 없음.
+  if(typeof recordMissionHistory === 'function'){
+    try{
+      const _p  = (typeof loadFamilyProfile==='function') ? loadFamilyProfile() : null;
+      const _me = (_p && (_p.memberName || _p.leaderName)) || '';
+      const _today = (typeof todayKey==='function') ? todayKey()
+        : new Date().toISOString().slice(0,10);
+      recordMissionHistory({
+        date: _today,
+        familyId: localStorage.getItem('pat_family_id') || '',
+        memberId: _me, memberName: _me,
+        missionId: DB.verse.ref, mission: 'memorize',
+        read:  !!(voiceScore1 || voiceScore2),   // 읽기(음성) 체크
+        write: !!(typeScore1 || typeScore2),     // 쓰기(타이핑) 체크
+        completed: true,
+        completedAt: record.completedAt,
+      });
+    }catch(e){ console.warn('[PAT-HIST] completeMemorize 기록 실패:', e.message); }
+  }
+
   document.getElementById('completeRef').textContent  = DB.verse.ref+' 암송 성공';
   document.getElementById('cVoice1').textContent = (voiceScore1||90)+'%';
   document.getElementById('cVoice2').textContent = (voiceScore2||92)+'%';

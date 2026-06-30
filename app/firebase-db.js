@@ -112,7 +112,7 @@ window.PAT_DB = (() => {
     const adminToken = CONFIG.adminToken || storedToken('pat_admin_token');
     const adminId = storedToken('pat_admin_id');
     const adminPassword = storedToken('pat_admin_pw');
-    const adminWrite = path === 'saveVerse' || path === 'saveConfig';
+    const adminWrite = path === 'saveVerse' || path === 'saveConfig' || path === 'getMissionHistory';
     if (clientToken) headers['x-pat-client-token'] = clientToken;
     if (adminWrite && adminToken) headers['x-pat-admin-token'] = adminToken;
     if (adminWrite && !adminToken && adminId && adminPassword) {
@@ -534,6 +534,26 @@ window.PAT_DB = (() => {
     } catch (e) { console.warn('[PAT_DB] getPrayers:', e.message); return null; }
   }
 
+  // ── 수행 기록(history) 조회 ─────────────────────────────────────
+  // 가족/개인 단위 — familyId 기반 (읽기 전용, 데이터 미변경)
+  async function getMissionHistory(churchCode, familyId, from, to) {
+    if (!ready()) return null;
+    try {
+      const params = { churchCode };
+      if (familyId) params.familyId = familyId;
+      if (from) params.from = from;
+      if (to) params.to = to;
+      return await apiGet('getMissionHistory', params);
+    } catch (e) { console.warn('[PAT_DB] getMissionHistory:', e.message); return null; }
+  }
+  // 교회 전체(관리자, 연말 시상 근거) — POST + 관리자 인증
+  async function getMissionHistoryAdmin(churchCode, from, to) {
+    if (!ready()) return null;
+    try {
+      return await apiPost('getMissionHistory', { churchCode, from, to });
+    } catch (e) { console.warn('[PAT_DB] getMissionHistoryAdmin:', e.message); return null; }
+  }
+
   // ── public API ─────────────────────────────────────────────────
   return {
     init, ready, getDeviceId,
@@ -547,6 +567,7 @@ window.PAT_DB = (() => {
     transcribeAudio, getAwardRanking, getFamiliesList,
     resetFamilyPassword,
     savePrayer, getPrayers,
+    getMissionHistory, getMissionHistoryAdmin,
     getConfig, saveConfig, subscribeConfig,
     unsubscribeAll,
   };
