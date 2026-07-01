@@ -1110,7 +1110,8 @@ function refreshLoginMode(){
   const devResetBtn = document.getElementById('devResetChurchBtn');
   const pwToggleBtn = document.getElementById('loginPwToggleBtn');
   if(hasChurch){
-    if(prompt) prompt.textContent = '';                 // 안내 문구 제거
+    // ★ 2026-07-01: 비밀번호 입력 시 교회 코드 관련 텍스트 완전 제거
+    if(prompt) prompt.style.display = 'none';           // 안내 문구 숨김
     if(input){
       input.type = 'password';                    // 비밀번호는 점(•)으로 마스킹
       input.placeholder = '••••••••';             // placeholder를 점으로 표시
@@ -1119,9 +1120,9 @@ function refreshLoginMode(){
     }
     if(pwToggleBtn) pwToggleBtn.style.display='block';  // 눈 아이콘 표시
     if(startBtn) startBtn.textContent = '입장하기';
-    if(devResetBtn) devResetBtn.style.display='block';  // 다른 교회 선택 버튼 표시
+    if(devResetBtn) devResetBtn.style.display='none';   // 다른 교회 선택 버튼 숨김
   } else {
-    if(prompt) prompt.textContent = '교회 코드를 입력하세요';
+    if(prompt) prompt.style.display = 'block';          // 안내 문구 표시
     if(input){
       input.type = 'text';                       // 교회 코드는 보이는 상태
       input.placeholder = '교회 코드';
