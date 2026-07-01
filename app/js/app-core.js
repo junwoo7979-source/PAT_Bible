@@ -847,17 +847,26 @@ async function enterChurch(){
 
   // ★ 핵심 수정: 새로운 교회 코드 입력이면 상태 초기화
   // 문제 원인: DB.church.code가 계속 남아있어서 모든 입력이 "비밀번호"로 인식됨
+  // ★ 핵심 수정 (2026-07-01):
+  // 이미 교회가 선택되어 있으면(DB.church.code 설정됨) 입력은 무조건 비밀번호로 해석.
+  // 새 교회로 전환하려면 명시적 "로그아웃 → 새 교회 선택" 순서를 따라야 함.
+  // 그렇지 않으면 "123456" 같은 숫자 비밀번호가 교회코드로 오인되어
+  // "교회코드가 올바르지 않습니다" 에러가 발생함.
   const isChurchCode = isChurchCodeFormat(raw);
+  const shouldResetChurchCode = isChurchCode && raw !== DB.church.code && !DB.church.code;
+
   console.log('[LOGIN] 입력 분석:', {
     입력값: raw,
     교회코드형식: isChurchCode,
     현재DB교회코드: DB.church.code,
-    새로운교회코드: isChurchCode && raw !== DB.church.code
+    새로운교회코드: isChurchCode && raw !== DB.church.code,
+    교회이미선택: !!DB.church.code,
+    상태리셋: shouldResetChurchCode
   });
 
-  if(isChurchCode && raw !== DB.church.code){
+  if(shouldResetChurchCode){
     console.log('[LOGIN] 🔄 새 교회 코드 감지, 상태 초기화:', raw);
-    DB.church.code = '';  // ← 상태 리셋
+    DB.church.code = '';  // ← 새 교회로 전환할 때만 리셋
   }
 
   const decision = (typeof loginDecision === 'function')
