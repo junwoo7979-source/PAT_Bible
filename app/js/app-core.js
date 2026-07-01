@@ -811,20 +811,60 @@ function enterMemberHome(){
 }
 
 // ══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 // 가족방 로그인 — 2단계 구조 (교회 선택 ↔ 가족 비밀번호 인증)
-// ──────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
 //  [원칙]
 //   · 교회 코드 = '교회 식별용'. 어떤 가족방에도 이 코드로는 입장 불가.
 //   · 가족 비밀번호 = 유일한 입장 인증 수단. 대표가 설정한 비번만 유효.
 //   · 다른 가정 비번/교회코드로는 입장 불가 (findFamilyByPassword가
 //     pat_family_id로 스코프 → 내 가족 외에는 통과 못 함).
 //  판정 규칙은 순수함수 loginDecision(login-auth.js)로 분리해 테스트한다.
-// ══════════════════════════════════════════════════════════════
+//
+// [수정사항 - 데드락 해결]
+//  ★ CRITICAL FIX: 입력값이 새로운 교회 코드이면 상태 초기화
+//    (기존 버그: DB.church.code가 리셋되지 않아 항상 "비밀번호 입력" 단계로 인식)
+//
+//  동작:
+//  1. 입력값이 "11111"이나 "013579" 같은 교회코드 형식이고
+//  2. 현재 DB.church.code와 다르면
+//  3. DB.church.code를 '' 초기화 → SELECT_CHURCH 단계로 복귀
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * 입력값이 교회 코드 형식인지 판별
+ * - 교회 코드: 5자 이상의 숫자 (예: 11111, 013579)
+ * - 비밀번호: 숫자+문자 혼합 또는 문자포함 (예: pw123, abc)
+ */
+function isChurchCodeFormat(input){
+  const trimmed = String(input || '').trim();
+  // 5자 이상의 순수 숫자 = 교회 코드
+  return /^\d{5,}$/.test(trimmed);
+}
+
 async function enterChurch(){
   const raw = (document.getElementById('churchCode').value || '').trim();
+
+  // ★ 핵심 수정: 새로운 교회 코드 입력이면 상태 초기화
+  // 문제 원인: DB.church.code가 계속 남아있어서 모든 입력이 "비밀번호"로 인식됨
+  const isChurchCode = isChurchCodeFormat(raw);
+  console.log('[LOGIN] 입력 분석:', {
+    입력값: raw,
+    교회코드형식: isChurchCode,
+    현재DB교회코드: DB.church.code,
+    새로운교회코드: isChurchCode && raw !== DB.church.code
+  });
+
+  if(isChurchCode && raw !== DB.church.code){
+    console.log('[LOGIN] 🔄 새 교회 코드 감지, 상태 초기화:', raw);
+    DB.church.code = '';  // ← 상태 리셋
+  }
+
   const decision = (typeof loginDecision === 'function')
     ? loginDecision(DB.church.code, raw)
     : { action: raw ? (DB.church.code ? 'AUTH_FAMILY_PW' : 'SELECT_CHURCH') : 'NEED', password: raw, code: raw };
+
+  console.log('[LOGIN] 로그인 판정:', decision.action);
 
   switch(decision.action){
     case 'NEED_CHURCH_CODE':
@@ -834,6 +874,7 @@ async function enterChurch(){
 
     // ── 1단계: 교회 선택 (입장 아님) ──
     case 'SELECT_CHURCH': {
+      console.log('[LOGIN-STEP1] 교회 선택:', decision.code);
       if(!(window.PAT_DB && PAT_DB.ready())){ toast('서버 연결이 필요합니다'); return; }
 
       // ★ 추가: 11111 입장 시 가족 중복 확인 (이미 가족이 등록되었으면 차단)
@@ -843,6 +884,7 @@ async function enterChurch(){
           const familiesData = await familiesRes.json();
           // 가족이 하나라도 있으면, 가족 비밀번호로만 입장 강제
           if(familiesData.families && familiesData.families.length > 0){
+            console.log('[LOGIN] 11111에 기존 가족 존재, 비밀번호 입력 강제');
             toast('이미 가족이 등록되어 있습니다.\n가족 비밀번호로 입장해주세요.');
             return;
           }
@@ -855,11 +897,13 @@ async function enterChurch(){
       let cfg = null;
       try{ cfg = await PAT_DB.getConfig(decision.code); }catch(e){}
       if(cfg){
+        console.log('[LOGIN-STEP1-OK] 교회 코드 검증 완료:', decision.code);
         adoptChurch(decision.code, cfg.appTitle);
         if(typeof loadChurchConfig === 'function') await loadChurchConfig();
         if(typeof refreshLoginMode === 'function') refreshLoginMode();
         toast('✓ 교회가 선택됐어요. 가족 비밀번호로 입장하세요');
       } else {
+        console.log('[LOGIN-STEP1-FAIL] 교회 코드 검증 실패:', decision.code);
         toast('교회 코드가 올바르지 않습니다');
       }
       return;
@@ -872,15 +916,31 @@ async function enterChurch(){
 
     // ── 2단계: 가족 비밀번호 인증 ──
     case 'AUTH_FAMILY_PW': {
+      console.log('[LOGIN-STEP2] 가족 비밀번호 인증 시작:', DB.church.code);
       const pw = decision.password;
       const profile = loadFamilyProfile();
+
+      // ★ 추가 검증: 비밀번호가 교회코드가 아닌지 확인 (사용자 실수 방지)
+      if(pw === DB.church.code){
+        console.log('[LOGIN-STEP2-FAIL] 교회코드를 비밀번호로 입력 시도');
+        toast('⚠️ 교회 코드로는 입장할 수 없습니다.\n가족 비밀번호를 입력해주세요.');
+        return;
+      }
 
       // 서버 검증 (내 가족 pat_family_id 우선 스코프 → 다른 가정 비번은 실패)
       if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
         let found = null;
-        try{ found = await PAT_DB.findFamilyByPassword(DB.church.code, pw); }
-        catch(e){ toast('서버 오류입니다. 다시 시도하세요'); return; }
+        try{
+          console.log('[LOGIN-STEP2-SERVER] Firebase 조회:', DB.church.code);
+          found = await PAT_DB.findFamilyByPassword(DB.church.code, pw);
+        }
+        catch(e){
+          console.error('[LOGIN-STEP2-ERROR] 서버 오류:', e.message);
+          toast('서버 오류입니다. 다시 시도하세요');
+          return;
+        }
         if(found && found.id){
+          console.log('[LOGIN-STEP2-OK] 가족방 찾음:', found.id);
           const prevName = (profile && (profile.memberName || profile.leaderName)) || '';
           if(prevName){
             await _enterFoundFamily(found, pw, profile);   // 기존 구성원 재입장
@@ -893,6 +953,7 @@ async function enterChurch(){
           }
           return;
         }
+        console.log('[LOGIN-STEP2-FAIL] 비밀번호 불일치 (서버)');
         toast('가정 비밀번호가 올바르지 않습니다');
         return;
       }
@@ -900,12 +961,13 @@ async function enterChurch(){
       // ★ 오프라인 폴백: 로컬 저장 가족 비번과 정확히 일치할 때만
       //   + 입력값이 교회코드가 아닐 때만 (교회코드 차단)
       if(profile && profile.familyPassword &&
-         profile.familyPassword === pw &&
-         pw !== DB.church.code){  // ★ 추가: 교회코드로는 입장 불가
+         profile.familyPassword === pw){
+        console.log('[LOGIN-STEP2-OFFLINE] 로컬 캐시로 인증 (오프라인)');
         if(typeof refreshFamilyProfileByPassword === 'function') await refreshFamilyProfileByPassword(profile, pw);
         enterMemberHome();
         return;
       }
+      console.log('[LOGIN-STEP2-FAIL] 비밀번호 불일치 (로컬)');
       toast('가정 비밀번호가 올바르지 않습니다');
       return;
     }
@@ -982,6 +1044,44 @@ function toggleLoginPwVisibility(btn){
     input.type = 'password';
     btn.textContent = '👁️';
   }
+}
+
+// ════════════════════════════════════════════════════════════════
+// 로그인 상태 초기화 (디버깅용)
+// ════════════════════════════════════════════════════════════════
+/**
+ * resetLoginState()
+ *
+ * 로그인 화면으로 돌아가기 — 모든 교회/방 정보 초기화
+ * HTML 버튼: <button onclick="resetLoginState()">다른 교회</button>
+ */
+function resetLoginState(){
+  console.log('[LOGIN] 상태 초기화 시작');
+
+  // 1️⃣ DB 상태 초기화
+  DB.church.code = '';
+  DB.church.name = '';
+
+  // 2️⃣ localStorage 교회 정보 삭제 (방은 유지)
+  try{
+    localStorage.removeItem('pat_church_code');
+    localStorage.removeItem('pat_church_name');
+    console.log('[LOGIN] localStorage 교회정보 삭제');
+  }catch(e){}
+
+  // 3️⃣ 입력 필드 초기화
+  const input = document.getElementById('churchCode');
+  if(input){
+    input.value = '';
+    input.type = 'text';
+    input.placeholder = '교회 코드';
+  }
+
+  // 4️⃣ UI 상태 복구
+  if(typeof refreshLoginMode === 'function') refreshLoginMode();
+
+  console.log('[LOGIN] 상태 초기화 완료');
+  toast('초기화됐습니다. 교회 코드를 입력하세요.');
 }
 
 // (개발자/테스트용) 11111 교회 + 테스트 가족방으로 바로 진입
