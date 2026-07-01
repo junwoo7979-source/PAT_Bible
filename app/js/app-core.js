@@ -981,6 +981,10 @@ async function enterChurch(){
         }
         if(found && found.id){
           console.log('[LOGIN-STEP2-OK] 가족방 찾음:', found.id);
+          // ★ 2026-07-01: 가족을 찾은 시점에서 무조건 churchCode 저장
+          // (새 구성원 경로에서도 pat_church_code가 필요함)
+          try{ localStorage.setItem('pat_church_code', DB.church.code); }catch(e){}
+
           const prevName = (profile && (profile.memberName || profile.leaderName)) || '';
           if(prevName){
             await _enterFoundFamily(found, pw, profile);   // 기존 구성원 재입장
