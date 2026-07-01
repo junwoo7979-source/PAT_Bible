@@ -12,13 +12,14 @@ function _worEsc(s){
 
 // 성도 화면 렌더 ─────────────────────────────────────────────
 function renderWorship(){
+  const _DB = (typeof DB !== 'undefined') ? DB : null;
   const nameEl = document.getElementById('worshipChurchName');
-  if (nameEl) nameEl.textContent = (window.DB && DB.church && DB.church.name) ? DB.church.name : '';
+  if (nameEl) nameEl.textContent = (_DB && _DB.church && _DB.church.name) ? _DB.church.name : '';
 
   const box = document.getElementById('worshipContent');
   if (!box) return;
 
-  const w = (window.DB && DB.worship) ? DB.worship : null;
+  const w = (_DB && _DB.worship) ? _DB.worship : null;
   const hasContent = w && ((w.title && w.title.trim()) || (w.content && w.content.trim()));
 
   if (!hasContent){
@@ -44,7 +45,7 @@ function renderWorship(){
 
 // 관리자: 현재 예배 안내를 입력창에 로드 ───────────────────────
 function loadWorshipToAdmin(){
-  const w = (window.DB && DB.worship) ? DB.worship : null;
+  const w = (typeof DB !== 'undefined' && DB.worship) ? DB.worship : null;
   const t = document.getElementById('inWorshipTitle');
   const c = document.getElementById('inWorshipContent');
   if (t) t.value = w && w.title ? w.title : '';
