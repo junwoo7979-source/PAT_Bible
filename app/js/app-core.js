@@ -1156,10 +1156,11 @@ function refreshLoginMode(){
     if(startBtn) startBtn.textContent = '입장하기';
     if(devResetBtn) devResetBtn.style.display='none';   // 다른 교회 선택 버튼 숨김
   } else {
-    if(prompt) prompt.style.display = 'block';          // 안내 문구 표시
+    // ★ 2026-07-01: "교회 코드" 안내 문구/placeholder 완전 제거 (요청에 따라 아무 텍스트도 안 보이게)
+    if(prompt) prompt.style.display = 'none';           // 안내 문구 계속 숨김
     if(input){
       input.type = 'text';                       // 교회 코드는 보이는 상태
-      input.placeholder = '교회 코드';
+      input.placeholder = '';                     // placeholder 텍스트 없음
       input.style.letterSpacing='4px';
     }
     if(pwToggleBtn) pwToggleBtn.style.display='none';   // 눈 아이콘 숨김
@@ -1205,11 +1206,12 @@ function resetLoginState(){
   }catch(e){}
 
   // 3️⃣ 입력 필드 초기화
+  // ★ 2026-07-01: "교회 코드" placeholder 완전 제거
   const input = document.getElementById('churchCode');
   if(input){
     input.value = '';
     input.type = 'text';
-    input.placeholder = '교회 코드';
+    input.placeholder = '';
   }
 
   // 4️⃣ UI 상태 복구

@@ -300,7 +300,8 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- ★ 2026-07-01: 교회 코드 표시 제거, 입력창 높이 축소 -->
     <p class="muted center" id="loginPrompt" style="margin-bottom:12px;display:none">교회 코드를 입력하세요</p>
     <div class="pw-wrap" id="loginInputWrapper">
-      <input class="field code-input" id="churchCode" maxlength="20" placeholder="교회 코드" autocomplete="off" style="letter-spacing:4px;padding-right:52px;height:44px;padding:8px 12px">
+      <!-- ★ 2026-07-01: "교회 코드" placeholder 완전 제거 (요청에 따라 아무 텍스트도 안 보이게) -->
+      <input class="field code-input" id="churchCode" maxlength="20" placeholder="" autocomplete="off" style="letter-spacing:4px;padding-right:52px;height:44px;padding:8px 12px">
       <button type="button" id="loginPwToggleBtn" class="pw-toggle" style="display:none" onclick="toggleLoginPwVisibility(this)">👁️</button>
     </div>
     <button class="btn" id="loginStartBtn" onclick="enterChurch()">시작하기</button>
