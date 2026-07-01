@@ -306,21 +306,19 @@ window.PAT_DB = (() => {
       return (config.appTitle || '') + '|' + v + '|' + w;
     }
 
-    // ★ 2026-07-01: 초기 구독 시 콜백 실행하지 않음 (해시만 저장)
-    // 로그인 후 토스트 메시지가 불필요하게 뜨는 문제 해결
+    // 초기값 즉시 로드
     getConfig(churchCode).then(config => {
-      if (config) { _lastConfigHash = getConfigHash(config); }
-      // 콜백 실행 안 함 — 초기 로드에서 이미 설정 완료됨
+      if (config) { _lastConfigHash = getConfigHash(config); callback(config); }
     });
 
-    // 5초 폴링 — 실제 변경이 감지될 때만 콜백 실행
+    // 5초 폴링
     _configPolling = setInterval(async () => {
       try {
         const config = await getConfig(churchCode);
         const hash = getConfigHash(config);
         if (hash && hash !== _lastConfigHash) {
           _lastConfigHash = hash;
-          callback(config);  // 실제 변경이 감지됨 → 콜백 실행
+          callback(config);
         }
       } catch (e) {
         // 네트워크 오류는 조용히 무시
