@@ -928,30 +928,18 @@ function refreshLoginMode(){
   const famBtns= document.getElementById('loginFamilyBtns');
   const startBtn = document.getElementById('loginStartBtn');
   if(hasChurch){
-    const chName = DB.church.name || '선택된 교회';
     if(prompt) prompt.textContent = '가족 비밀번호를 입력하세요';
     if(input){ input.placeholder = '가족 비밀번호'; input.value = ''; input.style.letterSpacing='normal'; }
-    if(badge){ badge.style.display='block';
-      badge.innerHTML = '⛪ <b>'+esc(chName)+'</b> · <a href="javascript:void(0)" onclick="resetChurchSelection()" style="color:var(--accent);text-decoration:underline">다른 교회 선택</a>'; }
-    if(famBtns) famBtns.style.display='block';
+    // (삭제) 교회 선택 뱃지/다른 교회 선택 → UI 단순화
     if(startBtn) startBtn.textContent = '입장하기';
   } else {
     if(prompt) prompt.textContent = '교회 코드를 입력하세요';
     if(input){ input.placeholder = '교회 코드'; input.style.letterSpacing='4px'; }
-    if(badge) badge.style.display='none';
-    if(famBtns) famBtns.style.display='none';
     if(startBtn) startBtn.textContent = '시작하기';
   }
 }
 
-// '다른 교회 선택' — 교회 식별 정보만 해제 (가족/미션 데이터는 보존)
-function resetChurchSelection(){
-  DB.church.code = ''; DB.church.name = '';
-  try { localStorage.removeItem('pat_church_code'); localStorage.removeItem('pat_church_name'); } catch(e){}
-  const input = document.getElementById('churchCode'); if(input) input.value='';
-  if(typeof refreshLoginMode === 'function') refreshLoginMode();
-  toast('교회 선택을 해제했어요. 교회 코드를 입력하세요');
-}
+// (삭제) resetChurchSelection — "다른 교회 선택" 카드 삭제로 불필요
 
 // ── 공통 유틸 ─────────────────────────────────────────────
 function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;'); }
