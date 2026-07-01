@@ -299,7 +299,8 @@ function renderPrayer(){
   const saveBtn = document.getElementById('prayerSaveBtn');
   const selfEl  = document.getElementById('prayerMemberSelf');
 
-  if(selfEl) selfEl.textContent = me ? (me+'님의 오늘 기도') : '오늘의 기도';
+  // ★ 2026-07-01: "Guest(나)" 제거 — 이름 상관없이 항상 "오늘의 기도"로 표시
+  if(selfEl) selfEl.textContent = '오늘의 기도';
 
   // 본인 기도 입력칸 채우기 (사용자가 입력 중이 아니면)
   if(textEl && document.activeElement!==textEl){
