@@ -929,12 +929,20 @@ function refreshLoginMode(){
   const startBtn = document.getElementById('loginStartBtn');
   if(hasChurch){
     if(prompt) prompt.textContent = '가족 비밀번호를 입력하세요';
-    if(input){ input.placeholder = '가족 비밀번호'; input.value = ''; input.style.letterSpacing='normal'; }
-    // (삭제) 교회 선택 뱃지/다른 교회 선택 → UI 단순화
+    if(input){
+      input.type = 'password';                    // 비밀번호는 점(•)으로 마스킹
+      input.placeholder = '가족 비밀번호';
+      input.value = '';
+      input.style.letterSpacing='normal';
+    }
     if(startBtn) startBtn.textContent = '입장하기';
   } else {
     if(prompt) prompt.textContent = '교회 코드를 입력하세요';
-    if(input){ input.placeholder = '교회 코드'; input.style.letterSpacing='4px'; }
+    if(input){
+      input.type = 'text';                       // 교회 코드는 보이는 상태
+      input.placeholder = '교회 코드';
+      input.style.letterSpacing='4px';
+    }
     if(startBtn) startBtn.textContent = '시작하기';
   }
 }
