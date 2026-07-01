@@ -1041,6 +1041,7 @@ async function _enterFoundFamily(found, pw, profile){
   };
   console.log('[FAMILY-SAVE] 가족 프로필 저장:', { churchCode, familyId: found.id });
   try{ localStorage.setItem('pat_family_id', found.id); }catch(e){}
+  try{ localStorage.setItem('pat_church_code', churchCode); }catch(e){}  // ★ 2026-07-01: churchCode도 저장 (앱 초기화 시 pat_family_profile이 없어도 churchCode 로드 가능)
   if(typeof setFamilyStorage === 'function') setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
   else { try{ localStorage.setItem('pat_family_profile', JSON.stringify(nextProfile)); }catch(e){} }
   if(typeof upsertRoom === 'function'){ try{ upsertRoom({ familyId: found.id, ...nextProfile }); }catch(e){} }
