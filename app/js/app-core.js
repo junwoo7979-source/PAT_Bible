@@ -1004,14 +1004,18 @@ async function enterChurch(){
             console.log('[LOGIN-STEP2-NEW-DEVICE] 새 기기/구성원 → 바로 홈으로 진입');
             console.log('[LOGIN-DEBUG] 가족방:', found.roomName, '| 교회:', DB.church.code);
 
-            // 프로필 임시 저장 (이름은 나중에 설정 가능)
+            // 프로필 임시 저장
+            // ★ 2026-07-01: 비밀번호 = 교회코드라면 대표자(leaderName 사용), 아니면 구성원(일단 Guest)
+            const isLeader = (pw === DB.church.code);
+            const tempMemberName = isLeader ? (found.leaderName || 'Guest') : 'Guest';
+
             const tempProfile = {
               ...(profile || {}),
               churchCode: DB.church.code,
               roomName: found.roomName || '',
               leaderName: found.leaderName || '',
               familyPassword: pw,
-              memberName: 'Guest',  // 임시 이름
+              memberName: tempMemberName,  // 대표면 leaderName, 아니면 Guest
               members: Array.isArray(found.members) ? found.members : []
             };
             try{ localStorage.setItem('pat_family_id', found.id); }catch(e){}
