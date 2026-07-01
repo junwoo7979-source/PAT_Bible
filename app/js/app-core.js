@@ -144,12 +144,27 @@ function applyStoredData(){
 
   // ★ 멀티 교회 + 중립 시작: 저장된 교회 코드 복원.
   //   - 코드 저장됨(신규 사용자) → 그 교회
-  //   - 코드 없지만 가족/관리자 데이터 있음(멀티교회 이전 기존 사용자) → 세광 11111 폴백(회귀 방지)
+  //   - 코드 없지만 가족 프로필에 churchCode 있음(2026-07-01 수정) → 그 교회
+  //   - 코드 없지만 가족 프로필만 있음(구버전) → 세광 11111 폴백(회귀 방지)
   //   - 그 외(신규 방문자) → 중립(code 빈 값) → "교회 코드를 입력하세요" 화면
   try {
     const savedCode = localStorage.getItem('pat_church_code');
-    if(savedCode) DB.church.code = savedCode;
-    else if(loadFamilyProfile()) DB.church.code = '11111'; // 멀티교회 이전 세광 교인 회귀
+    if(savedCode){
+      DB.church.code = savedCode;
+    } else {
+      const profile = loadFamilyProfile();
+      if(profile){
+        // ★ 2026-07-01 수정: 가족 프로필에 저장된 교회코드가 있으면 그것을 사용
+        if(profile.churchCode){
+          DB.church.code = profile.churchCode;
+          console.log('[INIT] 가족 프로필에서 교회코드 복원:', profile.churchCode);
+        } else {
+          // ★ 구버전 프로필(churchCode 없음) → 세광 폴백
+          DB.church.code = '11111';
+          console.log('[INIT] 구버전 프로필 → 세광 폴백');
+        }
+      }
+    }
   } catch(e) {}
 
   // ★ 개발자 통계 숨김 진입: ?dev=1 → 개발자 통계 화면 (일반 라우팅 건너뜀)
@@ -1014,6 +1029,7 @@ async function _enterFoundFamily(found, pw, profile){
   const prevName = (profile && (profile.memberName || profile.leaderName)) || '';
   const nextProfile = {
     ...(profile || {}),
+    churchCode: DB.church.code,  // ★ 중요: 가족이 속한 교회코드 저장 (앱 재시작 시 정확한 교회 로드)
     roomName:   found.roomName   || (profile && profile.roomName)   || '',
     leaderName: found.leaderName || (profile && profile.leaderName) || '',
     parish:     found.parish     || (profile && profile.parish)     || '',
