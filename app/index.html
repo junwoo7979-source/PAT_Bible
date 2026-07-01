@@ -750,7 +750,11 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <button class="btn" style="flex:1;margin:0" onclick="window._creatingNewRoom=false;openFamilyRegister('leader')">👑 대표 등록</button>
       <!-- 2026-07-01: 가족 등록 버튼 제거 — 대표가 통일관리. 초대링크로 입장 시 familyId 포함됨 -->
     </div>
-    <button class="btn ghost" id="inviteLinkBtn" onclick="copyInviteLink()" style="display:none">📎 초대 링크 복사</button>
+    <!-- ★ 2026-07-01: 두 종류의 링크 구분 -->
+    <div style="display:flex;gap:8px;margin:8px 0">
+      <button class="btn ghost" id="inviteLinkBtn" onclick="copyInviteLink()" style="flex:1;margin:0;display:none">👨‍👩‍👧 가족 초대</button>
+      <button class="btn ghost" id="publicLinkBtn" onclick="copyPublicLink()" style="flex:1;margin:0;display:none">🌐 공개 링크</button>
+    </div>
     <button class="btn ghost" onclick="go('s-history');renderHistory()" style="margin-top:8px">📊 수행 기록 보기 (일·주·월)</button>
     <button class="btn ghost" onclick="goResetPwFromFamily()" style="margin-top:8px;color:var(--muted);border-color:var(--line)">🔑 비밀번호 재설정</button>
 

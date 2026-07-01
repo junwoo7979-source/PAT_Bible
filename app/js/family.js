@@ -855,6 +855,25 @@ function copyInviteLink(){
     prompt('아래 링크를 복사해서 가족에게 보내세요:', url);
   });
 }
+
+// ★ 2026-07-01: 공개 링크 (familyId 없음) — 다른 성도용
+function copyPublicLink(){
+  const profile = loadFamilyProfile();
+  if(!profile){ toast('먼저 가족방을 등록하세요'); return; }
+  const churchCode = localStorage.getItem('pat_church_code') || '';
+  // familyId 제외 — 누구나 비밀번호로 참여 가능
+  const data = { roomName:profile.roomName, leaderName:profile.leaderName,
+    parish:profile.parish, district:profile.district,
+    churchCode: churchCode, v: 3, isPublic: true };
+  const encoded = btoa(encodeURIComponent(JSON.stringify(data)));
+  const url = location.origin + location.pathname + '?join=' + encoded;
+  navigator.clipboard.writeText(url).then(()=>{
+    toast('✓ 공개 링크 복사 완료! 같은 교회 성도들과 공유하세요 🌐');
+  }).catch(()=>{
+    prompt('아래 링크를 복사해서 공유하세요:', url);
+  });
+}
+
 function showInvitePage(data){
   document.getElementById('inviteRoomName').textContent   = data.roomName||'';
   document.getElementById('inviteLeaderName').textContent = data.leaderName||'';
@@ -868,6 +887,20 @@ function showInvitePage(data){
     console.log('[INVITE] churchCode 저장:', data.churchCode);
   }
   go('s-invite');
+}
+
+// ★ 2026-07-01: 공개 링크 진입 — 다른 성도 (familyId 없음)
+function showPublicJoinPage(data){
+  // 교회코드 저장
+  if(data.churchCode){
+    try{ localStorage.setItem('pat_church_code', data.churchCode); }catch(e){}
+    console.log('[PUBLIC-JOIN] churchCode 저장:', data.churchCode);
+  }
+  // 가족정보는 저장하지 않음 (다른 가정/구역)
+  window._publicJoinData = data;
+  document.getElementById('joinRoomName').value = '';
+  document.getElementById('joinRoomPw').value = '';
+  go('s-join-room');
 }
 async function joinFamilyFromInvite(){
   const data = window._inviteData;
@@ -927,9 +960,18 @@ async function joinFamilyFromInvite(){
 function checkInviteParam(){
   if(typeof URLSearchParams==='undefined'||typeof location==='undefined') return;
   const params = new URLSearchParams(location.search);
+
+  // ★ 2026-07-01: 두 종류의 링크 처리
+  // ?invite=... : 가족 초대 (familyId 포함)
+  // ?join=... : 공개 링크 (다른 성도, familyId 없음)
   const invite = params.get('invite');
-  if(!invite) return;
-  try{ showInvitePage(JSON.parse(decodeURIComponent(atob(invite)))); }catch(e){}
+  const joinPublic = params.get('join');
+
+  if(invite){
+    try{ showInvitePage(JSON.parse(decodeURIComponent(atob(invite)))); }catch(e){}
+  } else if(joinPublic){
+    try{ showPublicJoinPage(JSON.parse(decodeURIComponent(atob(joinPublic)))); }catch(e){}
+  }
 }
 function memberHomeTitle(){ return DB.church.name+' PAT'; }
 
