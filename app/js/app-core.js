@@ -867,6 +867,10 @@ async function enterChurch(){
   // 새 교회로 전환하려면 명시적 "로그아웃 → 새 교회 선택" 순서를 따라야 함.
   // 그렇지 않으면 "123456" 같은 숫자 비밀번호가 교회코드로 오인되어
   // "교회코드가 올바르지 않습니다" 에러가 발생함.
+  // 교회가 선택되지 않은 초기 상태에서만 입력값을 교회 코드로 해석한다.
+  // 교회 선택 후 비밀번호 단계에서는 숫자 5자리 가족 비밀번호도 있을 수 있으므로
+  // 새 교회 코드로 오인해 DB.church.code를 초기화하면 안 된다.
+
   const isChurchCode = isChurchCodeFormat(raw);
   const shouldResetChurchCode = isChurchCode && raw !== DB.church.code && !DB.church.code;
 
@@ -876,6 +880,7 @@ async function enterChurch(){
     현재DB교회코드: DB.church.code,
     새로운교회코드: isChurchCode && raw !== DB.church.code,
     교회이미선택: !!DB.church.code,
+    교회선택전: !DB.church.code,
     상태리셋: shouldResetChurchCode
   });
 
