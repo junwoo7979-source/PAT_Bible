@@ -55,10 +55,17 @@
     if(dismissedRecently()){ promo.style.display = 'none'; return; }
 
     var hint = document.getElementById('installPromoHint');
-    if(hint){
-      if(p === 'ios')        hint.textContent = '공유 버튼을 누른 뒤 ‘홈 화면에 추가’를 선택해 주세요.';
-      else if(p === 'inapp') hint.textContent = '카카오톡 등 인앱 브라우저에서는 설치가 제한됩니다. 오른쪽 위 메뉴에서 “다른 브라우저로 열기” 후 설치하세요.';
-      else                   hint.textContent = '설치 버튼을 누르면 홈화면에 앱 아이콘이 추가됩니다.';
+    var btn  = document.getElementById('installPromoBtn');
+    if(p === 'ios'){
+      if(hint) hint.textContent = '공유 버튼을 누른 뒤 ‘홈 화면에 추가’를 선택해 주세요.';
+      if(btn)  btn.textContent = '홈화면에 설치하기';
+    } else if(p === 'inapp'){
+      // 카카오톡 등 인앱 브라우저: 바로 기본 브라우저로 열어 설치하게 유도
+      if(hint) hint.textContent = '카카오톡에서는 바로 설치가 안 돼요. 아래 버튼을 누르면 기본 브라우저(Chrome/Safari)로 열립니다. 그 화면에서 다시 “홈화면에 설치하기”를 누르세요.';
+      if(btn)  btn.textContent = '🌐 다른 브라우저로 열기';
+    } else {
+      if(hint) hint.textContent = '설치 버튼을 누르면 홈화면에 앱 아이콘이 추가됩니다.';
+      if(btn)  btn.textContent = '홈화면에 설치하기';
     }
     promo.style.display = 'block';
   }
@@ -70,9 +77,9 @@
     // iOS: 자동설치 불가 → 안내 모달
     if(p === 'ios'){ showIosInstall(); return; }
 
-    // 인앱 브라우저: 설치 불가 → 외부 브라우저 안내
+    // 인앱 브라우저: 버튼 한 번으로 기본 브라우저를 바로 연다(수동 메뉴 탐색 불필요)
     if(p === 'inapp'){
-      alert('카카오톡 등 인앱 브라우저에서는 설치가 어렵습니다.\n오른쪽 위 메뉴(⋮ 또는 …)에서 “다른 브라우저로 열기”를 눌러 Chrome/Safari로 연 뒤 설치해 주세요.');
+      openExternalInApp();
       return;
     }
 
@@ -96,6 +103,41 @@
     // 프롬프트가 아직 준비 안 됨(설치 조건 미충족/이미 설치 등)
     if(isStandalone()){ if(typeof toast === 'function') toast('이미 설치되어 있어요'); return; }
     alert('설치 방법\n1. 브라우저 오른쪽 위 메뉴(⋮) 열기\n2. “앱 설치” 또는 “홈 화면에 추가” 선택\n3. 홈 화면의 PAT 아이콘으로 실행');
+  }
+
+  // 인앱 브라우저(카카오톡 등)에서 '기본 브라우저(Chrome/Safari)로 바로 열기'
+  //  · 카카오톡: 전용 스킴 kakaotalk://web/openExternal 로 외부 브라우저를 즉시 실행
+  //    (사용자가 오른쪽 위 메뉴를 직접 찾을 필요 없음)
+  //  · 라인: ?openExternalBrowser=1 파라미터
+  //  · 그 외 안드로이드 인앱(페북/인스타 등): Chrome intent (미설치 시 기본 브라우저 폴백)
+  //  · iOS 기타 인앱: 강제 불가(정책) → 안내만
+  // (순수함수) 인앱 UA + 현재 URL → 외부 브라우저로 여는 목적지 URL. iOS 기타는 null.
+  function externalOpenTarget(u, url){
+    if(/KAKAOTALK/i.test(u)){
+      return 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
+    }
+    if(/Line/i.test(u)){
+      return url + (url.indexOf('?') > -1 ? '&' : '?') + 'openExternalBrowser=1';
+    }
+    if(/Android/i.test(u)){
+      var noScheme = url.replace(/^https?:\/\//, '');
+      return 'intent://' + noScheme +
+        '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' +
+        encodeURIComponent(url) + ';end';
+    }
+    return null; // iOS 기타 인앱(페북/인스타 등)은 외부 브라우저 강제 실행 불가
+  }
+
+  function openExternalInApp(){
+    var url = location.href;
+    var u = ua();
+    var target = externalOpenTarget(u, url);
+    if(target){
+      if(/KAKAOTALK/i.test(u) && typeof toast === 'function') toast('기본 브라우저로 여는 중…');
+      location.href = target;
+      return;
+    }
+    alert('오른쪽 위(또는 아래) 메뉴에서 “Safari로 열기”를 선택해 주세요.\n그 뒤 “홈화면에 설치하기”를 누르면 됩니다.');
   }
 
   function pwaInstallLater(){
@@ -140,4 +182,5 @@
   window.pwaMaybeShowPromo = pwaMaybeShowPromo;
   window.showIosInstall = showIosInstall;
   window.closeIosInstall = closeIosInstall;
+  window.externalOpenTarget = externalOpenTarget;   // 테스트용 노출
 })();

@@ -255,7 +255,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <h2 style="margin:0 0 6px;font-size:calc(var(--fs) + 2px)">📱 앱처럼 편하게 사용하기</h2>
       <p style="margin:0 0 6px;color:var(--text);line-height:1.6">홈화면에 설치하면 매번 링크를 찾지 않고 바로 실행할 수 있습니다.</p>
       <p id="installPromoHint" class="muted" style="margin:0 0 12px;font-size:calc(var(--fs) - 2px);line-height:1.6"></p>
-      <button class="btn" style="margin:0" onclick="pwaInstall()">홈화면에 설치하기</button>
+      <button class="btn" id="installPromoBtn" style="margin:0" onclick="pwaInstall()">홈화면에 설치하기</button>
       <button class="btn ghost" style="margin-top:8px" onclick="pwaInstallLater()">나중에 하기</button>
     </div>
     <!-- 옛 참조 호환용(숨김) -->
@@ -1200,7 +1200,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <script src="js/reset-pw.js?v=132"></script>
 <script src="js/admin.js?v=132"></script>
 <script src="js/worship.js?v=132"></script>
-<script src="js/pwa-install.js?v=132"></script>
+<script src="js/pwa-install.js?v=133"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';
