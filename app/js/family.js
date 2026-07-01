@@ -1,7 +1,55 @@
 // ====== PAT Bible — family.js ======
-// 가족방 등록/조회, 초대 링크, 클라우드 동기화
+//
+// [책임]
+//  방(가족방/구역방) 정보 관리:
+//  - 등록: openFamilyRegister(), saveFamilyProfileAsLeader()
+//  - 조회: loadFamilyProfile(), getFamilyInfo()
+//  - 구성원 관리: addMemberRow(), getMemberNames(), renderMemberRows()
+//  - 클라우드 동기화: Firebase saveFamily(), findFamilyByPassword()
+//  - 인증 유지: localStorage pat_family_profile, pat_family_id
+//
+// [데이터 구조]
+//  pat_family_id: string
+//    현재 입장한 방의 Firestore ID
+//    로그아웃 시 삭제 (다른 방 정보 보호)
+//
+//  pat_family_profile: JSON
+//    현재 방의 정보
+//    {
+//      id: string,
+//      roomName: string,
+//      leaderName: string,
+//      familyPassword: string,
+//      members: string[],      ← 대표가 선언한 구성원 명단
+//      memberName: string,     ← 현재 기기의 입장자 이름
+//      parish: string,
+//      district: string,
+//      groupType: 'family' | 'group'
+//    }
+//
+//  pat_leader_family_profile: JSON (백업)
+//    로그아웃 후에도 보존되는 대표 방 정보
+//    로그아웃 시에도 삭제되지 않아 재입장 시 자동 복구됨
+//
+// [주의]
+//  - pat_family_profile: 현재 입장한 방의 정보만
+//  - 다른 방의 정보가 섞이지 않도록 방별 격리
+//  - 로그아웃 시 pat_family_profile 삭제 (pat_family_id도)
 
-// ── 프로필 헬퍼 ───────────────────────────────────────────
+// ────────────────────────────────────────────────────────────
+// 스토리지 헬퍼
+// ────────────────────────────────────────────────────────────
+
+/**
+ * setFamilyStorage(key, value)
+ *
+ * [목적]
+ *  방 정보를 안전하게 저장한다.
+ *  localStorage → sessionStorage 폴백으로 저장 실패 대응
+ *
+ * [예]
+ *  setFamilyStorage('pat_family_profile', JSON.stringify(profile))
+ */
 function setFamilyStorage(key, value){
   // localStorage에 저장 시도
   try{
@@ -395,8 +443,59 @@ async function joinFamilyManual(){
   toast('✓ 가족방에 등록되었습니다! 🎉');
 }
 
-// ── 구성원 행 추가/삭제 ──────────────────────────────────
-let _memberRowId = 0;
+// ════════════════════════════════════════════════════════════════
+// 구성원 관리 (UI)
+// ════════════════════════════════════════════════════════════════
+// 가족 등록 폼에서 구성원 이름들을 동적으로 추가/제거할 수 있게 함.
+//
+// [아키텍처]
+//  - addMemberRow(name): 새 입력 행 추가
+//  - removeMemberRow(id): 개별 행 삭제
+//  - getMemberNames(): 모든 입력값 수집
+//  - renderMemberRows(names): 기존 데이터로 폼 초기화
+//
+// [데이터 흐름]
+//  1. openFamilyRegister() 호출 → renderMemberRows(profile?.members||[])
+//     기존 구성원 명단이 있으면 폼에 렌더링
+//
+//  2. 사용자가 "+" 버튼 클릭 → addMemberRow('')
+//     새 입력 행 추가 (빈 이름)
+//
+//  3. 이름 입력 및 "저장" 클릭 → saveFamilyProfileAsLeader()
+//     getMemberNames()로 입력된 모든 이름 수집
+//     members = [leaderName, ...inputMembers]로 배열 구성
+//     Firebase saveFamily()로 저장
+
+let _memberRowId = 0;  // 각 행에 고유 ID 부여 (DOM 추적)
+
+/**
+ * addMemberRow(name)
+ *
+ * [목적]
+ *  가족 등록 폼에 구성원 입력 행을 하나 추가한다.
+ *  이전에 입력된 값이 있으면 그대로 표시, 없으면 빈 필드로 시작.
+ *
+ * [파라미터]
+ *  name: string (선택)
+ *    - '' 또는 undefined: 빈 필드
+ *    - '김아빠' 등: 기존 이름 채우기
+ *
+ * [동작]
+ *  1. 고유 ID 부여: mr1, mr2, ... (행 삭제용)
+ *  2. 새 div.row 생성 (flex 레이아웃)
+ *  3. input[type="text"] 추가 (placeholder="이름 입력")
+ *  4. 삭제 버튼(✕) 추가 → onclick=removeMemberRow(id)
+ *  5. #memberRows 컨테이너에 appendChild
+ *
+ * [제약]
+ *  - 구성원 수 제한 없음 (무한정 추가 가능)
+ *  - 빈 이름은 getMemberNames()에서 자동 제외
+ *
+ * [예]
+ *  addMemberRow('김아빠')  // 값 있는 행
+ *  addMemberRow('')        // 빈 행
+ *  addMemberRow()          // 빈 행
+ */
 function addMemberRow(name){
   if(typeof document==='undefined'||!document.createElement) return;
   const id  = 'mr'+(++_memberRowId);
@@ -407,14 +506,89 @@ function addMemberRow(name){
     <button onclick="removeMemberRow('${id}')" style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:calc(var(--fs)-2px);cursor:pointer;flex-shrink:0">✕</button>`;
   document.getElementById('memberRows').appendChild(row);
 }
+
+/**
+ * removeMemberRow(id)
+ *
+ * [목적]
+ *  특정 구성원 입력 행을 제거한다.
+ *
+ * [파라미터]
+ *  id: string
+ *    행의 고유 ID (mr1, mr2, ... addMemberRow에서 부여)
+ *
+ * [동작]
+ *  1. document.getElementById(id)로 행 선택
+ *  2. 있으면 remove() 호출 (DOM에서 제거)
+ *
+ * [예]
+ *  removeMemberRow('mr1')  // 첫 번째 행 삭제
+ */
 function removeMemberRow(id){
   const el = document.getElementById(id);
   if(el) el.remove();
 }
+/**
+ * getMemberNames() → string[]
+ *
+ * [목적]
+ *  가족 등록 폼의 memberRows에서 입력된 구성원 이름들을 수집한다.
+ *
+ * [동작]
+ *  1. #memberRows 컨테이너의 모든 input[type="text"] 선택
+ *  2. 각 input의 value를 트림 후 수집
+ *  3. 빈 값 제외
+ *
+ * [예]
+ *  memberRows 구성:
+ *    <input value="김아빠">
+ *    <input value="">
+ *    <input value="김아들">
+ *
+ *  getMemberNames() → ["김아빠", "김아들"]
+ *
+ * [주의]
+ *  - saveFamilyProfileAsLeader()에서 호출되어 입력된 구성원들을 members 배열에 추가
+ */
 function getMemberNames(){
   return [...document.querySelectorAll('#memberRows input')]
     .map(el=>el.value.trim()).filter(Boolean);
 }
+/**
+ * renderMemberRows(names)
+ *
+ * [목적]
+ *  가족 등록 폼의 memberRows 컨테이너를 초기화하고,
+ *  기존 구성원 명단(또는 빈 폼)으로 렌더링한다.
+ *  openFamilyRegister() 호출 시 기존 방의 구성원들을 표시한다.
+ *
+ * [파라미터]
+ *  names: string[] (선택)
+ *    - undefined 또는 []: 빈 입력 행 1개 (새 방 등록용)
+ *    - ['김아빠', '김엄마']: 기존 구성원 명단 (편집용)
+ *
+ * [동작]
+ *  1. #memberRows 컨테이너 찾기 (없으면 조용히 반환)
+ *  2. innerHTML = '' (기존 행 제거)
+ *  3. _memberRowId = 0 (카운터 초기화)
+ *  4. names가 있으면 각 이름으로 행 추가
+ *     names가 없으면 빈 행 1개 추가
+ *
+ * [예]
+ *  // 새 방 등록 (빈 폼)
+ *  renderMemberRows([])
+ *  renderMemberRows(undefined)
+ *  renderMemberRows(profile?.members||[])  // profile 없으면 빈 폼
+ *  → 빈 입력 필드 1개
+ *
+ *  // 기존 방 편집 (구성원 명단 표시)
+ *  renderMemberRows(['김아빠', '김엄마', '김아들'])
+ *  → 3개 행에 각각 이름 채워서 표시
+ *
+ * [주의]
+ *  - openFamilyRegister()에서 자동 호출됨
+ *  - 사용자가 직접 호출할 필요 없음
+ */
 function renderMemberRows(names){
   const container = document.getElementById('memberRows');
   if(!container) return;
@@ -478,44 +652,123 @@ function openFamilyRegister(tab){
   renderMemberRows(profile?.members||[]);
   go('s-family-register');
 }
-// ── 대표 등록 (대표자만, 자동 확인) ────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// 방(가족/구역방) 저장 — 방장 전용
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * saveFamilyProfileAsLeader()
+ *
+ * [책임]
+ *  방장이 방 정보와 구성원 명단을 저장한다.
+ *  - 새 방 생성 또는 기존 방 업데이트
+ *  - Firebase saveFamily()로 서버 동기화
+ *  - localStorage에 캐시 (오프라인 지원)
+ *  - 다중 방 소속 시 rooms.js의 upsertRoom() 호출
+ *
+ * [입력 (HTML 폼)]
+ *  #familyRoomName: string   (방 이름, 예: "김 가정")
+ *  #familyLeaderName: string (방장 이름, 예: "김아빠")
+ *  #familyParish: string     (교구, 예: "1교구")
+ *  #familyDistrict: string   (목장, 예: "목장 A")
+ *  #familyGroupType: string  ("가정" | "구역")
+ *  #familyPassword: string   (방 비밀번호, 4자 이상)
+ *  #memberRows: div          (동적으로 추가된 구성원 입력 행)
+ *
+ * [저장 흐름]
+ *  1️⃣ 입력 검증 (필수 필드, 비밀번호 강도)
+ *  2️⃣ 보안 검증 (교회코드 재사용 금지, 비번 중복 확인)
+ *  3️⃣ 구성원 수집 (대표자 + memberRows 입력값)
+ *  4️⃣ localStorage 저장 (pat_family_profile, pat_leader_family_profile)
+ *  5️⃣ Firebase 저장 (saveFamily())
+ *  6️⃣ 방 목록 갱신 (upsertRoom())
+ *  7️⃣ 대시보드 렌더링 (renderFamily())
+ *
+ * [검증 규칙]
+ *  ✅ roomName, leaderName, parish, district: 필수
+ *  ✅ familyPassword: 4자 이상 + 교회코드와 다름
+ *  ✅ 같은 교회 내 비번 중복 금지
+ *
+ * [데이터 구조]
+ *  profileData = {
+ *    roomName: string,
+ *    leaderName: string,
+ *    parish: string,
+ *    district: string,
+ *    familyPassword: string,
+ *    members: string[],      // [leaderName, ...입력된 구성원]
+ *    memberName: string,     // 대표자(방장)
+ *    groupType: "가정" | "구역"
+ *  }
+ *
+ * [localStorage 저장]
+ *  pat_family_profile: 현재 활성 방의 정보 (로그아웃 시 삭제)
+ *  pat_leader_family_profile: 대표 방의 백업 (로그아웃 후에도 보존)
+ *  pat_family_id: Firestore familyId
+ *
+ * [주의]
+ *  - Firebase 저장 전 로컬 저장으로 오프라인 대응
+ *  - 네트워크 오류 시에도 로컬 데이터로 진행 가능
+ *  - 다중 방 소속 시 rooms.js와 협력
+ */
 async function saveFamilyProfileAsLeader(){
+  // ── STEP 1: 폼에서 입력값 수집 ──
   const roomName   = document.getElementById('familyRoomName').value.trim();
   const leaderName = document.getElementById('familyLeaderName').value.trim();
   const parish     = document.getElementById('familyParish').value.trim();
   const district   = document.getElementById('familyDistrict').value.trim();
   let familyPassword = document.getElementById('familyPassword').value.trim();
-  // ★ 1단계: 방 종류(가정/구역). 누락 시 '가정'(하위호환)
+
+  // ── STEP 2: 방 종류 (가정/구역) ──
+  // 누락 시 '가정'으로 기본값 설정 (하위호환)
   const _gtSel = document.getElementById('familyGroupType');
   const groupType = (_gtSel && _gtSel.value === '구역') ? '구역' : '가정';
   const _L = groupLabels(groupType);
 
+  // ── STEP 3: 필수 필드 검증 ──
   if(!roomName||!leaderName||!parish||!district){
     toast(`${_L.roomName}, ${_L.leader}, 교구와 구역을 입력하세요`);
     return;
   }
 
-  // ★ 보안(B): 가족 비밀번호 필수 + 교회코드(공통)와 동일 금지 + 4자 이상
-  //   (기본 비번이 교회코드가 되어 다른 가족이 들어오는 구멍 차단)
-  if(!familyPassword){ toast('가족 비밀번호를 설정하세요'); return; }
-  if(familyPassword === DB.church.code){ toast('교회 코드와 다른 비밀번호를 설정하세요'); return; }
-  if(familyPassword.length < 4){ toast('비밀번호는 4자 이상으로 설정하세요'); return; }
+  // ── STEP 4: 비밀번호 강도 검증 ──
+  // ★ 보안 원칙: 방 비밀번호는 교회코드와 달라야 함
+  //   (기본값으로 교회코드가 되면 다른 방이 접근할 수 있는 보안 허점)
+  if(!familyPassword){
+    toast('가족 비밀번호를 설정하세요');
+    return;
+  }
+  if(familyPassword === DB.church.code){
+    toast('교회 코드와 다른 비밀번호를 설정하세요');
+    return;
+  }
+  if(familyPassword.length < 4){
+    toast('비밀번호는 4자 이상으로 설정하세요');
+    return;
+  }
 
-  // ★ A: 비번 중복 방지 — 같은 교회에서 다른 방이 이미 쓰는 비번이면 거부.
-  //   (한 비번이 두 방을 가리키면 구역원이 엉뚱한 방(가족방)에 입장해 사생활이 노출됨)
+  // ── STEP 5: 비밀번호 중복 확인 ──
+  // ★ 비번 중복 방지: 같은 교회에서 두 방이 같은 비번을 쓰면 혼동 발생
+  //   findFamilyByPasswordGlobal()로 다른 방의 중복 확인
   if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPasswordGlobal){
+    // 새 방 생성이면 myFamilyId = '', 기존 방이면 pat_family_id 사용
     const myFamilyId = window._creatingNewRoom ? '' : (localStorage.getItem('pat_family_id') || '');
     try{
       const dupRoom = await PAT_DB.findFamilyByPasswordGlobal(DB.church.code, familyPassword);
       if(dupRoom && dupRoom.id && dupRoom.id !== myFamilyId){
+        // 다른 방에서 이미 사용 중인 비밀번호
         toast('이미 다른 방에서 쓰는 비밀번호예요. 다른 비밀번호를 사용하세요');
         return;
       }
-    }catch(e){ /* 네트워크 오류 시 서버 측 거부(409)로 한 번 더 막힘 */ }
+    }catch(e){
+      // 네트워크 오류 시: 서버 측에서 409 Conflict로 한 번 더 차단
+      console.warn('[PAT-FAMILY] 비번 중복 확인 오류:', e.message);
+    }
   }
 
-  // ★ 대표자 + 폼에서 입력된 구성원들 추가
-  const inputMembers = getMemberNames(); // memberRows에 입력된 이름들 수집
+  // ── STEP 6: 구성원 명단 구성 ──
+  // 대표자는 자동 추가, memberRows에서 입력된 이름들도 수집
+  const inputMembers = getMemberNames(); // memberRows input들 수집
   const members = [leaderName, ...inputMembers].filter(m => m.trim()); // 빈 값 제외
 
   // memberName: 대표자 기기에선 대표자가 "나"
