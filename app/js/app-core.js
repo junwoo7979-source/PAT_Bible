@@ -342,6 +342,7 @@ async function loadChurchConfig(){
     DB.verse = { ref:'', text:'', weekOf:'' };
   }
   // 설정 폴링 구독 (구절 + 앱제목) — subscribeConfig 가 이전 구독을 정리하므로 전환 시 재호출 안전
+  // ★ 2026-07-01: 초기 구독 시 콜백 실행 안 함 → 실제 변경이 감지될 때만 호출됨
   PAT_DB.subscribeConfig(DB.church.code, config => {
     applyCloudConfig(config);
     const activeId = document.querySelector('.screen.active')?.id;
@@ -349,6 +350,7 @@ async function loadChurchConfig(){
     else if(activeId==='s-verse') renderVerse();
     else if(activeId==='s-worship' && typeof renderWorship==='function') renderWorship();
     else if(activeId==='s-admin') renderAdmin();
+    // ★ 실제 변경이 감지되었을 때만 메시지 표시
     toast('📖 설정이 업데이트됐습니다');
     console.log('[PAT] 설정 업데이트 감지:', config);
   });
