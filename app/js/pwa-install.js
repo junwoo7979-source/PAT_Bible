@@ -1,4 +1,4 @@
-// ====== PAT Bible — pwa-install.js (v132) ======
+// ====== PAT Bible — pwa-install.js (v134) ======
 // 홈화면 설치 유도 컨트롤러.
 //
 // [완전 자동 설치가 불가능한 이유 — 브라우저 보안 정책]
@@ -129,15 +129,32 @@
   }
 
   function openExternalInApp(){
-    var url = location.href;
+    var url = location.href.split('#')[0];   // 해시 제거한 깨끗한 URL(쿼리=초대링크는 보존)
     var u = ua();
     var target = externalOpenTarget(u, url);
-    if(target){
-      if(/KAKAOTALK/i.test(u) && typeof toast === 'function') toast('기본 브라우저로 여는 중…');
-      location.href = target;
+
+    // iOS 기타 인앱(페북/인스타 등): 외부 브라우저 강제 실행 불가 → 안내만
+    if(!target){
+      alert('오른쪽 위(또는 아래) 메뉴에서 “Safari로 열기”를 선택해 주세요.\n그 뒤 “홈화면에 설치하기”를 누르면 됩니다.');
       return;
     }
-    alert('오른쪽 위(또는 아래) 메뉴에서 “Safari로 열기”를 선택해 주세요.\n그 뒤 “홈화면에 설치하기”를 누르면 됩니다.');
+
+    // 외부 브라우저가 실제로 열리면 이 페이지는 백그라운드로 전환됨(document.hidden=true).
+    // 그걸 감지해 성공 여부 판단 → 스킴이 안 먹는 기기에서는 수동 안내로 폴백.
+    var opened = false;
+    var onHide = function(){ if(document.hidden) opened = true; };
+    document.addEventListener('visibilitychange', onHide);
+
+    if(/KAKAOTALK/i.test(u) && typeof toast === 'function') toast('기본 브라우저로 여는 중…');
+    try { location.href = target; } catch(e) {}
+
+    setTimeout(function(){
+      document.removeEventListener('visibilitychange', onHide);
+      if(!opened && !document.hidden){
+        // 자동 전환 실패 → 수동 방법 안내(최후 폴백)
+        alert('자동 전환이 안 되면,\n오른쪽 위 메뉴(⋮ 또는 …)에서 “다른 브라우저로 열기”를 선택해 주세요.\n그 뒤 “홈화면에 설치하기”를 누르면 됩니다.');
+      }
+    }, 1600);
   }
 
   function pwaInstallLater(){
