@@ -276,6 +276,11 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         <button class="btn ghost" style="flex:1;margin:0" onclick="openFamilyJoinManual()">👨‍👩‍👧 가족 등록</button>
       </div>
     </div>
+    <!-- 재설치/기기변경 복구 안내 (데이터는 서버에 안전 — 재로그인으로 복원) -->
+    <div style="margin-top:12px;padding:12px 14px;border:1px dashed var(--line);border-radius:12px;background:var(--bg);text-align:left">
+      <p style="margin:0 0 4px;font-weight:700;color:var(--text);font-size:calc(var(--fs) - 1px)">📲 폰을 바꾸거나 앱을 다시 설치했나요?</p>
+      <p class="muted" style="margin:0;font-size:calc(var(--fs) - 3px);line-height:1.6">기록은 서버에 안전하게 보관됩니다. <b>교회 코드 → 가족 비밀번호 → 가입 때와 같은 이름</b>으로 로그인하면 가족방·수행 기록·진도가 그대로 복원됩니다.</p>
+    </div>
     <button class="btn ghost" style="margin-top:8px;border:1.5px solid var(--accent);color:var(--accent);font-weight:700" onclick="openInstallGuide()">📱 폰 홈 화면에 앱 설치하기</button>
     <button class="btn ghost" style="margin-top:8px" onclick="location.reload()">🔄 새로고침</button>
     <button class="btn ghost" style="margin-top:8px" onclick="go('s-church-register')">🏛️ 교회 등록 (관리자)</button>
