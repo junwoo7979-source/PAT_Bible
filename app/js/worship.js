@@ -39,7 +39,9 @@ function renderWorship(){
   box.innerHTML =
     '<div class="card">' +
       (title ? '<h2 style="color:var(--accent);margin-bottom:10px">' + _worEsc(title) + '</h2>' : '') +
-      '<div style="line-height:1.9;font-size:var(--fs)">' + contentHtml + '</div>' +
+      '<div style="background:rgba(120,120,120,0.12);border:1px solid var(--line);' +
+        'border-radius:12px;padding:16px 16px;line-height:1.95;font-size:var(--fs);' +
+        'font-weight:700;color:var(--text)">' + contentHtml + '</div>' +
     '</div>';
 }
 
