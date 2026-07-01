@@ -971,6 +971,10 @@ async function enterChurch(){
       if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
         let found = null;
         try{
+          // ★ 2026-07-01: 디버깅 - 실제 churchCode가 뭔지 확인
+          console.log('[LOGIN-STEP2-DEBUG] DB.church.code:', DB.church.code);
+          console.log('[LOGIN-STEP2-DEBUG] localStorage pat_church_code:', localStorage.getItem('pat_church_code'));
+          console.log('[LOGIN-STEP2-DEBUG] 입력한 비밀번호:', pw);
           console.log('[LOGIN-STEP2-SERVER] Firebase 조회:', DB.church.code);
           found = await PAT_DB.findFamilyByPassword(DB.church.code, pw);
         }
