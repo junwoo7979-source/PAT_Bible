@@ -965,14 +965,9 @@ async function enterChurch(){
       const pw = decision.password;
       const profile = loadFamilyProfile();
 
-      // ★ 추가 검증: 비밀번호가 교회코드가 아닌지 확인 (사용자 실수 방지)
-      if(pw === DB.church.code){
-        console.log('[LOGIN-STEP2-FAIL] 교회코드를 비밀번호로 입력 시도');
-        toast('⚠️ 교회 코드로는 입장할 수 없습니다.\n가족 비밀번호를 입력해주세요.');
-        return;
-      }
-
       // 서버 검증 (내 가족 pat_family_id 우선 스코프 → 다른 가정 비번은 실패)
+      // ★ 2026-07-01 제거: 교회코드와 비밀번호가 같을 수 있음 (예: 013579)
+      //   서버에서 어차피 검증하니 클라이언트 중복 체크 제거
       if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
         let found = null;
         try{

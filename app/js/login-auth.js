@@ -84,11 +84,9 @@
     // ── STEP 2: 교회 선택됨 (cc !== '') ──
     if(!raw) return { action:'NEED_FAMILY_PW' };
 
-    // ★ 보안: 교회코드를 방 비밀번호 칸에 입력하려는 시도 차단
-    // 이는 otp 우회 시도이거나 사용자 실수일 수 있음
-    if(raw === cc) return { action:'REJECT_CHURCHCODE' };
-
     // 입력값을 방 비밀번호로 해석 → 서버에서 findFamilyByPassword()로 검증
+    // ★ 2026-07-01 제거: 교회코드와 비밀번호가 같을 수 있음 (예: 013579)
+    //   서버에서 어차피 검증하니 클라이언트 중복 체크 제거
     return { action:'AUTH_FAMILY_PW', password: raw };
   }
 
