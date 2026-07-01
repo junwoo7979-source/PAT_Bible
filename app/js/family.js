@@ -514,8 +514,9 @@ async function saveFamilyProfileAsLeader(){
     }catch(e){ /* 네트워크 오류 시 서버 측 거부(409)로 한 번 더 막힘 */ }
   }
 
-  // ★ 대표자만 members에 자동 추가 (1번 위치)
-  const members = [leaderName];
+  // ★ 대표자 + 폼에서 입력된 구성원들 추가
+  const inputMembers = getMemberNames(); // memberRows에 입력된 이름들 수집
+  const members = [leaderName, ...inputMembers].filter(m => m.trim()); // 빈 값 제외
 
   // memberName: 대표자 기기에선 대표자가 "나"
   const profileData = { roomName, leaderName, parish, district, familyPassword, members, memberName: leaderName, groupType };

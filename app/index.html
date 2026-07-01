@@ -871,9 +871,18 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         <div class="pw-wrap"><input class="field" id="familyPassword" type="password" placeholder="가족방 전용 비밀번호"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
         <p class="muted" style="font-size:calc(var(--fs) - 5px);margin:-4px 2px 10px">
           가족 구성원이 참여할 때 사용하는 비밀번호입니다.</p>
+
+        <!-- ★ 구성원 추가 섹션 -->
+        <label class="lbl" style="margin-top:12px">구성원 추가 (선택사항)</label>
+        <p class="muted" style="font-size:calc(var(--fs) - 5px);margin:0 2px 8px">
+          대표 이름은 자동으로 추가되며, 함께 참여할 가족 구성원의 이름을 입력할 수 있습니다. 나중에 가족 비밀번호로 진입해서 추가할 수도 있습니다.</p>
+        <div id="memberRows" style="margin-bottom:8px">
+          <!-- 동적으로 구성원 입력 행이 추가됨 -->
+        </div>
+        <button type="button" class="btn ghost" style="margin:0" onclick="addMemberRow('')">+ 구성원 추가</button>
       </div>
 
-      <button class="btn" onclick="saveFamilyProfileAsLeader()">가족방 설정 저장</button>
+      <button class="btn" style="margin-top:12px" onclick="saveFamilyProfileAsLeader()">가족방 설정 저장</button>
     </div>
   </section>
 
