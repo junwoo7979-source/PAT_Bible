@@ -926,6 +926,7 @@ function refreshLoginMode(){
   const input  = document.getElementById('churchCode');
   const startBtn = document.getElementById('loginStartBtn');
   const devResetBtn = document.getElementById('devResetChurchBtn');
+  const pwToggleBtn = document.getElementById('loginPwToggleBtn');
   if(hasChurch){
     if(prompt) prompt.textContent = '';                 // 안내 문구 제거
     if(input){
@@ -934,6 +935,7 @@ function refreshLoginMode(){
       input.value = '';
       input.style.letterSpacing='normal';
     }
+    if(pwToggleBtn) pwToggleBtn.style.display='block';  // 눈 아이콘 표시
     if(startBtn) startBtn.textContent = '입장하기';
     if(devResetBtn) devResetBtn.style.display='block';  // 다른 교회 선택 버튼 표시
   } else {
@@ -943,8 +945,22 @@ function refreshLoginMode(){
       input.placeholder = '교회 코드';
       input.style.letterSpacing='4px';
     }
+    if(pwToggleBtn) pwToggleBtn.style.display='none';   // 눈 아이콘 숨김
     if(startBtn) startBtn.textContent = '시작하기';
     if(devResetBtn) devResetBtn.style.display='none';   // 버튼 숨김
+  }
+}
+
+// 로그인 화면 비밀번호 보이기/숨기기 토글
+function toggleLoginPwVisibility(btn){
+  const input = document.getElementById('churchCode');
+  if(!input) return;
+  if(input.type === 'password'){
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
   }
 }
 
