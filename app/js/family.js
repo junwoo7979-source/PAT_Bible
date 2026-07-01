@@ -239,14 +239,15 @@ async function tryAutoRecoverFamily(){
 function renderFamilyProfile(){
   const profile = loadFamilyProfile();
   const roomName = familyRoomName(profile);
-  const L = groupLabels(groupTypeOf(profile));
+  // ★ 2026-07-01: groupTypeOf() 삭제됨(구역방 제거) — groupLabels()는 인자 없이 호출
+  const L = groupLabels();
   document.getElementById('familyRoomTitle').textContent = profile
     ? `${L.icon} ${roomName || L.emptyTitle}`
     : `${L.icon} ${L.emptyTitle}`;
   if(profile){
     const parishLabel   = profile.parish   ? (/교구$/.test(profile.parish)   ? profile.parish   : profile.parish+'교구')   : '';
     const districtLabel = profile.district ? (/구역$/.test(profile.district) ? profile.district : profile.district+'구역') : '';
-    const leaderTitle   = groupTypeOf(profile) === '구역' ? '구역장 ' : '대표 ';
+    const leaderTitle   = '대표 ';  // ★ 구역방 삭제 — 항상 '대표' 호칭 사용
     const leaderLabel   = profile.leaderName ? leaderTitle+profile.leaderName : (profile.memberName || '');
     const parts = [leaderLabel, parishLabel, districtLabel].filter(Boolean);
     document.getElementById('familyProfile').textContent = parts.join(' ');
