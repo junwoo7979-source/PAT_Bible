@@ -1110,11 +1110,11 @@ function refreshLoginMode(){
   const devResetBtn = document.getElementById('devResetChurchBtn');
   const pwToggleBtn = document.getElementById('loginPwToggleBtn');
   if(hasChurch){
-    // ★ 2026-07-01: 비밀번호 입력 시 교회 코드 관련 텍스트 완전 제거
+    // ★ 2026-07-01: 비밀번호 입력 시 교회 코드 관련 텍스트 완전 제거, placeholder를 "비밀번호"로 변경
     if(prompt) prompt.style.display = 'none';           // 안내 문구 숨김
     if(input){
       input.type = 'password';                    // 비밀번호는 점(•)으로 마스킹
-      input.placeholder = '••••••••';             // placeholder를 점으로 표시
+      input.placeholder = '비밀번호';              // ★ placeholder를 "비밀번호"로 변경
       input.value = '';
       input.style.letterSpacing='normal';
     }
