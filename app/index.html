@@ -274,9 +274,9 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- (복구) 대표/가족 등록은 로그인 화면에 두지 않고, 입장 후 홈 화면에서 진행한다.
          신규 구성원은 가족 비밀번호 입장 → 이름 입력(가족 등록)으로 자동 연결됨. -->
     <!-- 재설치/기기변경 복구 안내 (데이터는 서버에 안전 — 재로그인으로 복원) -->
-    <div style="margin-top:12px;padding:12px 14px;border:1px dashed var(--line);border-radius:12px;background:var(--bg);text-align:left">
-      <p style="margin:0 0 4px;font-weight:700;color:var(--text);font-size:calc(var(--fs) - 1px)">📲 폰을 바꾸거나 앱을 다시 설치했나요?</p>
-      <p class="muted" style="margin:0;font-size:calc(var(--fs) - 3px);line-height:1.6">기록은 서버에 안전하게 보관됩니다. <b>교회 코드 → 가족 비밀번호 → 가입 때와 같은 이름</b>으로 로그인하면 가족방·수행 기록·진도가 그대로 복원됩니다.</p>
+    <div style="margin-top:12px;padding:12px 14px;border-left:4px solid #ff9800;border-radius:8px;background:rgba(255,152,0,.05);text-align:left">
+      <p style="margin:0 0 6px;font-weight:700;color:var(--text);font-size:calc(var(--fs) - 1px)">📲 폰을 바꾸거나 앱을 다시 설치했나요?</p>
+      <p style="margin:0;color:#555;font-size:calc(var(--fs) - 3px);line-height:1.6">✓ 기록은 서버에 안전하게 보관됩니다<br>✓ 교회 코드 + 가족 비밀번호로 로그인<br>✓ "새 기기" 메시지가 나오면 이름을 입력하세요<br>✓ 가족방·수행 기록·진도가 모두 복원됩니다</p>
     </div>
     <button class="btn ghost" style="margin-top:8px;border:1.5px solid var(--accent);color:var(--accent);font-weight:700" onclick="openInstallGuide()">📱 폰 홈 화면에 앱 설치하기</button>
     <button class="btn ghost" style="margin-top:8px" onclick="location.reload()">🔄 새로고침</button>
@@ -810,7 +810,11 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <h1>가족 등록</h1>
 
     <div class="card" style="margin-top:16px">
-      <p class="muted" style="margin-bottom:12px">가족방에 참여하시려면 다음 정보를 입력하세요</p>
+      <div style="background:#e3f2fd;border-left:4px solid #2196f3;padding:12px;margin-bottom:12px;border-radius:4px">
+        <p style="margin:0;color:#1976d2;font-size:14px"><strong>ℹ️ 새 기기에서 처음 입장합니다</strong></p>
+        <p style="margin:4px 0 0;color:#555;font-size:13px">앱을 재설치했거나 다른 기기에서 로그인하셨나요? 가족방에 참여하려면 이름을 입력하세요.</p>
+      </div>
+      <p class="muted" style="margin-bottom:12px">가족 비밀번호를 알고 있으면 아래 정보를 입력하세요</p>
 
       <label class="lbl">내 이름 또는 닉네임</label>
       <input class="field" id="joinMemberNameInput" placeholder="예: 김민수" autocomplete="off">

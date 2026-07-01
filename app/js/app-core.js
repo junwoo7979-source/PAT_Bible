@@ -991,13 +991,16 @@ async function enterChurch(){
 
           const prevName = (profile && (profile.memberName || profile.leaderName)) || '';
           if(prevName){
+            console.log('[LOGIN-STEP2-EXISTING] 기존 구성원 재입장:', prevName);
             await _enterFoundFamily(found, pw, profile);   // 기존 구성원 재입장
           } else {
             // 새 기기/구성원 → 정식 합류(이름 입력, 서버 joinFamily)로 유도
+            console.log('[LOGIN-STEP2-NEW-DEVICE] 새 기기/구성원 경로로 진입. 이름 입력 필요');
+            console.log('[LOGIN-DEBUG] 가족방:', found.roomName, '| 교회:', DB.church.code);
             go('s-family-join-manual');
             const nameI = document.getElementById('joinMemberNameInput'); if(nameI) nameI.value='';
             const pwI   = document.getElementById('joinPasswordInput');   if(pwI)   pwI.value = pw;
-            toast('가족방을 찾았어요 — 이름을 입력해 합류하세요');
+            toast('✓ 가족방을 찾았어요!\n새 기기에서 처음 입장하므로\n이름을 입력해 합류하세요');
           }
           return;
         }
