@@ -1382,12 +1382,8 @@ function confirmMemberIdentity(memberId) {
   toast(`✅ ${esc(memberName)} 확인 완료!`);
 }
 
-// ── 가족 등록 화면 열기 ────────────────────────────────────────
-function openFamilyJoinManual(){
-  document.getElementById('joinMemberNameInput').value = '';
-  document.getElementById('joinPasswordInput').value = '';
-  go('s-family-join-manual');
-}
+// ★ 2026-07-01: openFamilyJoinManual() 함수 제거 — 가족 등록 페이지 삭제됨
+// 대표가 등록하는 방식으로 변경
 
 // ── 가족 등록 제출 (구성원 자가 입력) ───────────────────────────
 async function submitFamilyJoinManual(){

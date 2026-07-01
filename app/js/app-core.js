@@ -999,13 +999,28 @@ async function enterChurch(){
             console.log('[LOGIN-STEP2-EXISTING] 기존 구성원 재입장:', prevName);
             await _enterFoundFamily(found, pw, profile);   // 기존 구성원 재입장
           } else {
-            // 새 기기/구성원 → 정식 합류(이름 입력, 서버 joinFamily)로 유도
-            console.log('[LOGIN-STEP2-NEW-DEVICE] 새 기기/구성원 경로로 진입. 이름 입력 필요');
+            // ★ 2026-07-01: 새 기기일 때도 바로 홈으로 진입 (가족 등록 페이지 삭제됨)
+            // 대표가 등록하는 방식으로 변경되었으므로, 새 구성원은 비밀번호로만 입장
+            console.log('[LOGIN-STEP2-NEW-DEVICE] 새 기기/구성원 → 바로 홈으로 진입');
             console.log('[LOGIN-DEBUG] 가족방:', found.roomName, '| 교회:', DB.church.code);
-            go('s-family-join-manual');
-            const nameI = document.getElementById('joinMemberNameInput'); if(nameI) nameI.value='';
-            const pwI   = document.getElementById('joinPasswordInput');   if(pwI)   pwI.value = pw;
-            toast('✓ 가족방을 찾았어요!\n새 기기에서 처음 입장하므로\n이름을 입력해 합류하세요');
+
+            // 프로필 임시 저장 (이름은 나중에 설정 가능)
+            const tempProfile = {
+              ...(profile || {}),
+              churchCode: DB.church.code,
+              roomName: found.roomName || '',
+              leaderName: found.leaderName || '',
+              familyPassword: pw,
+              memberName: 'Guest',  // 임시 이름
+              members: Array.isArray(found.members) ? found.members : []
+            };
+            try{ localStorage.setItem('pat_family_id', found.id); }catch(e){}
+            try{ localStorage.setItem('pat_church_code', DB.church.code); }catch(e){}
+            if(typeof setFamilyStorage === 'function') setFamilyStorage('pat_family_profile', JSON.stringify(tempProfile));
+            else { try{ localStorage.setItem('pat_family_profile', JSON.stringify(tempProfile)); }catch(e){} }
+
+            if(typeof enterMemberHome === 'function') enterMemberHome();
+            toast('✓ 가족방에 입장했습니다! 🎉');
           }
           return;
         }

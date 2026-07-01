@@ -839,27 +839,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     </div>
   </section>
 
-  <!-- S3b: 가족 등록 (구성원 자가 입력) -->
-  <section class="screen" id="s-family-join-manual">
-    <button class="back" onclick="go('s-family')">‹ 가족방</button>
-    <h1>가족 등록</h1>
-
-    <div class="card" style="margin-top:16px">
-      <div style="background:#e3f2fd;border-left:4px solid #2196f3;padding:12px;margin-bottom:12px;border-radius:4px">
-        <p style="margin:0;color:#1976d2;font-size:14px"><strong>ℹ️ 새 기기에서 처음 입장합니다</strong></p>
-        <p style="margin:4px 0 0;color:#555;font-size:13px">앱을 재설치했거나 다른 기기에서 로그인하셨나요? 가족방에 참여하려면 이름을 입력하세요.</p>
-      </div>
-      <p class="muted" style="margin-bottom:12px">가족 비밀번호를 알고 있으면 아래 정보를 입력하세요</p>
-
-      <label class="lbl">내 이름 또는 닉네임</label>
-      <input class="field" id="joinMemberNameInput" placeholder="예: 김민수" autocomplete="off">
-
-      <label class="lbl">가족 비밀번호</label>
-      <div class="pw-wrap"><input class="field" id="joinPasswordInput" type="password" placeholder="가족장에게 비밀번호를 물어보세요"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
-
-      <button class="btn" onclick="submitFamilyJoinManual()" style="margin-top:12px">가족에 등록하기</button>
-    </div>
-  </section>
+  <!-- ★ 2026-07-01: s-family-join-manual 페이지 삭제 — 대표가 등록하므로 더 이상 필요 없음 -->
 
   <!-- S3c: 초대장 -->
   <section class="screen" id="s-invite">
