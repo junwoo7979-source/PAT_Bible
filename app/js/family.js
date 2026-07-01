@@ -840,10 +840,12 @@ function copyInviteLink(){
   const profile = loadFamilyProfile();
   if(!profile){ toast('먼저 가족방을 등록하세요'); return; }
   const familyId = localStorage.getItem('pat_family_id') || '';
+  const churchCode = localStorage.getItem('pat_church_code') || '';
   // ⚠️ familyPassword 제외 — URL에 평문 비밀번호 노출 차단
+  // ★ 2026-07-01: churchCode 추가 — 초대링크로 입장 후 재설치 시 교회코드 자동 로드
   const data = { roomName:profile.roomName, leaderName:profile.leaderName,
     parish:profile.parish, district:profile.district,
-    familyId: familyId, v: 2 };
+    familyId: familyId, churchCode: churchCode, v: 3 };
   const encoded = btoa(encodeURIComponent(JSON.stringify(data)));
   // location.href에 hash가 붙을 수 있으므로 origin+pathname 사용
   const url = location.origin + location.pathname + '?invite=' + encoded;
@@ -860,6 +862,11 @@ function showInvitePage(data){
   document.getElementById('inviteParish').textContent     = parishLabel;
   document.getElementById('invitePasswordInput').value    = '';
   window._inviteData = data;
+  // ★ 2026-07-01: 초대링크에 포함된 교회코드 저장 — 재설치 후에도 교회 자동 로드
+  if(data.churchCode){
+    try{ localStorage.setItem('pat_church_code', data.churchCode); }catch(e){}
+    console.log('[INVITE] churchCode 저장:', data.churchCode);
+  }
   go('s-invite');
 }
 async function joinFamilyFromInvite(){
