@@ -35,6 +35,31 @@
 })();
 </script>
 
+<!-- ★ 2026-07-01: 페이지 로드 시 교회 코드 확인 후 UI 미리 준비 (깜빡임 방지) -->
+<script>
+(function initLoginUIByChurchCode() {
+  try {
+    const churchCode = localStorage.getItem('pat_church_code');
+    if (churchCode) {
+      // 교회 코드가 있으면 비밀번호 입력 상태로 UI 미리 설정
+      const input = document.getElementById('churchCode');
+      const prompt = document.getElementById('loginPrompt');
+      const startBtn = document.getElementById('loginStartBtn');
+      const pwToggleBtn = document.getElementById('loginPwToggleBtn');
+
+      if (input) {
+        input.type = 'password';
+        input.placeholder = '비밀번호';
+        input.style.letterSpacing = 'normal';
+      }
+      if (prompt) prompt.style.display = 'none';
+      if (startBtn) startBtn.textContent = '입장하기';
+      if (pwToggleBtn) pwToggleBtn.style.display = 'block';
+    }
+  } catch(e) {}
+})();
+</script>
+
 <!-- Cloud Firestore REST API 연동 -->
 <script src="firebase-config.js?v=139"></script>
 <script src="firebase-db.js?v=139"></script>
