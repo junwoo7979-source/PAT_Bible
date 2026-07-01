@@ -748,7 +748,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- 등록 버튼 -->
     <div style="display:flex;gap:8px;margin:8px 0">
       <button class="btn" style="flex:1;margin:0" onclick="window._creatingNewRoom=false;openFamilyRegister('leader')">👑 대표 등록</button>
-      <button class="btn" style="flex:1;margin:0" onclick="openFamilyJoinManual()">👨‍👩‍👧 가족 등록</button>
+      <!-- 2026-07-01: 가족 등록 버튼 제거 — 대표가 통일관리. 초대링크로 입장 시 familyId 포함됨 -->
     </div>
     <button class="btn ghost" id="inviteLinkBtn" onclick="copyInviteLink()" style="display:none">📎 초대 링크 복사</button>
     <button class="btn ghost" onclick="go('s-history');renderHistory()" style="margin-top:8px">📊 수행 기록 보기 (일·주·월)</button>
