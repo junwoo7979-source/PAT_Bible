@@ -178,6 +178,8 @@ function prayerMemberList(){
   }
   const me=currentPrayerMember();
   if(me && !names.includes(me)) names=[me, ...names];
+  // ★ 2026-07-01: "Guest" 이름 필터링 — 구성원 명단에서 제외
+  names = names.filter(n => n !== 'Guest');
   return [...new Set(names)];
 }
 
@@ -240,6 +242,8 @@ function renderPrayerFeed(board){
   const entries=Object.keys(board)
     .map(n=>({ name:n, text:(board[n]&&board[n].text)||'', savedAt:(board[n]&&board[n].savedAt)||0 }))
     .filter(e=>e.text)
+    // ★ 2026-07-01: "Guest" 기도 필터링 — 구성원 명단에서 제외된 이름의 기도는 표시 안 함
+    .filter(e=>e.name !== 'Guest')
     .sort((a,b)=> b.savedAt - a.savedAt);
 
   if(!entries.length){
