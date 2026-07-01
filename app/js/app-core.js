@@ -877,28 +877,10 @@ async function enterChurch(){
       console.log('[LOGIN-STEP1] 교회 선택:', decision.code);
       if(!(window.PAT_DB && PAT_DB.ready())){ toast('서버 연결이 필요합니다'); return; }
 
-      // ★ 추가: 11111 입장 시 가족 중복 확인 (이미 가족이 등록되었으면 차단)
-      if(decision.code === '11111'){
-        try{
-          const familiesRes = await fetch(`https://us-central1-pat-bible-app.cloudfunctions.net/getFamiliesList?churchCode=11111`);
-          const familiesData = await familiesRes.json();
-          // 가족이 하나라도 있으면, 가족 비밀번호로만 입장 강제
-          if(familiesData.families && familiesData.families.length > 0){
-            console.log('[LOGIN] 11111에 기존 가족 존재, 비밀번호 입력 강제');
-
-            // ★ 수정: 먼저 교회코드를 설정해야 다음 비밀번호 입력이 정상 작동
-            // (이 코드를 빼먹으면 비밀번호가 교회코드로 인식됨!)
-            adoptChurch(decision.code, '교회');  // 기본값 설정
-            if(typeof refreshLoginMode === 'function') refreshLoginMode();
-
-            toast('이미 가족이 등록되어 있습니다.\n가족 비밀번호로 입장해주세요.');
-            return;
-          }
-        }catch(e){
-          console.warn('[PAT] 11111 가족 확인 실패:', e.message);
-          // 네트워크 오류 시 진행 (서버가 없을 수 있음)
-        }
-      }
+      // ★ 핵심 수정: 1) 먼저 교회 설정 검증 (Firebase 또는 로컬 폴백)
+      //            2) 설정이 유효하면 adoptChurch()로 DB.church.code 설정
+      //            3) 그 다음 가족 중복 확인 (선택사항)
+      // 이 순서를 지켜야 다음 비밀번호 입력 단계에서 DB.church.code가 유효합니다.
 
       let cfg = null;
       try{
@@ -908,22 +890,43 @@ async function enterChurch(){
         console.warn('[LOGIN-STEP1-SERVER-ERROR]', e.message);
       }
 
-      // ★ 수정: Firebase에서 설정이 없으면 로컬 기본값 사용
+      // Firebase에서 설정이 없으면 로컬 기본값 사용
       if(!cfg){
         console.log('[LOGIN-STEP1-FALLBACK] Firebase 설정 없음, 로컬 기본값 사용:', decision.code);
         cfg = initChurchDefaults(decision.code);
       }
 
-      if(cfg && cfg.appTitle !== undefined){
-        console.log('[LOGIN-STEP1-OK] 교회 코드 검증 완료:', decision.code);
-        adoptChurch(decision.code, cfg.appTitle);
-        if(typeof loadChurchConfig === 'function') await loadChurchConfig();
-        if(typeof refreshLoginMode === 'function') refreshLoginMode();
-        toast('✓ 교회가 선택됐어요. 가족 비밀번호로 입장하세요');
-      } else {
+      if(!cfg || cfg.appTitle === undefined){
         console.log('[LOGIN-STEP1-FAIL] 교회 코드 검증 실패:', decision.code);
         toast('교회 코드가 올바르지 않습니다');
+        return;
       }
+
+      // ★ 중요: 교회 설정이 유효하면 반드시 adoptChurch() 호출 (모든 교회 동일)
+      console.log('[LOGIN-STEP1-OK] 교회 코드 검증 완료:', decision.code);
+      adoptChurch(decision.code, cfg.appTitle);  // ← 반드시 호출: DB.church.code 설정
+      if(typeof refreshLoginMode === 'function') refreshLoginMode();
+
+      // ★ 선택사항: 교회코드 검증 후 가족 중복 확인 (모든 교회에 동일 적용)
+      // 이것은 이미 가족이 등록된 교회에 진입할 때만 정보 제공용
+      try{
+        const familiesRes = await fetch(`https://us-central1-pat-bible-app.cloudfunctions.net/getFamiliesList?churchCode=${encodeURIComponent(decision.code)}`);
+        if(familiesRes.ok){
+          const familiesData = await familiesRes.json();
+          if(familiesData.families && familiesData.families.length > 0){
+            console.log(`[LOGIN] ${decision.code}에 기존 가족 존재, 비밀번호 입력 강제`);
+            toast('이미 가족이 등록되어 있습니다.\n가족 비밀번호로 입장해주세요.');
+            return;  // 비밀번호 입력으로 진행 (DB.church.code는 이미 설정됨)
+          }
+        }
+      }catch(e){
+        console.warn('[LOGIN] 가족 목록 확인 실패:', e.message);
+        // 네트워크 오류 시 계속 진행 (정상적으로 비밀번호 입력으로)
+      }
+
+      // 정상 흐름: 가족 등록 없음 또는 예외 → 비밀번호 입력으로
+      if(typeof loadChurchConfig === 'function') await loadChurchConfig();
+      toast('✓ 교회가 선택됐어요. 가족 비밀번호로 입장하세요');
       return;
     }
 
