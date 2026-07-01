@@ -44,8 +44,8 @@
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=130"></script>
-<script src="firebase-db.js?v=130"></script>
+<script src="firebase-config.js?v=131"></script>
+<script src="firebase-db.js?v=131"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -266,9 +266,17 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <h1 class="center" id="loginAppTitle" style="font-size:var(--fs-lg);margin-bottom:4px">PAT Bible</h1>
     <p class="center" style="line-height:1.8;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--text)">말씀과 기도로 가족의 신앙을 세워가요.<br>매일 작은 실천이 큰 변화를 만듭니다</p>
     <div class="spacer"></div>
-    <p class="muted center" style="margin-bottom:12px">교회 코드 또는 가족 비밀번호를 입력하세요</p>
-    <input class="field code-input" id="churchCode" maxlength="20" placeholder="· · · · ·" autocomplete="off" style="letter-spacing:4px">
-    <button class="btn" onclick="enterChurch()">시작하기</button>
+    <p class="muted center" id="loginPrompt" style="margin-bottom:12px">교회 코드를 입력하세요</p>
+    <p class="center" id="loginChurchBadge" style="display:none;margin-bottom:10px;font-size:calc(var(--fs) - 1px)"></p>
+    <input class="field code-input" id="churchCode" maxlength="20" placeholder="교회 코드" autocomplete="off" style="letter-spacing:4px">
+    <button class="btn" id="loginStartBtn" onclick="enterChurch()">시작하기</button>
+    <!-- 교회 선택 후에만 표시: 가족방 만들기/참여 -->
+    <div id="loginFamilyBtns" style="display:none;margin-top:8px">
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost" style="flex:1;margin:0" onclick="window._creatingNewRoom=false;openFamilyRegister('leader')">👑 대표 등록</button>
+        <button class="btn ghost" style="flex:1;margin:0" onclick="openFamilyJoinManual()">👨‍👩‍👧 가족 등록</button>
+      </div>
+    </div>
     <button class="btn ghost" style="margin-top:8px;border:1.5px solid var(--accent);color:var(--accent);font-weight:700" onclick="openInstallGuide()">📱 폰 홈 화면에 앱 설치하기</button>
     <button class="btn ghost" style="margin-top:8px" onclick="location.reload()">🔄 새로고침</button>
     <button class="btn ghost" style="margin-top:8px" onclick="go('s-church-register')">🏛️ 교회 등록 (관리자)</button>
@@ -1160,23 +1168,24 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 </div>
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/app-core.js?v=130"></script>
-<script src="js/verse.js?v=130"></script>
-<script src="js/family.js?v=130"></script>
-<script src="js/rooms.js?v=130"></script>
-<script src="js/history.js?v=130"></script>
-<script src="js/voice.js?v=130"></script>
-<script src="js/voice-ui.js?v=130"></script>
-<script src="js/progress-store.js?v=130"></script>
-<script src="js/whisper-asr.js?v=130"></script>
-<script src="js/groq-asr.js?v=130"></script>
-<script src="js/memorize.js?v=130"></script>
-<script src="js/prayer.js?v=130"></script>
-<script src="js/reading-plan.js?v=130"></script>
-<script src="js/reading.js?v=130"></script>
-<script src="js/reset-pw.js?v=130"></script>
-<script src="js/admin.js?v=130"></script>
-<script src="js/worship.js?v=130"></script>
+<script src="js/login-auth.js?v=131"></script>
+<script src="js/app-core.js?v=131"></script>
+<script src="js/verse.js?v=131"></script>
+<script src="js/family.js?v=131"></script>
+<script src="js/rooms.js?v=131"></script>
+<script src="js/history.js?v=131"></script>
+<script src="js/voice.js?v=131"></script>
+<script src="js/voice-ui.js?v=131"></script>
+<script src="js/progress-store.js?v=131"></script>
+<script src="js/whisper-asr.js?v=131"></script>
+<script src="js/groq-asr.js?v=131"></script>
+<script src="js/memorize.js?v=131"></script>
+<script src="js/prayer.js?v=131"></script>
+<script src="js/reading-plan.js?v=131"></script>
+<script src="js/reading.js?v=131"></script>
+<script src="js/reset-pw.js?v=131"></script>
+<script src="js/admin.js?v=131"></script>
+<script src="js/worship.js?v=131"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';

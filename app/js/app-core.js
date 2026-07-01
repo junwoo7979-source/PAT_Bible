@@ -717,6 +717,7 @@ function go(id, resetScroll=true, animate=false){
     stopDashboardPolling();
   }
   if(id==='s-worship' && typeof renderWorship==='function') renderWorship();
+  if(id==='s-login' && typeof refreshLoginMode==='function') refreshLoginMode();
   if(resetScroll) window.scrollTo(0,0);
 
   // 브라우저 히스토리 관리 — 모바일 대응: 해시(#id)로 URL 구분
@@ -808,108 +809,147 @@ function enterMemberHome(){
   }catch(e){}
 }
 
+// ══════════════════════════════════════════════════════════════
+// 가족방 로그인 — 2단계 구조 (교회 선택 ↔ 가족 비밀번호 인증)
+// ──────────────────────────────────────────────────────────────
+//  [원칙]
+//   · 교회 코드 = '교회 식별용'. 어떤 가족방에도 이 코드로는 입장 불가.
+//   · 가족 비밀번호 = 유일한 입장 인증 수단. 대표가 설정한 비번만 유효.
+//   · 다른 가정 비번/교회코드로는 입장 불가 (findFamilyByPassword가
+//     pat_family_id로 스코프 → 내 가족 외에는 통과 못 함).
+//  판정 규칙은 순수함수 loginDecision(login-auth.js)로 분리해 테스트한다.
+// ══════════════════════════════════════════════════════════════
 async function enterChurch(){
-  const code = document.getElementById('churchCode').value.trim();
-  if(!code){ toast('교회 코드 또는 가족 비밀번호를 입력하세요'); return; }
-  const profile = loadFamilyProfile();
-  const famPw = profile?.familyPassword;
+  const raw = (document.getElementById('churchCode').value || '').trim();
+  const decision = (typeof loginDecision === 'function')
+    ? loginDecision(DB.church.code, raw)
+    : { action: raw ? (DB.church.code ? 'AUTH_FAMILY_PW' : 'SELECT_CHURCH') : 'NEED', password: raw, code: raw };
 
-  // 1) 내 가족 비밀번호로 입장 (이미 가족방이 있는 기기, 로컬 즉시 경로)
-  //   ★ 단, 입력값이 '교회코드'면 이 빠른 경로를 쓰지 않는다.
-  //     (구성원의 로컬 저장 비번이 옛 기본값=교회코드인 경우, 교회코드 입력이
-  //      가족 비번으로 오인돼 DB 검증 없이 입장되던 버그 차단 → 항상 분기2에서 DB 검증)
-  if(famPw && code === famPw && code !== DB.church.code){
-    if(typeof refreshFamilyProfileByPassword === 'function') await refreshFamilyProfileByPassword(profile, famPw);
-    if(DB.church.code && typeof loadChurchConfig === 'function') await loadChurchConfig();
-    enterMemberHome();
-    return;
-  }
+  switch(decision.action){
+    case 'NEED_CHURCH_CODE':
+      toast('교회 코드를 입력하세요'); return;
+    case 'NEED_FAMILY_PW':
+      toast('가족 비밀번호를 입력하세요'); return;
 
-  // 1.5) ★ 가족 비밀번호 DB 조회로 입장 (구성원 입장 버그 수정)
-  //   - 대표가족이 가족 비밀번호를 바꾼 뒤, 구성원이 '새 비밀번호'로 들어오는 경우
-  //     로컬 famPw(=옛 비번)와 달라 분기1을 못 타고, 예전엔 교회코드 조회로 빠져 실패했음.
-  //   - 교회가 선택돼 있어야(DB.church.code) 가족 조회 가능. 교회코드 자체는 제외(보안 분기 유지).
-  //   - findFamilyByPassword는 저장된 pat_family_id를 기본으로 써서 '내 가족'만 검증(타가족 무단열람 차단).
-  if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword
-     && DB.church.code && code !== DB.church.code){
-    try{
-      const found = await PAT_DB.findFamilyByPassword(DB.church.code, code);
-      if(found && found.id){
-        const members = (typeof normalizeFamilyMemberNames === 'function')
-          ? normalizeFamilyMemberNames(found.members)
-          : (Array.isArray(found.members) ? found.members : []);
-        // 내 이름: 기존 프로필 이름 유지(없으면 비움 → 이름 입력 유도)
-        const prevName = (profile && (profile.memberName || profile.leaderName)) || '';
-        const nextProfile = {
-          ...(profile || {}),
-          roomName:   found.roomName   || (profile && profile.roomName)   || '',
-          leaderName: found.leaderName || (profile && profile.leaderName) || '',
-          parish:     found.parish     || (profile && profile.parish)     || '',
-          district:   found.district   || (profile && profile.district)   || '',
-          familyPassword: code,                 // ★ 바뀐 비밀번호로 로컬 갱신
-          memberName: prevName,
-          members: members.length ? members : ((profile && profile.members) || [])
-        };
-        try{ localStorage.setItem('pat_family_id', found.id); }catch(e){}
-        if(typeof setFamilyStorage === 'function')
-          setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
-        else localStorage.setItem('pat_family_profile', JSON.stringify(nextProfile));
+    // ── 1단계: 교회 선택 (입장 아님) ──
+    case 'SELECT_CHURCH': {
+      if(!(window.PAT_DB && PAT_DB.ready())){ toast('서버 연결이 필요합니다'); return; }
+      let cfg = null;
+      try{ cfg = await PAT_DB.getConfig(decision.code); }catch(e){}
+      if(cfg){
+        adoptChurch(decision.code, cfg.appTitle);
         if(typeof loadChurchConfig === 'function') await loadChurchConfig();
-        if(prevName){
-          enterMemberHome();              // 이미 등록된 구성원 → 바로 입장
-        } else {
-          // 새 기기/이름 미확정 → 가족방으로 보내 이름만 입력하면 합류
-          if(typeof renderFamily === 'function') renderFamily();
-          go('s-family');
-          toast('가족방을 찾았어요 — 이름을 입력해 합류하세요');
-        }
-        return;
-      }
-    }catch(e){ console.warn('[PAT] 가족 비밀번호 입장 조회 실패:', e && e.message); }
-  }
-
-  // 2) 입력값이 (선택된) 교회 코드와 일치
-  if(DB.church.code && code === DB.church.code){
-    // ★ 보안(A) 강화: 이 기기가 '가족방 소속'이면 교회코드로는 입장 불가 → 가족 비밀번호 요구.
-    //   대표/구성원 모두 동일하게 '가족 비밀번호로만' 입장하도록 통일.
-    //   (이전 버그: 저장 비번이 교회코드와 같은 구성원은 차단을 우회해 교회코드로 입장됐음)
-    //   예외: 가족 비밀번호가 아직 기본값(=교회코드)인 레거시 가족만 허용 — DB로 실제 검증.
-    const myFid = (function(){ try{ return localStorage.getItem('pat_family_id')||''; }catch(e){ return ''; } })();
-    const belongsToFamily = !!myFid ||
-      !!(profile && (profile.familyPassword || profile.leaderName || (profile.members && profile.members.length)));
-    if(belongsToFamily){
-      let churchCodeIsMyFamilyPw = false;
-      if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword && myFid){
-        try{
-          const f = await PAT_DB.findFamilyByPassword(DB.church.code, code, myFid);
-          churchCodeIsMyFamilyPw = !!(f && f.id === myFid); // 교회코드가 우리 가족 실제 비번일 때만 true
-        }catch(e){}
+        if(typeof refreshLoginMode === 'function') refreshLoginMode();
+        toast('✓ 교회가 선택됐어요. 가족 비밀번호로 입장하세요');
       } else {
-        // 오프라인/DB 미준비 폴백: 저장된 가족 비번이 교회코드와 같을 때만 허용
-        churchCodeIsMyFamilyPw = !!(profile && profile.familyPassword && profile.familyPassword === code);
+        toast('교회 코드가 올바르지 않습니다');
       }
-      if(!churchCodeIsMyFamilyPw){
-        toast('가족 비밀번호를 입력하세요'); return;
-      }
-      // 레거시 기본비번 가족 → 최신 정보로 갱신 후 입장
-      if(typeof refreshFamilyProfileByPassword === 'function') await refreshFamilyProfileByPassword(profile, code);
-    }
-    if(DB.church.code && typeof loadChurchConfig === 'function') await loadChurchConfig();
-    enterMemberHome();
-    return;
-  }
-
-  // 3) 입력한 코드를 교회 코드로 조회 → 등록된 교회면 전환 후 입장 (세광 11111 포함)
-  if(window.PAT_DB && PAT_DB.ready()){
-    const cfg = await PAT_DB.getConfig(code);
-    if(cfg){
-      adoptChurch(code, cfg.appTitle);
-      if(typeof loadChurchConfig === 'function') await loadChurchConfig();
-      enterMemberHome();
       return;
     }
+
+    // ── (차단) 교회 코드를 비밀번호 칸에 입력 ──
+    case 'REJECT_CHURCHCODE':
+      toast('가정 비밀번호가 올바르지 않습니다 (교회 코드로는 입장할 수 없어요)');
+      return;
+
+    // ── 2단계: 가족 비밀번호 인증 ──
+    case 'AUTH_FAMILY_PW': {
+      const pw = decision.password;
+      const profile = loadFamilyProfile();
+
+      // 서버 검증 (내 가족 pat_family_id 우선 스코프 → 다른 가정 비번은 실패)
+      if(window.PAT_DB && PAT_DB.ready() && PAT_DB.findFamilyByPassword){
+        let found = null;
+        try{ found = await PAT_DB.findFamilyByPassword(DB.church.code, pw); }
+        catch(e){ toast('서버 오류입니다. 다시 시도하세요'); return; }
+        if(found && found.id){
+          const prevName = (profile && (profile.memberName || profile.leaderName)) || '';
+          if(prevName){
+            await _enterFoundFamily(found, pw, profile);   // 기존 구성원 재입장
+          } else {
+            // 새 기기/구성원 → 정식 합류(이름 입력, 서버 joinFamily)로 유도
+            go('s-family-join-manual');
+            const nameI = document.getElementById('joinMemberNameInput'); if(nameI) nameI.value='';
+            const pwI   = document.getElementById('joinPasswordInput');   if(pwI)   pwI.value = pw;
+            toast('가족방을 찾았어요 — 이름을 입력해 합류하세요');
+          }
+          return;
+        }
+        toast('가정 비밀번호가 올바르지 않습니다');
+        return;
+      }
+
+      // 오프라인 폴백: 로컬 저장 가족 비번과 정확히 일치할 때만 (교회코드는 이미 위에서 차단)
+      if(profile && profile.familyPassword && profile.familyPassword === pw){
+        if(typeof refreshFamilyProfileByPassword === 'function') await refreshFamilyProfileByPassword(profile, pw);
+        enterMemberHome();
+        return;
+      }
+      toast('가정 비밀번호가 올바르지 않습니다');
+      return;
+    }
+    default:
+      toast('가족 비밀번호를 입력하세요');
   }
-  toast('교회 코드가 올바르지 않습니다');
+}
+
+// 비밀번호 검증으로 찾은 가족방으로 입장 (프로필/활성방 갱신 — 데이터는 보존)
+async function _enterFoundFamily(found, pw, profile){
+  const members = (typeof normalizeFamilyMemberNames === 'function')
+    ? normalizeFamilyMemberNames(found.members)
+    : (Array.isArray(found.members) ? found.members : []);
+  const prevName = (profile && (profile.memberName || profile.leaderName)) || '';
+  const nextProfile = {
+    ...(profile || {}),
+    roomName:   found.roomName   || (profile && profile.roomName)   || '',
+    leaderName: found.leaderName || (profile && profile.leaderName) || '',
+    parish:     found.parish     || (profile && profile.parish)     || '',
+    district:   found.district   || (profile && profile.district)   || '',
+    groupType:  (found.groupType === '구역') ? '구역' : ((profile && profile.groupType) || '가정'),
+    familyPassword: pw,
+    memberName: prevName,
+    members: members.length ? members : ((profile && profile.members) || [])
+  };
+  try{ localStorage.setItem('pat_family_id', found.id); }catch(e){}
+  if(typeof setFamilyStorage === 'function') setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
+  else { try{ localStorage.setItem('pat_family_profile', JSON.stringify(nextProfile)); }catch(e){} }
+  if(typeof upsertRoom === 'function'){ try{ upsertRoom({ familyId: found.id, ...nextProfile }); }catch(e){} }
+  if(typeof loadChurchConfig === 'function') await loadChurchConfig();
+  enterMemberHome();
+}
+
+// 로그인 화면 UI를 현재 상태(교회 선택 여부)에 맞춰 전환
+function refreshLoginMode(){
+  const hasChurch = !!DB.church.code;
+  const prompt = document.getElementById('loginPrompt');
+  const input  = document.getElementById('churchCode');
+  const badge  = document.getElementById('loginChurchBadge');
+  const famBtns= document.getElementById('loginFamilyBtns');
+  const startBtn = document.getElementById('loginStartBtn');
+  if(hasChurch){
+    const chName = DB.church.name || '선택된 교회';
+    if(prompt) prompt.textContent = '가족 비밀번호를 입력하세요';
+    if(input){ input.placeholder = '가족 비밀번호'; input.value = ''; input.style.letterSpacing='normal'; }
+    if(badge){ badge.style.display='block';
+      badge.innerHTML = '⛪ <b>'+esc(chName)+'</b> · <a href="javascript:void(0)" onclick="resetChurchSelection()" style="color:var(--accent);text-decoration:underline">다른 교회 선택</a>'; }
+    if(famBtns) famBtns.style.display='block';
+    if(startBtn) startBtn.textContent = '입장하기';
+  } else {
+    if(prompt) prompt.textContent = '교회 코드를 입력하세요';
+    if(input){ input.placeholder = '교회 코드'; input.style.letterSpacing='4px'; }
+    if(badge) badge.style.display='none';
+    if(famBtns) famBtns.style.display='none';
+    if(startBtn) startBtn.textContent = '시작하기';
+  }
+}
+
+// '다른 교회 선택' — 교회 식별 정보만 해제 (가족/미션 데이터는 보존)
+function resetChurchSelection(){
+  DB.church.code = ''; DB.church.name = '';
+  try { localStorage.removeItem('pat_church_code'); localStorage.removeItem('pat_church_name'); } catch(e){}
+  const input = document.getElementById('churchCode'); if(input) input.value='';
+  if(typeof refreshLoginMode === 'function') refreshLoginMode();
+  toast('교회 선택을 해제했어요. 교회 코드를 입력하세요');
 }
 
 // ── 공통 유틸 ─────────────────────────────────────────────
