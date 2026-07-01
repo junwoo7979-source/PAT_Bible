@@ -73,6 +73,13 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
   font-size:20px;color:var(--muted);line-height:1;transition:color .2s;}
 .pw-toggle:hover,.pw-toggle.on{color:var(--accent);}
 .code-input{font-size:var(--fs-xl);text-align:center;letter-spacing:10px;font-weight:700;}
+/* ★ 2026-07-01: 비밀번호 입력 필드 — 가늘고 흐리게 */
+.field[type="password"]{
+  font-weight:400;
+  font-size:calc(var(--fs) - 1px);
+  color:#999999;
+  letter-spacing:0.8px;
+}
 .btn{width:100%;background:var(--accent);color:#04231a;font-weight:700;text-align:center;
   padding:16px;border-radius:var(--radius);font-size:var(--fs);border:none;cursor:pointer;
   margin-top:8px;transition:background .15s;font-family:inherit;}
