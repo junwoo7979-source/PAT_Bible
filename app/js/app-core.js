@@ -901,8 +901,20 @@ async function enterChurch(){
       }
 
       let cfg = null;
-      try{ cfg = await PAT_DB.getConfig(decision.code); }catch(e){}
-      if(cfg){
+      try{
+        console.log('[LOGIN-STEP1-SERVER] Firebase 조회:', decision.code);
+        cfg = await PAT_DB.getConfig(decision.code);
+      }catch(e){
+        console.warn('[LOGIN-STEP1-SERVER-ERROR]', e.message);
+      }
+
+      // ★ 수정: Firebase에서 설정이 없으면 로컬 기본값 사용
+      if(!cfg){
+        console.log('[LOGIN-STEP1-FALLBACK] Firebase 설정 없음, 로컬 기본값 사용:', decision.code);
+        cfg = initChurchDefaults(decision.code);
+      }
+
+      if(cfg && cfg.appTitle !== undefined){
         console.log('[LOGIN-STEP1-OK] 교회 코드 검증 완료:', decision.code);
         adoptChurch(decision.code, cfg.appTitle);
         if(typeof loadChurchConfig === 'function') await loadChurchConfig();
@@ -1005,6 +1017,42 @@ async function _enterFoundFamily(found, pw, profile){
   if(typeof upsertRoom === 'function'){ try{ upsertRoom({ familyId: found.id, ...nextProfile }); }catch(e){} }
   if(typeof loadChurchConfig === 'function') await loadChurchConfig();
   enterMemberHome();
+}
+
+// ════════════════════════════════════════════════════════════════
+// 교회 초기화 데이터 설정 (오프라인/로컬 폴백)
+// ════════════════════════════════════════════════════════════════
+/**
+ * initChurchDefaults()
+ *
+ * Firebase에서 교회 설정이 로드되지 않았을 때 로컬 기본값 설정
+ * - 11111: 개발자 교회
+ * - 013579: 기본 교회
+ */
+function initChurchDefaults(churchCode) {
+  const defaults = {
+    '11111': {
+      appTitle: '개발자 교회',
+      verse: {
+        ref: '요한복음 3:16',
+        text: '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라',
+        weekOf: '2026년 7월 1주차'
+      }
+    },
+    '013579': {
+      appTitle: '교회',
+      verse: {
+        ref: '시편 100:1',
+        text: '온 땅이여 여호와께 즐거워하라',
+        weekOf: '2026년 7월 1주차'
+      }
+    }
+  };
+
+  return defaults[churchCode] || {
+    appTitle: churchCode || 'PAT Bible',
+    verse: { ref: '마태복음 28:19-20', text: '그러므로 그들을 모든 민족에게 가르쳐 지키게 하라...', weekOf: '' }
+  };
 }
 
 // 로그인 화면 UI를 현재 상태(교회 선택 여부)에 맞춰 전환
