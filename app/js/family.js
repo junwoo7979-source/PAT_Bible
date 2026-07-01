@@ -170,7 +170,7 @@ async function tryAutoRecoverFamily(){
       parish: match.parish,
       district: match.district || '',
       groupType: match.groupType || '',
-      familyPassword: DB.church.code,
+      familyPassword: '',  // ★ BUG-FIX: 초기값을 빈 문자열로 변경 (교회코드가 아닌 실제 비밀번호만 저장)
       members: match.memberNames,
       memberName: confirmedNames.find(n => match.memberNames.includes(n)) || match.leaderName,
       _familyId: match.familyId

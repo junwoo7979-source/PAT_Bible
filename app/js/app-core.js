@@ -835,6 +835,23 @@ async function enterChurch(){
     // ── 1단계: 교회 선택 (입장 아님) ──
     case 'SELECT_CHURCH': {
       if(!(window.PAT_DB && PAT_DB.ready())){ toast('서버 연결이 필요합니다'); return; }
+
+      // ★ 추가: 11111 입장 시 가족 중복 확인 (이미 가족이 등록되었으면 차단)
+      if(decision.code === '11111'){
+        try{
+          const familiesRes = await fetch(`https://us-central1-pat-bible-app.cloudfunctions.net/getFamiliesList?churchCode=11111`);
+          const familiesData = await familiesRes.json();
+          // 가족이 하나라도 있으면, 가족 비밀번호로만 입장 강제
+          if(familiesData.families && familiesData.families.length > 0){
+            toast('이미 가족이 등록되어 있습니다.\n가족 비밀번호로 입장해주세요.');
+            return;
+          }
+        }catch(e){
+          console.warn('[PAT] 11111 가족 확인 실패:', e.message);
+          // 네트워크 오류 시 진행 (서버가 없을 수 있음)
+        }
+      }
+
       let cfg = null;
       try{ cfg = await PAT_DB.getConfig(decision.code); }catch(e){}
       if(cfg){
@@ -880,8 +897,11 @@ async function enterChurch(){
         return;
       }
 
-      // 오프라인 폴백: 로컬 저장 가족 비번과 정확히 일치할 때만 (교회코드는 이미 위에서 차단)
-      if(profile && profile.familyPassword && profile.familyPassword === pw){
+      // ★ 오프라인 폴백: 로컬 저장 가족 비번과 정확히 일치할 때만
+      //   + 입력값이 교회코드가 아닐 때만 (교회코드 차단)
+      if(profile && profile.familyPassword &&
+         profile.familyPassword === pw &&
+         pw !== DB.church.code){  // ★ 추가: 교회코드로는 입장 불가
         if(typeof refreshFamilyProfileByPassword === 'function') await refreshFamilyProfileByPassword(profile, pw);
         enterMemberHome();
         return;
