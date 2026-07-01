@@ -964,22 +964,41 @@ function toggleLoginPwVisibility(btn){
   }
 }
 
-// (개발자/테스트용) 11111 교회로 바로 진입
+// (개발자/테스트용) 11111 교회 + 테스트 가족방으로 바로 진입
 function devEnterChurch(){
-  // 1) DB 상태 업데이트
+  // 1) 교회 정보 설정
   DB.church.code = '11111'; DB.church.name = '개발자';
-  try { localStorage.setItem('pat_church_code', '11111'); localStorage.setItem('pat_church_name', '개발자'); } catch(e){}
+  try {
+    localStorage.setItem('pat_church_code', '11111');
+    localStorage.setItem('pat_church_name', '개발자');
+  } catch(e){}
 
-  // 2) 입력 필드 비우기 (enterChurch()가 교회 선택 완료 상태라고 판단하게)
+  // 2) 테스트 가족방 프로필 생성 (로컬, 서버 연동 불필요)
+  const devFamily = {
+    roomName: '개발자 테스트 방',
+    leaderName: '개발자',
+    familyPassword: 'dev123',
+    memberName: '개발자',
+    members: ['개발자'],
+    parish: '',
+    district: '',
+    groupType: '가정'
+  };
+  try {
+    localStorage.setItem('pat_family_id', 'dev-test-family');
+    localStorage.setItem('pat_family_profile', JSON.stringify(devFamily));
+  } catch(e){}
+
+  // 3) 입력 필드 비우기
   const input = document.getElementById('churchCode');
   if(input) input.value='';
 
-  // 3) UI 갱신
+  // 4) UI 갱신
   if(typeof refreshLoginMode === 'function') refreshLoginMode();
 
-  // 4) enterChurch() 호출 — 이제 NEED_FAMILY_PW 상태라 비밀번호 입력으로 진행
+  // 5) 가족방으로 바로 진입 (enterChurch 스킵)
   setTimeout(() => {
-    if(typeof enterChurch === 'function') enterChurch();
+    if(typeof enterMemberHome === 'function') enterMemberHome();
   }, 100);
 }
 
