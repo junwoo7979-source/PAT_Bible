@@ -964,13 +964,23 @@ function toggleLoginPwVisibility(btn){
   }
 }
 
-// (개발자/테스트용) 11111 교회로 바로 진입 — 가족 비밀번호 입력 단계로 이동
+// (개발자/테스트용) 11111 교회로 바로 진입
 function devEnterChurch(){
+  // 1) DB 상태 업데이트
   DB.church.code = '11111'; DB.church.name = '개발자';
   try { localStorage.setItem('pat_church_code', '11111'); localStorage.setItem('pat_church_name', '개발자'); } catch(e){}
-  const input = document.getElementById('churchCode'); if(input) input.value='';
+
+  // 2) 입력 필드 비우기 (enterChurch()가 교회 선택 완료 상태라고 판단하게)
+  const input = document.getElementById('churchCode');
+  if(input) input.value='';
+
+  // 3) UI 갱신
   if(typeof refreshLoginMode === 'function') refreshLoginMode();
-  toast('개발자 모드: 11111 교회 진입');
+
+  // 4) enterChurch() 호출 — 이제 NEED_FAMILY_PW 상태라 비밀번호 입력으로 진행
+  setTimeout(() => {
+    if(typeof enterChurch === 'function') enterChurch();
+  }, 100);
 }
 
 // ── 공통 유틸 ─────────────────────────────────────────────
