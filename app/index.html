@@ -44,8 +44,8 @@
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=125"></script>
-<script src="firebase-db.js?v=125"></script>
+<script src="firebase-config.js?v=127"></script>
+<script src="firebase-db.js?v=127"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -436,6 +436,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div style="display:flex;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:8px;overflow-x:auto">
       <button class="admin-tab active" onclick="switchAdminTab('verse')">📖 구절 등록</button>
       <button class="admin-tab" onclick="switchAdminTab('church')">⛪ 교회 정보</button>
+      <button class="admin-tab" onclick="switchAdminTab('worship')">✝️ 예배</button>
       <button class="admin-tab" onclick="switchAdminTab('award')">🏆 시상 관리</button>
       <button class="admin-tab" onclick="switchAdminTab('families')">📋 등록가정</button>
       <button class="admin-tab" onclick="switchAdminTab('password')">🔑 비밀번호</button>
@@ -582,6 +583,20 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div id="adminTabChurch" style="display:none">
     <!-- 교회 정보는 구절 등록 탭의 것을 공유 -->
     </div><!-- end adminTabChurch -->
+
+    <!-- 탭: 예배 안내 입력 -->
+    <div id="adminTabWorship" style="display:none">
+    <div class="card" style="margin-top:14px">
+      <h2>✝️ 예배 안내 입력</h2>
+      <p class="muted" style="margin:6px 0 12px">입력한 내용이 전 성도의 <b>예배</b> 메뉴에 실시간으로 표시됩니다</p>
+      <label class="lbl">예배 제목</label>
+      <input class="field" id="inWorshipTitle" placeholder="예: 주일 대예배">
+      <label class="lbl">예배 안내 내용</label>
+      <textarea class="field" id="inWorshipContent" rows="9" placeholder="예배 시간, 순서, 설교 제목·본문, 광고 등을 자유롭게 입력하세요"></textarea>
+      <button class="btn" onclick="registerWorship()">예배 안내 등록 (전 성도 동기화)</button>
+      <button class="btn ghost" style="margin-top:8px" onclick="clearWorship()">예배 안내 지우기</button>
+    </div>
+    </div><!-- end adminTabWorship -->
 
     <!-- 탭 3: 시상 관리 -->
     <div id="adminTabAward" style="display:none">
@@ -1049,6 +1064,16 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div class="spacer"></div>
   </section>
 
+  <!-- S-worship: 예배 안내 (관리자 입력 → 전 성도 조회) -->
+  <section class="screen" id="s-worship">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h1 style="margin:0">✝️ 예배</h1>
+      <span class="muted" id="worshipChurchName" style="font-size:calc(var(--fs) - 2px)"></span>
+    </div>
+    <div id="worshipContent"></div>
+    <div class="spacer"></div>
+  </section>
+
   <!-- S8: 설정 -->
   <section class="screen" id="s-settings">
     <h1>설정</h1>
@@ -1124,6 +1149,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <button class="tab" data-screen="s-verse" onclick="tabGo('s-verse')"><span class="ico">📖</span>암송</button>
     <button class="tab" data-screen="s-prayer" onclick="tabGo('s-prayer')"><span class="ico">🙏</span>기도</button>
     <button class="tab" data-screen="s-reading" onclick="tabGo('s-reading')"><span class="ico">📚</span>읽기표</button>
+    <button class="tab" data-screen="s-worship" onclick="tabGo('s-worship')"><span class="ico">✝️</span>예배</button>
     <button class="tab" data-screen="s-dashboard" onclick="tabGo('s-dashboard');renderDashboard()"><span class="ico">📊</span>현황</button>
     <button class="tab" data-screen="s-settings" onclick="tabGo('s-settings')"><span class="ico">⚙️</span>설정</button>
   </nav>
@@ -1132,22 +1158,23 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 </div>
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/app-core.js?v=125"></script>
-<script src="js/verse.js?v=125"></script>
-<script src="js/family.js?v=125"></script>
-<script src="js/rooms.js?v=125"></script>
-<script src="js/history.js?v=125"></script>
-<script src="js/voice.js?v=125"></script>
-<script src="js/voice-ui.js?v=125"></script>
-<script src="js/progress-store.js?v=125"></script>
-<script src="js/whisper-asr.js?v=125"></script>
-<script src="js/groq-asr.js?v=125"></script>
-<script src="js/memorize.js?v=125"></script>
-<script src="js/prayer.js?v=125"></script>
-<script src="js/reading-plan.js?v=125"></script>
-<script src="js/reading.js?v=125"></script>
-<script src="js/reset-pw.js?v=125"></script>
-<script src="js/admin.js?v=125"></script>
+<script src="js/app-core.js?v=127"></script>
+<script src="js/verse.js?v=127"></script>
+<script src="js/family.js?v=127"></script>
+<script src="js/rooms.js?v=127"></script>
+<script src="js/history.js?v=127"></script>
+<script src="js/voice.js?v=127"></script>
+<script src="js/voice-ui.js?v=127"></script>
+<script src="js/progress-store.js?v=127"></script>
+<script src="js/whisper-asr.js?v=127"></script>
+<script src="js/groq-asr.js?v=127"></script>
+<script src="js/memorize.js?v=127"></script>
+<script src="js/prayer.js?v=127"></script>
+<script src="js/reading-plan.js?v=127"></script>
+<script src="js/reading.js?v=127"></script>
+<script src="js/reset-pw.js?v=127"></script>
+<script src="js/admin.js?v=127"></script>
+<script src="js/worship.js?v=127"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';

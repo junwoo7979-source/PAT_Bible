@@ -7,6 +7,7 @@ const DB = {
   church: { name:'', code:'', memberCount:0 },
   verse: { ref:'요한복음 3:16', weekOf:'2026년 6월 1주차 · 6월 1일 월요일 ~ 6월 7일 일요일',
     text:'하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라' },
+  worship: null,  // { title, content } — 관리자가 입력, 전 성도 동기화
   members: [
     { name:'아빠', done:false }, { name:'엄마', done:false },
     { name:'나', done:false, me:true }, { name:'동생', done:false }
@@ -76,6 +77,11 @@ function applyCloudConfig(config){
   if(config.verse) {
     DB.verse = { ref:config.verse.ref, text:config.verse.text, weekOf:config.verse.weekOf };
     saveVerses([DB.verse]);
+  }
+  // ✝️ 예배 안내 (교회 공통, 서버가 단일 진실 소스)
+  if(config.worship !== undefined){
+    DB.worship = config.worship || null;
+    try { localStorage.setItem('pat_worship', JSON.stringify(DB.worship)); } catch(e){}
   }
   // ★ 교구별 전체인원: 서버(config)가 단일 진실 소스 → 모든 기기 localStorage 에 미러링.
   //   (관리자/성도 어느 기기든 동일한 분모를 보게 되어 관리자↔대시보드 불일치 해소)
@@ -305,6 +311,10 @@ async function loadChurchConfig(){
   if(!window.PAT_DB || !PAT_DB.ready() || !DB.church.code) return;
   const config = await PAT_DB.getConfig(DB.church.code);
   if(config && config.appTitle) DB.church.name = config.appTitle;
+  if(config && config.worship !== undefined){
+    DB.worship = config.worship || null;
+    try { localStorage.setItem('pat_worship', JSON.stringify(DB.worship)); } catch(e){}
+  }
   let cloudVerse = config && config.verse ? config.verse : null;
   if(!cloudVerse && PAT_DB.getLatestVerse) {
     cloudVerse = await PAT_DB.getLatestVerse(DB.church.code);
@@ -322,6 +332,7 @@ async function loadChurchConfig(){
     const activeId = document.querySelector('.screen.active')?.id;
     if(activeId==='s-family') renderFamily();
     else if(activeId==='s-verse') renderVerse();
+    else if(activeId==='s-worship' && typeof renderWorship==='function') renderWorship();
     else if(activeId==='s-admin') renderAdmin();
     toast('📖 설정이 업데이트됐습니다');
     console.log('[PAT] 설정 업데이트 감지:', config);
@@ -705,6 +716,7 @@ function go(id, resetScroll=true, animate=false){
     // 다른 화면으로 이동 시 폴링 중지
     stopDashboardPolling();
   }
+  if(id==='s-worship' && typeof renderWorship==='function') renderWorship();
   if(resetScroll) window.scrollTo(0,0);
 
   // 브라우저 히스토리 관리 — 모바일 대응: 해시(#id)로 URL 구분

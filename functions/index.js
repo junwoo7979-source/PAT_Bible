@@ -333,6 +333,7 @@ exports.getConfig = onRequest({ cors: true, region: 'us-central1' }, async (req,
         appTitle: data.appTitle || '',
         verse: data.verse || null,
         parishTotals: data.parishTotals || null,
+        worship: data.worship || null,
       }
     });
   } catch (e) {
@@ -345,7 +346,7 @@ exports.saveConfig = onRequest({ cors: true, region: 'us-central1' }, async (req
   if (!begin(req, res)) return;
   console.log('[PAT] saveConfig 요청 시작');
   try {
-    const { churchCode, appTitle, verse, parishTotals, parishConfig } = req.body;
+    const { churchCode, appTitle, verse, parishTotals, parishConfig, worship } = req.body;
     console.log('[PAT] saveConfig 수신:', { churchCode, appTitle, verseRef: verse?.ref, parishTotals });
     if (!assertChurchCode(churchCode, res)) return;
     // ★ 교회별 관리자 검증(레거시 11111은 전역 폴백) — 멀티 교회 격리
@@ -354,6 +355,13 @@ exports.saveConfig = onRequest({ cors: true, region: 'us-central1' }, async (req
     const update = { updatedAt: FieldValue.serverTimestamp() };
     if (appTitle !== undefined) update.appTitle = appTitle || '';
     if (verse !== undefined) update.verse = verse || null;
+    // ✝️ 예배 안내 {title, content} — 부분 저장 (다른 설정 보존)
+    if (worship !== undefined) {
+      update.worship = worship ? {
+        title: String(worship.title || '').slice(0, 200),
+        content: String(worship.content || '').slice(0, 5000),
+      } : null;
+    }
     if (parishTotals && typeof parishTotals === 'object') {
       update.parishTotals = parishTotals;
     }

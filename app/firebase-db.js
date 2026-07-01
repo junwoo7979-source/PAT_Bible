@@ -248,6 +248,18 @@ window.PAT_DB = (() => {
     }
   }
 
+  // ✝️ 예배 안내 저장 (Admin) — saveConfig 엔드포인트에 worship만 부분 저장
+  async function saveWorship(churchCode, worship) {
+    if (!ready()) return false;
+    try {
+      await apiPost('saveConfig', { churchCode, worship });
+      return true;
+    } catch (e) {
+      console.error('[PAT_DB] saveWorship 실패:', e.message);
+      return false;
+    }
+  }
+
   // ── Long-Polling 구독 (setInterval 방식, WebChannel/QUIC 없음) ──
   let _polling = null;
   let _configPolling = null;
@@ -290,7 +302,8 @@ window.PAT_DB = (() => {
     function getConfigHash(config) {
       if (!config) return null;
       const v = config.verse ? config.verse.ref + '|' + config.verse.text : '';
-      return (config.appTitle || '') + '|' + v;
+      const w = config.worship ? (config.worship.title || '') + '|' + (config.worship.content || '') : '';
+      return (config.appTitle || '') + '|' + v + '|' + w;
     }
 
     // 초기값 즉시 로드
@@ -593,7 +606,7 @@ window.PAT_DB = (() => {
     resetFamilyPassword,
     savePrayer, getPrayers,
     getMissionHistory, getMissionHistoryAdmin,
-    getConfig, saveConfig, subscribeConfig,
+    getConfig, saveConfig, saveWorship, subscribeConfig,
     unsubscribeAll,
   };
 })();

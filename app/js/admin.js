@@ -8,6 +8,7 @@ function switchAdminTab(tabName) {
   document.getElementById('adminTabAward').style.display = 'none';
   document.getElementById('adminTabPassword').style.display = 'none';
   const _famTab = document.getElementById('adminTabFamilies'); if(_famTab) _famTab.style.display = 'none';
+  const _worTab = document.getElementById('adminTabWorship'); if(_worTab) _worTab.style.display = 'none';
 
   // 모든 탭 버튼 비활성화
   document.querySelectorAll('.admin-tab').forEach(btn => btn.classList.remove('active'));
@@ -16,6 +17,7 @@ function switchAdminTab(tabName) {
   const tabMap = {
     verse: 'adminTabVerse',
     church: 'adminTabVerse',  // ★ 교회 정보도 구절 등록 탭의 콘텐츠 사용 (ID 중복 방지)
+    worship: 'adminTabWorship',
     award: 'adminTabAward',
     families: 'adminTabFamilies',
     password: 'adminTabPassword'
@@ -31,6 +33,7 @@ function switchAdminTab(tabName) {
   const titleMap = {
     verse: '📖 구절 등록',
     church: '⛪ 교회 정보',
+    worship: '✝️ 예배',
     award: '🏆 시상 관리',
     families: '📋 등록가정',
     password: '🔑 비밀번호'
@@ -44,9 +47,10 @@ function switchAdminTab(tabName) {
   const tabButtons = {
     verse: document.querySelectorAll('.admin-tab')[0],
     church: document.querySelectorAll('.admin-tab')[1],
-    award: document.querySelectorAll('.admin-tab')[2],
-    families: document.querySelectorAll('.admin-tab')[3],
-    password: document.querySelectorAll('.admin-tab')[4]
+    worship: document.querySelectorAll('.admin-tab')[2],
+    award: document.querySelectorAll('.admin-tab')[3],
+    families: document.querySelectorAll('.admin-tab')[4],
+    password: document.querySelectorAll('.admin-tab')[5]
   };
   const btn = tabButtons[tabName];
   if (btn) btn.classList.add('active');
@@ -57,6 +61,8 @@ function switchAdminTab(tabName) {
     updateAwardListOnValueChange();
   } else if (tabName === 'families') {
     renderFamiliesList();
+  } else if (tabName === 'worship') {
+    if (typeof loadWorshipToAdmin === 'function') loadWorshipToAdmin();
   }
 }
 
