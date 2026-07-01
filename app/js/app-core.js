@@ -718,6 +718,7 @@ function go(id, resetScroll=true, animate=false){
   }
   if(id==='s-worship' && typeof renderWorship==='function') renderWorship();
   if(id==='s-login' && typeof refreshLoginMode==='function') refreshLoginMode();
+  if(id==='s-login' && typeof pwaMaybeShowPromo==='function') pwaMaybeShowPromo();
   if(resetScroll) window.scrollTo(0,0);
 
   // 브라우저 히스토리 관리 — 모바일 대응: 해시(#id)로 URL 구분
@@ -1072,14 +1073,10 @@ let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
+  window.deferredPrompt = e;   // pwa-install.js 와 공유
   console.log('[PAT-PWA] 설치 프롬프트 대기 중');
-
-  // 설치 버튼 표시
-  const installBtn = document.getElementById('installBtn');
-  if(installBtn) {
-    installBtn.style.display = 'block';
-    console.log('[PAT-PWA] 설치 버튼 표시됨');
-  }
+  // 설치 유도 카드는 pwa-install.js 가 조건에 맞게 표시(중복 방지 — 옛 installBtn 표시 안 함)
+  if(typeof pwaMaybeShowPromo === 'function') pwaMaybeShowPromo();
 });
 
 function installApp(){

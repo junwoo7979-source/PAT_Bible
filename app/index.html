@@ -16,36 +16,28 @@
 <link rel="apple-touch-icon" href="icons/pat-icon-192.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231a2332'/%3E%3Cpath d='M18 14h28a4 4 0 0 1 4 4v34H20a6 6 0 0 1-6-6V18a4 4 0 0 1 4-4z' fill='%2300d4aa'/%3E%3Cpath d='M22 22h20M22 30h20M22 38h14' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 
-<!-- ★ 구버전 서비스 워커 영구 해제 (reload 없음 — 무한루프 방지)
-     SW를 조용히 unregister + 캐시 삭제만 하고 새로고침은 하지 않음.
-     사용자가 수동으로 Ctrl+F5 한 번만 하면 완전히 초기화됨. -->
+<!-- ★ 서비스워커: '무캐시 패스스루 SW' 등록 (PWA 홈화면 설치조건 충족용)
+     - 설치 가능(installable) 조건 = HTTPS + manifest + "fetch 핸들러를 가진 SW".
+       기존엔 SW를 매번 unregister 해서 활성 SW가 없었고 → beforeinstallprompt 미발생 →
+       설치 버튼/팝업이 동작하지 않았다. 그래서 무캐시 SW를 등록해 조건을 만족시킨다.
+     - 이 SW는 아무것도 캐시하지 않는다 → 옛 파일 잔존/데드락 없음, ?v= 버전관리 그대로 유효.
+     - localStorage/IndexedDB/Firestore(로그인·가족방·미션 기록)는 절대 건드리지 않는다. -->
 <script>
 (function() {
-  // 캐시 즉시 삭제 (SW 유무와 무관) — 옛 JS/HTML 잔존 방지
+  // 옛 HTTP 캐시(있으면) 1회 정리 — 로컬 데이터/Firestore와 무관(안전)
   if (window.caches) {
     try { caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); }).catch(function() {}); } catch(e) {}
   }
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-    var hadSW = regs.length > 0;          // 옛 서비스워커가 실제로 있었는지
-    regs.forEach(function(r) { r.unregister(); });
-    // ★ 옛 SW가 있었고(=옛 캐시 버전을 보던 기기), 이번 세션에 아직 정리 안 했으면
-    //   1회만 강제 새로고침 → 다음 로드는 SW 없이 최신 index.html + 최신 JS(?v=NNN)를 받음.
-    //   (옛 SW가 옛 index/JS를 계속 제공해 ?v 캐시버스팅이 무력화되는 데드락 자동 해소.
-    //    sessionStorage 플래그로 세션당 1회만 실행 → 무한 새로고침 방지.)
-    try {
-      if (hadSW && !sessionStorage.getItem('pat_sw_purged')) {
-        sessionStorage.setItem('pat_sw_purged', '1');
-        location.reload();
-      }
-    } catch(e) {}
-  }).catch(function() {});
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js?v=132').catch(function() {});
+  });
 })();
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=131"></script>
-<script src="firebase-db.js?v=131"></script>
+<script src="firebase-config.js?v=132"></script>
+<script src="firebase-db.js?v=132"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -258,9 +250,16 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
   <!-- S1: 로그인/교회입장 -->
   <section class="screen active" id="s-login">
     <!-- 홈화면 추가 버튼 (PWA) -->
-    <button class="install-btn" id="installBtn" style="display:none;margin-bottom:12px;width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-weight:700;cursor:pointer;font-family:inherit;font-size:var(--fs)" onclick="installApp()">
-      📱 홈화면에 추가하기
-    </button>
+    <!-- 홈화면 설치 유도 카드 (모바일에서만, 미설치 시에만 표시 — pwa-install.js가 제어) -->
+    <div id="installPromo" style="display:none;margin-bottom:14px;padding:16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);text-align:left">
+      <h2 style="margin:0 0 6px;font-size:calc(var(--fs) + 2px)">📱 앱처럼 편하게 사용하기</h2>
+      <p style="margin:0 0 6px;color:var(--text);line-height:1.6">홈화면에 설치하면 매번 링크를 찾지 않고 바로 실행할 수 있습니다.</p>
+      <p id="installPromoHint" class="muted" style="margin:0 0 12px;font-size:calc(var(--fs) - 2px);line-height:1.6"></p>
+      <button class="btn" style="margin:0" onclick="pwaInstall()">홈화면에 설치하기</button>
+      <button class="btn ghost" style="margin-top:8px" onclick="pwaInstallLater()">나중에 하기</button>
+    </div>
+    <!-- 옛 참조 호환용(숨김) -->
+    <button id="installBtn" style="display:none" onclick="pwaInstall()" aria-hidden="true"></button>
 
     <img src="icons/pat-logo.png" class="logo-img" alt="PAT Bible 로고">
     <h1 class="center" id="loginAppTitle" style="font-size:var(--fs-lg);margin-bottom:4px">PAT Bible</h1>
@@ -1167,25 +1166,41 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
   <div class="toast" id="toast"></div>
 </div>
 
+<!-- iPhone/iPad 설치 안내 모달 (Safari는 자동설치 불가 → 공유→홈화면 추가 안내) -->
+<div id="iosInstallModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:24px">
+  <div style="max-width:360px;width:100%;background:var(--surface);border-radius:16px;padding:22px;text-align:left;box-shadow:0 12px 40px rgba(0,0,0,.3)">
+    <h2 style="margin:0 0 8px;font-size:calc(var(--fs) + 3px)">📱 앱처럼 편하게 사용하기</h2>
+    <p style="margin:0 0 14px;color:var(--text);line-height:1.6">공유 버튼을 누른 뒤 <b>'홈 화면에 추가'</b>를 선택해 주세요.</p>
+    <ol style="margin:0 0 16px;padding-left:20px;line-height:2;color:var(--text)">
+      <li>Safari 하단의 <b>공유 버튼 (⬆️)</b> 누르기</li>
+      <li>목록에서 <b>「홈 화면에 추가」</b> 선택</li>
+      <li>오른쪽 위 <b>「추가」</b> 누르기</li>
+      <li>홈 화면의 <b>PAT 아이콘</b>으로 실행</li>
+    </ol>
+    <button class="btn" style="margin:0" onclick="closeIosInstall()">확인</button>
+  </div>
+</div>
+
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/login-auth.js?v=131"></script>
-<script src="js/app-core.js?v=131"></script>
-<script src="js/verse.js?v=131"></script>
-<script src="js/family.js?v=131"></script>
-<script src="js/rooms.js?v=131"></script>
-<script src="js/history.js?v=131"></script>
-<script src="js/voice.js?v=131"></script>
-<script src="js/voice-ui.js?v=131"></script>
-<script src="js/progress-store.js?v=131"></script>
-<script src="js/whisper-asr.js?v=131"></script>
-<script src="js/groq-asr.js?v=131"></script>
-<script src="js/memorize.js?v=131"></script>
-<script src="js/prayer.js?v=131"></script>
-<script src="js/reading-plan.js?v=131"></script>
-<script src="js/reading.js?v=131"></script>
-<script src="js/reset-pw.js?v=131"></script>
-<script src="js/admin.js?v=131"></script>
-<script src="js/worship.js?v=131"></script>
+<script src="js/login-auth.js?v=132"></script>
+<script src="js/app-core.js?v=132"></script>
+<script src="js/verse.js?v=132"></script>
+<script src="js/family.js?v=132"></script>
+<script src="js/rooms.js?v=132"></script>
+<script src="js/history.js?v=132"></script>
+<script src="js/voice.js?v=132"></script>
+<script src="js/voice-ui.js?v=132"></script>
+<script src="js/progress-store.js?v=132"></script>
+<script src="js/whisper-asr.js?v=132"></script>
+<script src="js/groq-asr.js?v=132"></script>
+<script src="js/memorize.js?v=132"></script>
+<script src="js/prayer.js?v=132"></script>
+<script src="js/reading-plan.js?v=132"></script>
+<script src="js/reading.js?v=132"></script>
+<script src="js/reset-pw.js?v=132"></script>
+<script src="js/admin.js?v=132"></script>
+<script src="js/worship.js?v=132"></script>
+<script src="js/pwa-install.js?v=132"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';
