@@ -964,14 +964,13 @@ function toggleLoginPwVisibility(btn){
   }
 }
 
-// 다른 교회 선택 — 교회 식별 정보만 해제 (가족/미션 데이터는 보존)
-// (개발자/테스트용: 다른 교회 코드로 재로그인 가능하게)
-function resetChurchSelection(){
-  DB.church.code = ''; DB.church.name = '';
-  try { localStorage.removeItem('pat_church_code'); localStorage.removeItem('pat_church_name'); } catch(e){}
+// (개발자/테스트용) 11111 교회로 바로 진입 — 가족 비밀번호 입력 단계로 이동
+function devEnterChurch(){
+  DB.church.code = '11111'; DB.church.name = '개발자';
+  try { localStorage.setItem('pat_church_code', '11111'); localStorage.setItem('pat_church_name', '개발자'); } catch(e){}
   const input = document.getElementById('churchCode'); if(input) input.value='';
   if(typeof refreshLoginMode === 'function') refreshLoginMode();
-  toast('교회 선택을 해제했어요. 새 교회 코드를 입력하세요');
+  toast('개발자 모드: 11111 교회 진입');
 }
 
 // ── 공통 유틸 ─────────────────────────────────────────────
