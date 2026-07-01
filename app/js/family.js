@@ -1108,8 +1108,9 @@ function renderFamilyMemberList(members){
     const arming = (_famDelArm.name === m.name && _famDelArm.count > 0);
     const remain = 3 - _famDelArm.count;
     const delLabel = arming ? `한 번 더 (${remain})` : '✕ 삭제';
+    // ★ 2026-07-01: 삭제 확인(3연타) 상태도 부드러운 색으로 변경 — 강렬한 빨강 대신 은은한 톤
     const delStyle = `margin-left:8px;flex-shrink:0;font-size:calc(var(--fs)-3px)`
-      + (arming ? ';background:var(--danger);color:#fff;border-radius:8px;padding:4px 8px;font-weight:800' : '');
+      + (arming ? ';background:var(--danger-soft-bg);color:var(--danger-soft-text);border-radius:8px;padding:4px 8px;font-weight:700' : '');
     const delBtn = hasProfile
       ? `<button class="family-member-delete${arming?' arming':''}" title="실수 방지 — 3번 연속 눌러야 삭제" onclick="armDeleteFamilyMember('${encodeURIComponent(m.name)}')" style="${delStyle}">${delLabel}</button>`
       : '';
