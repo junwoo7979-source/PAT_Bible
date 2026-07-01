@@ -1185,47 +1185,8 @@ function resetLoginState(){
 }
 
 // (개발자/테스트용) 11111 교회 + 테스트 가족방으로 바로 진입
-function devEnterChurch(){
-  console.log('[DEV] devEnterChurch 시작');
-
-  // 1) 교회 정보 설정
-  DB.church.code = '11111';
-  DB.church.name = '개발자';
-  try {
-    localStorage.setItem('pat_church_code', '11111');
-    localStorage.setItem('pat_church_name', '개발자');
-  } catch(e){ console.error('[DEV] 교회정보 저장 실패:', e); }
-
-  // 2) 테스트 가족방 프로필 생성
-  const devFamily = {
-    familyId: 'dev-test-family',
-    roomName: '개발자 테스트 방',
-    leaderName: '개발자',
-    familyPassword: 'dev123',
-    memberName: '개발자',
-    members: ['개발자'],
-    parish: '',
-    district: '',
-    groupType: '가정',
-    churchCode: '11111'
-  };
-  try {
-    localStorage.setItem('pat_family_id', 'dev-test-family');
-    localStorage.setItem('pat_family_profile', JSON.stringify(devFamily));
-    console.log('[DEV] 테스트 가족방 저장됨:', devFamily);
-  } catch(e){ console.error('[DEV] 가족방 저장 실패:', e); }
-
-  // 3) 로그인 UI 초기화
-  const input = document.getElementById('churchCode');
-  if(input) input.value = '';
-  if(typeof refreshLoginMode === 'function') refreshLoginMode();
-
-  // 4) 짧은 딜레이 후 가족방으로 진입
-  setTimeout(function(){
-    console.log('[DEV] 가족방으로 진입 중...');
-    if(typeof go === 'function') go('s-family');
-  }, 200);
-}
+// ★ 2026-07-01: devEnterChurch() 함수 제거 — 개발자 메뉴 삭제
+// (운영 환경에서는 노출하지 않음)
 
 // ── 공통 유틸 ─────────────────────────────────────────────
 function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;'); }
