@@ -845,20 +845,16 @@ function isChurchCodeFormat(input){
 async function enterChurch(){
   const raw = (document.getElementById('churchCode').value || '').trim();
 
-  // ★ 핵심 수정: 새로운 교회 코드 입력이면 상태 초기화
-  // 문제 원인: DB.church.code가 계속 남아있어서 모든 입력이 "비밀번호"로 인식됨
+  // 교회가 선택되지 않은 초기 상태에서만 입력값을 교회 코드로 해석한다.
+  // 교회 선택 후 비밀번호 단계에서는 숫자 5자리 가족 비밀번호도 있을 수 있으므로
+  // 새 교회 코드로 오인해 DB.church.code를 초기화하면 안 된다.
   const isChurchCode = isChurchCodeFormat(raw);
   console.log('[LOGIN] 입력 분석:', {
     입력값: raw,
     교회코드형식: isChurchCode,
     현재DB교회코드: DB.church.code,
-    새로운교회코드: isChurchCode && raw !== DB.church.code
+    교회선택전: !DB.church.code
   });
-
-  if(isChurchCode && raw !== DB.church.code){
-    console.log('[LOGIN] 🔄 새 교회 코드 감지, 상태 초기화:', raw);
-    DB.church.code = '';  // ← 상태 리셋
-  }
 
   const decision = (typeof loginDecision === 'function')
     ? loginDecision(DB.church.code, raw)
