@@ -1009,10 +1009,13 @@ async function enterChurch(){
             const isLeader = (pw === DB.church.code);
             const tempMemberName = isLeader ? (found.leaderName || 'Guest') : 'Guest';
 
+            // ★ 2026-07-01: roomName도 동일 로직으로 생성 (새 기기도 같은 방이름)
+            const tempRoomName = found.roomName || _generateRoomName(found.leaderName);
+
             const tempProfile = {
               ...(profile || {}),
               churchCode: DB.church.code,
-              roomName: found.roomName || '',
+              roomName: tempRoomName,  // 통일: Firebase 없으면 leaderName으로 생성
               leaderName: found.leaderName || '',
               familyPassword: pw,
               memberName: tempMemberName,  // 대표면 leaderName, 아니면 Guest
@@ -1051,6 +1054,14 @@ async function enterChurch(){
   }
 }
 
+// ★ 2026-07-01: roomName 생성 헬퍼 (leaderName 기반 자동생성)
+function _generateRoomName(leaderName){
+  if(!leaderName) return '';
+  const last = leaderName.charCodeAt(leaderName.length - 1);
+  const hasBatchim = last >= 0xAC00 && last <= 0xD7A3 && ((last - 0xAC00) % 28) > 0;
+  return leaderName + (hasBatchim ? '이' : '') + '네 가족';
+}
+
 // 비밀번호 검증으로 찾은 가족방으로 입장 (프로필/활성방 갱신 — 데이터는 보존)
 async function _enterFoundFamily(found, pw, profile){
   const members = (typeof normalizeFamilyMemberNames === 'function')
@@ -1062,11 +1073,15 @@ async function _enterFoundFamily(found, pw, profile){
   // 이미 profile.churchCode가 있으면 유지, 없으면 현재 DB.church.code 사용
   const churchCode = (profile && profile.churchCode) || DB.church.code;
 
+  // ★ 2026-07-01: roomName 통일 — Firebase에서 없으면 leaderName 기반으로 자동 생성
+  const finalLeaderName = found.leaderName || (profile && profile.leaderName) || '';
+  const finalRoomName = found.roomName || (profile && profile.roomName) || _generateRoomName(finalLeaderName);
+
   const nextProfile = {
     ...(profile || {}),
     churchCode: churchCode,  // ★ 중요: 가족이 속한 교회코드 저장 (앱 재시작 시 정확한 교회 로드)
-    roomName:   found.roomName   || (profile && profile.roomName)   || '',
-    leaderName: found.leaderName || (profile && profile.leaderName) || '',
+    roomName: finalRoomName,  // ★ 통일: Firebase에서 없으면 leaderName으로 자동 생성
+    leaderName: finalLeaderName,
     parish:     found.parish     || (profile && profile.parish)     || '',
     district:   found.district   || (profile && profile.district)   || '',
     // ★ 2026-07-01: groupType 필드 제거 — 구역방 삭제

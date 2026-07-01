@@ -359,7 +359,15 @@ window.PAT_DB = (() => {
     try {
       const familyId = familyIdOverride || localStorage.getItem('pat_family_id') || undefined;
       const data = await apiPost('findFamily', { churchCode, familyPassword, familyId });
-      return data.family || null;
+      const family = data.family || null;
+
+      // ★ 2026-07-01: roomName 자동 생성 — Firebase에서 없으면 leaderName으로 생성
+      if(family && !family.roomName && family.leaderName) {
+        const last = family.leaderName.charCodeAt(family.leaderName.length - 1);
+        const hasBatchim = last >= 0xAC00 && last <= 0xD7A3 && ((last - 0xAC00) % 28) > 0;
+        family.roomName = family.leaderName + (hasBatchim ? '이' : '') + '네 가족';
+      }
+      return family;
     } catch (e) { console.warn('[PAT_DB] findFamilyByPassword:', e.message); return null; }
   }
 
@@ -369,7 +377,15 @@ window.PAT_DB = (() => {
     if (!ready() || !familyPassword) return null;
     try {
       const data = await apiPost('findFamily', { churchCode, familyPassword });
-      return data.family || null;
+      const family = data.family || null;
+
+      // ★ 2026-07-01: roomName 자동 생성 — Firebase에서 없으면 leaderName으로 생성
+      if(family && !family.roomName && family.leaderName) {
+        const last = family.leaderName.charCodeAt(family.leaderName.length - 1);
+        const hasBatchim = last >= 0xAC00 && last <= 0xD7A3 && ((last - 0xAC00) % 28) > 0;
+        family.roomName = family.leaderName + (hasBatchim ? '이' : '') + '네 가족';
+      }
+      return family;
     } catch (e) { console.warn('[PAT_DB] findFamilyByPasswordGlobal:', e.message); return null; }
   }
 
