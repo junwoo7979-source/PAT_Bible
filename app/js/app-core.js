@@ -885,6 +885,12 @@ async function enterChurch(){
           // 가족이 하나라도 있으면, 가족 비밀번호로만 입장 강제
           if(familiesData.families && familiesData.families.length > 0){
             console.log('[LOGIN] 11111에 기존 가족 존재, 비밀번호 입력 강제');
+
+            // ★ 수정: 먼저 교회코드를 설정해야 다음 비밀번호 입력이 정상 작동
+            // (이 코드를 빼먹으면 비밀번호가 교회코드로 인식됨!)
+            adoptChurch(decision.code, '교회');  // 기본값 설정
+            if(typeof refreshLoginMode === 'function') refreshLoginMode();
+
             toast('이미 가족이 등록되어 있습니다.\n가족 비밀번호로 입장해주세요.');
             return;
           }
