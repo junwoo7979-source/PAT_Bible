@@ -1027,9 +1027,14 @@ async function _enterFoundFamily(found, pw, profile){
     ? normalizeFamilyMemberNames(found.members)
     : (Array.isArray(found.members) ? found.members : []);
   const prevName = (profile && (profile.memberName || profile.leaderName)) || '';
+
+  // ★ 2026-07-01: churchCode 반드시 저장 (앱과 웹의 교회코드 동기화)
+  // 이미 profile.churchCode가 있으면 유지, 없으면 현재 DB.church.code 사용
+  const churchCode = (profile && profile.churchCode) || DB.church.code;
+
   const nextProfile = {
     ...(profile || {}),
-    churchCode: DB.church.code,  // ★ 중요: 가족이 속한 교회코드 저장 (앱 재시작 시 정확한 교회 로드)
+    churchCode: churchCode,  // ★ 중요: 가족이 속한 교회코드 저장 (앱 재시작 시 정확한 교회 로드)
     roomName:   found.roomName   || (profile && profile.roomName)   || '',
     leaderName: found.leaderName || (profile && profile.leaderName) || '',
     parish:     found.parish     || (profile && profile.parish)     || '',
@@ -1039,6 +1044,7 @@ async function _enterFoundFamily(found, pw, profile){
     memberName: prevName,
     members: members.length ? members : ((profile && profile.members) || [])
   };
+  console.log('[FAMILY-SAVE] 가족 프로필 저장:', { churchCode, familyId: found.id });
   try{ localStorage.setItem('pat_family_id', found.id); }catch(e){}
   if(typeof setFamilyStorage === 'function') setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
   else { try{ localStorage.setItem('pat_family_profile', JSON.stringify(nextProfile)); }catch(e){} }

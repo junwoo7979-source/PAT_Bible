@@ -166,6 +166,7 @@ async function refreshFamilyProfileByPassword(profile, password){
     ));
     const nextProfile = {
       ...profile,
+      churchCode: DB.church.code,  // ★ 2026-07-01: churchCode 반드시 포함 (앱 로드 시 정확한 교회 사용)
       roomName: found.roomName || profile.roomName || '',
       leaderName: found.leaderName || profile.leaderName || '',
       parish: found.parish || profile.parish || '',
@@ -213,6 +214,7 @@ async function tryAutoRecoverFamily(){
     if(!match) return null;
 
     const profileData = {
+      churchCode: DB.church.code,  // ★ 2026-07-01: churchCode 반드시 포함
       roomName: match.roomName,
       leaderName: match.leaderName,
       parish: match.parish,
@@ -1362,7 +1364,7 @@ async function submitFamilyJoinManual(){
     }
     const members = existing.members || [];
     if(!members.includes(name)) members.push(name);
-    const updatedProfile = { ...existing, memberName: name, members };
+    const updatedProfile = { ...existing, churchCode: DB.church.code, memberName: name, members };  // ★ churchCode 추가
     setFamilyStorage('pat_family_profile', JSON.stringify(updatedProfile));
 
     if(window.PAT_DB && PAT_DB.ready()){
@@ -1386,6 +1388,7 @@ async function submitFamilyJoinManual(){
         if(!members.includes(name)) members.push(name);
         localStorage.setItem('pat_family_id', found.id);
         const profileData = {
+          churchCode: DB.church.code,  // ★ 2026-07-01: churchCode 반드시 포함
           roomName: found.roomName || '',
           leaderName: found.leaderName || '',
           parish: found.parish || '',
@@ -1410,6 +1413,7 @@ async function submitFamilyJoinManual(){
 
   // 3️⃣ Fallback: 로컬만 저장
   const profileData = {
+    churchCode: DB.church.code,  // ★ 2026-07-01: churchCode 반드시 포함
     roomName: '',
     leaderName: '',
     parish: '',
