@@ -199,12 +199,8 @@ function calculateFamilyPracticeRate(familyId, churchCode) {
   };
 }
 
-// ★ 4단계: 시상 순위 종류(가정/구역) 상태. 기본 '가정'.
+// ★ 2026-07-01: setAwardGroupType() 삭제 — 구역방 삭제, 가정만 지원
 let _awardGroupType = '가정';
-function setAwardGroupType(type){
-  _awardGroupType = (type === '구역') ? '구역' : '가정';
-  renderAwardRanking();
-}
 
 // ── 교회 내 모든 가족 순위 (Firestore 통합 — 교구별 현황과 동일 소스) ──
 async function getRankedFamilies(churchCode, groupType) {

@@ -1,7 +1,7 @@
 // ====== PAT Bible — family.js ======
 //
 // [책임]
-//  방(가족방/구역방) 정보 관리:
+//  방(가족방) 정보 관리:
 //  - 등록: openFamilyRegister(), saveFamilyProfileAsLeader()
 //  - 조회: loadFamilyProfile(), getFamilyInfo()
 //  - 구성원 관리: addMemberRow(), getMemberNames(), renderMemberRows()
@@ -24,7 +24,7 @@
 //      memberName: string,     ← 현재 기기의 입장자 이름
 //      parish: string,
 //      district: string,
-//      groupType: 'family' | 'group'
+//      // ★ 2026-07-01: groupType 필드 삭제 — 구역방 삭제
 //    }
 //
 //  pat_leader_family_profile: JSON (백업)
@@ -106,17 +106,11 @@ function loadFamilyProfile(){
 
   return null;
 }
-// ── 방 종류(가정/구역) 헬퍼 (1단계) ──────────────────────────
-//   기존 데이터(누락)는 '가정'으로 간주 → 하위호환 100%.
-function groupTypeOf(profile){
-  const t = profile && profile.groupType;
-  return (t === '구역') ? '구역' : '가정';
-}
+// ★ 2026-07-01: groupTypeOf() 삭제 — 구역방 삭제, 항상 '가정'만 반환
 // 종류별 표시 라벨 모음 (UI 문구만 바뀜, 데이터/구조 동일)
 function groupLabels(type){
-  return (type === '구역')
-    ? { room:'구역방', roomName:'구역 이름', leader:'구역장 이름', icon:'🧩', emptyTitle:'구역방' }
-    : { room:'가족방', roomName:'가족방 이름', leader:'가족 대표 이름', icon:'👨‍👩‍👧', emptyTitle:'우리 가족방' };
+  // ★ 2026-07-01: 구역방 삭제 — 가족방만 지원
+  return { room:'가족방', roomName:'가족방 이름', leader:'가족 대표 이름', icon:'👨‍👩‍👧', emptyTitle:'우리 가족방' };
 }
 function familyRoomName(profile){
   if(!profile) return '';
@@ -171,7 +165,7 @@ async function refreshFamilyProfileByPassword(profile, password){
       leaderName: found.leaderName || profile.leaderName || '',
       parish: found.parish || profile.parish || '',
       district: found.district || profile.district || '',
-      groupType: found.groupType || profile.groupType || '',
+      // ★ 2026-07-01: groupType 필드 제거 — 구역방 삭제
       familyPassword: password,
       memberName: profile.memberName || profile.leaderName || found.leaderName || '',
       members: mergedMembers.length ? mergedMembers : localMembers,
@@ -219,7 +213,7 @@ async function tryAutoRecoverFamily(){
       leaderName: match.leaderName,
       parish: match.parish,
       district: match.district || '',
-      groupType: match.groupType || '',
+      // ★ 2026-07-01: groupType 필드 제거 — 구역방 삭제
       familyPassword: '',  // ★ BUG-FIX: 초기값을 빈 문자열로 변경 (교회코드가 아닌 실제 비밀번호만 저장)
       members: match.memberNames,
       memberName: confirmedNames.find(n => match.memberNames.includes(n)) || match.leaderName,
@@ -611,39 +605,11 @@ function populateFamilyParishOptions(selected){
   sel.innerHTML = html;
   sel.value = selected || '';
 }
-// 등록 폼: 방 종류 토글 버튼 선택 (가정/구역) — 숨김 input(familyGroupType)에 값 보관
-function selectGroupType(type){
-  const t = (type === '구역') ? '구역' : '가정';
-  const hid = document.getElementById('familyGroupType');
-  if(hid) hid.value = t;
-  const a = document.getElementById('gtSegGajeong');
-  const b = document.getElementById('gtSegGuyeok');
-  const paint = (el, on) => {
-    if(!el) return;
-    el.style.background = on ? 'var(--accent)' : 'var(--surface)';
-    el.style.color      = on ? '#fff' : 'var(--text)';
-  };
-  paint(a, t === '가정');
-  paint(b, t === '구역');
-  onGroupTypeChange();
-}
-// 등록 폼: 방 종류 선택에 따라 라벨/플레이스홀더 전환 (데이터 영향 없음)
-function onGroupTypeChange(){
-  const sel = document.getElementById('familyGroupType');
-  const type = sel ? sel.value : '가정';
-  const L = groupLabels(type);
-  const set = (id, txt) => { const e = document.getElementById(id); if(e) e.textContent = txt; };
-  const ph  = (id, txt) => { const e = document.getElementById(id); if(e) e.placeholder = txt; };
-  set('familyRoomNameLabel', L.roomName);
-  set('familyLeaderLabel', L.leader);
-  ph('familyRoomName', type==='구역' ? '예: 3구역 모임' : '예: 믿음 가족방');
-  ph('familyLeaderName', type==='구역' ? '예: 김구역장' : '예: 김민수');
-}
+// ★ 2026-07-01: onGroupTypeChange() 삭제 — 구역방 삭제로 인한 방 종류 토글 불필요
 function openFamilyRegister(tab){
   // ★ 2단계: '다른 방 만들기' 모드면 기존 방 값으로 채우지 않고 빈 폼으로 시작
   const profile = window._creatingNewRoom ? null : loadFamilyProfile();
-  const _gt = groupTypeOf(profile);
-  if(typeof selectGroupType === 'function') selectGroupType(_gt); // 값+토글 버튼 상태 동기화
+  // ★ 2026-07-01: selectGroupType() 제거 — 구역방 삭제
   document.getElementById('familyRoomName').value   = profile?.roomName||'';
   document.getElementById('familyLeaderName').value = profile?.leaderName||'';
   populateFamilyParishOptions(profile?.parish||'');

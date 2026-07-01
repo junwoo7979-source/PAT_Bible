@@ -1065,7 +1065,7 @@ async function _enterFoundFamily(found, pw, profile){
     leaderName: found.leaderName || (profile && profile.leaderName) || '',
     parish:     found.parish     || (profile && profile.parish)     || '',
     district:   found.district   || (profile && profile.district)   || '',
-    groupType:  (found.groupType === '구역') ? '구역' : ((profile && profile.groupType) || '가정'),
+    // ★ 2026-07-01: groupType 필드 제거 — 구역방 삭제
     familyPassword: pw,
     memberName: prevName,
     members: members.length ? members : ((profile && profile.members) || [])

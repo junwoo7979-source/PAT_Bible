@@ -645,13 +645,9 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div id="adminTabAward" style="display:none">
     <div class="card" style="margin-top:14px">
       <h2>🏆 1년 실천율 순위</h2>
-      <p class="muted" style="margin:6px 0 10px">1년간의 암송 완료율 기준 그룹별 순위 (가정끼리 / 구역끼리)</p>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button type="button" id="awardTypeGajeong" onclick="setAwardGroupType('가정')"
-          style="flex:1;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer">🏠 가정</button>
-        <button type="button" id="awardTypeGuyeok" onclick="setAwardGroupType('구역')"
-          style="flex:1;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);font-weight:800;cursor:pointer">🧩 구역</button>
-      </div>
+      <p class="muted" style="margin:6px 0 10px">1년간의 암송 완료율 기준 가족 순위</p>
+      <!-- ★ 2026-07-01: 구역 버튼 제거 — 가족 순위만 표시 -->
+      <input type="hidden" id="awardType" value="가정">
       <div id="awardRankingList" style="margin-top:12px"></div>
     </div>
 
@@ -701,13 +697,13 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- 가족 비밀번호 초기화 (관리자용) -->
     <div class="card" style="margin-top:14px">
       <h2>🔑 가족 비밀번호 초기화</h2>
-      <p class="muted" style="margin:6px 0 12px">대표자 이름 + 교구 + 구역으로 가족방을 찾아 비밀번호를 초기화합니다</p>
+      <p class="muted" style="margin:6px 0 12px">대표자 이름 + 교구로 가족방을 찾아 비밀번호를 초기화합니다</p>
       <label class="lbl">대표자 이름</label>
       <input class="field" id="adminRpLeader" placeholder="가족방 대표자 이름" autocomplete="off">
       <label class="lbl">교구</label>
       <input class="field" id="adminRpParish" placeholder="예: 1교구" autocomplete="off">
-      <label class="lbl">구역</label>
-      <input class="field" id="adminRpDistrict" placeholder="예: 3구역" autocomplete="off">
+      <!-- ★ 2026-07-01: 구역 필드 제거 (구역방 삭제) -->
+      <input type="hidden" id="adminRpDistrict">
       <label class="lbl">새 비밀번호</label>
       <div class="pw-wrap"><input class="field" id="adminRpNewPw" type="password" placeholder="새 비밀번호 (4자 이상)" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
       <button class="btn ghost" style="margin-top:4px" onclick="doAdminResetFamilyPassword()">🔑 비밀번호 초기화</button>
@@ -871,12 +867,6 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <p class="muted" style="margin:10px 0 4px">방 기본 정보를 입력하세요</p>
       <div class="card" style="margin-top:8px">
         <label class="lbl">방 종류</label>
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-          <button type="button" id="gtSegGajeong" onclick="selectGroupType('가정')"
-            style="flex:1;padding:12px 8px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;font-size:calc(var(--fs)-1px)">🏠 가정 (가족방)</button>
-          <button type="button" id="gtSegGuyeok" onclick="selectGroupType('구역')"
-            style="flex:1;padding:12px 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text);font-weight:800;cursor:pointer;font-size:calc(var(--fs)-1px)">🧩 구역 (구역방)</button>
-        </div>
         <input type="hidden" id="familyGroupType" value="가정">
         <label class="lbl" id="familyRoomNameLabel">가족방 이름</label>
         <input class="field" id="familyRoomName" placeholder="예: 믿음 가족방">
@@ -886,8 +876,8 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
         <select class="field" id="familyParish">
           <option value="">교구를 선택하세요</option>
         </select>
-        <label class="lbl">구역</label>
-        <input class="field" id="familyDistrict" placeholder="예: 3구역">
+        <!-- ★ 2026-07-01: 구역 필드 숨김 (데이터 호환성 유지) -->
+        <input type="hidden" id="familyDistrict">
         <label class="lbl">가족 비밀번호</label>
         <div class="pw-wrap"><input class="field" id="familyPassword" type="password" placeholder="가족방 전용 비밀번호"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
         <p class="muted" style="font-size:calc(var(--fs) - 5px);margin:-4px 2px 10px">
