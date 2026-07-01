@@ -114,7 +114,11 @@ function groupLabels(type){
 }
 function familyRoomName(profile){
   if(!profile) return '';
-  return profile.roomName || (profile.memberName ? familyNameFromMember(profile.memberName) : '');
+  // ★ 2026-07-01: roomName 우선 → leaderName → memberName 순서로 방이름 결정
+  // (roomName이 비어있으면 대표자 이름 + "네" 사용)
+  if(profile.roomName) return profile.roomName;
+  const displayName = profile.leaderName || profile.memberName || '';
+  return displayName ? familyNameFromMember(displayName) : '';
 }
 function familyNameFromMember(name){
   const last = name.charCodeAt(name.length-1);
