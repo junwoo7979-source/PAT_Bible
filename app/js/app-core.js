@@ -927,10 +927,10 @@ function refreshLoginMode(){
   const startBtn = document.getElementById('loginStartBtn');
   const devResetBtn = document.getElementById('devResetChurchBtn');
   if(hasChurch){
-    if(prompt) prompt.textContent = '가족 비밀번호를 입력하세요';
+    if(prompt) prompt.textContent = '';                 // 안내 문구 제거
     if(input){
       input.type = 'password';                    // 비밀번호는 점(•)으로 마스킹
-      input.placeholder = '가족 비밀번호';
+      input.placeholder = '••••••••';             // placeholder를 점으로 표시
       input.value = '';
       input.style.letterSpacing='normal';
     }
