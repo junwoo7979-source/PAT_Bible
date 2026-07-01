@@ -967,13 +967,14 @@ function toggleLoginPwVisibility(btn){
 // (개발자/테스트용) 11111 교회 + 테스트 가족방으로 바로 진입
 function devEnterChurch(){
   // 1) 교회 정보 설정
-  DB.church.code = '11111'; DB.church.name = '개발자';
+  DB.church.code = '11111';
+  DB.church.name = '개발자';
   try {
     localStorage.setItem('pat_church_code', '11111');
     localStorage.setItem('pat_church_name', '개발자');
   } catch(e){}
 
-  // 2) 테스트 가족방 프로필 생성 (로컬, 서버 연동 불필요)
+  // 2) 테스트 가족방 프로필 생성
   const devFamily = {
     roomName: '개발자 테스트 방',
     leaderName: '개발자',
@@ -986,20 +987,15 @@ function devEnterChurch(){
   };
   try {
     localStorage.setItem('pat_family_id', 'dev-test-family');
-    localStorage.setItem('pat_family_profile', JSON.stringify(devFamily));
+    if(typeof setFamilyStorage === 'function'){
+      setFamilyStorage('pat_family_profile', JSON.stringify(devFamily));
+    } else {
+      localStorage.setItem('pat_family_profile', JSON.stringify(devFamily));
+    }
   } catch(e){}
 
-  // 3) 입력 필드 비우기
-  const input = document.getElementById('churchCode');
-  if(input) input.value='';
-
-  // 4) UI 갱신
-  if(typeof refreshLoginMode === 'function') refreshLoginMode();
-
-  // 5) 가족방으로 바로 진입 (enterChurch 스킵)
-  setTimeout(() => {
-    if(typeof enterMemberHome === 'function') enterMemberHome();
-  }, 100);
+  // 3) 가족방으로 바로 진입
+  if(typeof go === 'function') go('s-family');
 }
 
 // ── 공통 유틸 ─────────────────────────────────────────────
