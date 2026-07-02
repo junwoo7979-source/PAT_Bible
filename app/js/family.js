@@ -279,7 +279,7 @@ function renderRegisteredFamilyRoom(){
             const deleteButton = canDelete
               ? `<button class="family-member-delete" onclick="armDeleteFamilyMember('${encodeURIComponent(name)}')">${arming?`한 번 더 (${3-_famDelArm.count})`:'삭제'}</button>`
               : '';
-            return `<span class="family-member-chip">${esc(name)}<small>등록</small>${deleteButton}</span>`;
+            return `<span class="family-member-chip"><span style="color:#A5A5A5">${esc(name)}</span><small>등록</small>${deleteButton}</span>`;
           }).join('')}</div>`
         : '<p class="muted" style="margin:0">등록된 구성원이 없습니다</p>';
     }
