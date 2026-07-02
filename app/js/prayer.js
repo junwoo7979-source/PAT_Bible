@@ -178,7 +178,12 @@ function _prayerFindEntry(board, name){
 
 function currentPrayerMember(){
   const p=_prayerFamilyProfile();
-  return _pnorm(p && (p.memberName || p.leaderName)) || '';
+  // ★ 2026-07-02: 리더(방장)는 memberName이 'Guest' 또는 빈값일 수 있다.
+  //   'Guest'는 칩/피드에서 필터링되므로, 그대로 저장하면 기도가 저장돼도 화면에 안 보인다.
+  //   → 실제 이름(leaderName)으로 대체해 칩·피드에 정상 표시되도록 한다.
+  let name = _pnorm(p && p.memberName);
+  if(!name || name==='Guest') name = _pnorm(p && p.leaderName);
+  return name || '';
 }
 function prayerMemberList(){
   const p=_prayerFamilyProfile();
@@ -358,9 +363,13 @@ function renderPrayer(){
       if(!res || !Array.isArray(res.prayers)) return;
       const merged = loadFamilyPrayers(today);
       const protectMine = _prayerJustSaved.name && (Date.now()-_prayerJustSaved.at) < PRAYER_PROTECT_MS;
+      const _leadName = _pnorm((_prayerFamilyProfile()||{}).leaderName);
       res.prayers.forEach(p=>{
         if(!p.memberName) return;
-        const name = _pnorm(p.memberName);
+        // ★ 2026-07-02: 옛 데이터에서 리더가 'Guest'로 저장한 기도를 실제 이름으로 리맵
+        //   (Guest는 필터링돼 화면에 안 보이므로, 가족 leaderName으로 표시)
+        let name = _pnorm(p.memberName);
+        if(name==='Guest' && _leadName) name = _leadName;
         const inText = _pnorm(p.text);
         const inSaved = p.updatedAt||0;
         const prev = merged[name] || _prayerFindEntry(merged, name);
