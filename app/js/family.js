@@ -279,7 +279,7 @@ function renderRegisteredFamilyRoom(){
             const deleteButton = canDelete
               ? `<button class="family-member-delete" onclick="armDeleteFamilyMember('${encodeURIComponent(name)}')">${arming?`한 번 더 (${3-_famDelArm.count})`:'삭제'}</button>`
               : '';
-            return `<span class="family-member-chip"><span style="color:#A5A5A5">${esc(name)}</span><small>등록</small>${deleteButton}</span>`;
+            return `<span class="family-member-chip"><span style="color:#818181">${esc(name)}</span><small>등록</small>${deleteButton}</span>`;
           }).join('')}</div>`
         : '<p class="muted" style="margin:0">등록된 구성원이 없습니다</p>';
     }
@@ -1122,7 +1122,7 @@ function renderFamilyMemberList(members){
     return `<div class="member" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
               <div style="flex:1;min-width:0">
                 <span style="color:var(--muted);margin-right:8px;font-weight:700;font-size:calc(var(--fs)-2px)">${orderNum}.</span>
-                <span style="color:#A5A5A5">${esc(m.name)}</span>
+                <span style="color:#818181">${esc(m.name)}</span>
                 ${status}
               </div>
               ${delBtn}
