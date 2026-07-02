@@ -104,7 +104,10 @@ async function startPrayerMic(){
       updatePrayerTextLength();
       const rec=document.getElementById('prayerRecognized'); if(rec) rec.textContent='';
       switchPrayerTab('text');
-      toast('🎤 음성 입력 완료');
+      // ★ 2026-07-02: 음성 기도 완료 일원화 — 전사되면 즉시 자동 저장(별도 '기도 완료' 버튼 불필요).
+      //   저장 후에도 텍스트는 남아 있어 필요하면 수정 후 다시 저장 가능.
+      if(typeof savePrayer==='function'){ savePrayer(); }
+      else { toast('🎤 음성 입력 완료'); }
     } else {
       const rec=document.getElementById('prayerRecognized'); if(rec) rec.textContent='';
       toast('음성이 인식되지 않았습니다 — 다시 시도하세요');
@@ -163,9 +166,19 @@ function _prayerChurchCode(){
   try { return localStorage.getItem('pat_church_code') || (window.DB && DB.church && DB.church.code) || ''; }
   catch(e){ return ''; }
 }
+// ★ 이름 정규화: 앞뒤 공백 제거 (칩/기록 매칭 불일치로 녹색 확인이 안 뜨던 문제 방지)
+function _pnorm(s){ return String(s==null?'':s).trim(); }
+// board(이름→기도) 에서 정규화 기준으로 항목 찾기 (공백 차이 흡수)
+function _prayerFindEntry(board, name){
+  if(!board) return null;
+  const key=_pnorm(name);
+  for(const k in board){ if(_pnorm(k)===key) return board[k]; }
+  return null;
+}
+
 function currentPrayerMember(){
   const p=_prayerFamilyProfile();
-  return (p && (p.memberName || p.leaderName)) || '';
+  return _pnorm(p && (p.memberName || p.leaderName)) || '';
 }
 function prayerMemberList(){
   const p=_prayerFamilyProfile();
@@ -226,8 +239,11 @@ function renderPrayerChips(board){
   if(!members.length){ el.innerHTML=''; el.style.display='none'; return; }
   el.style.display='flex';
   el.innerHTML = members.map(n=>{
-    const prayed = board[n] && board[n].text;
-    const isMe   = n===me;
+    // ★ 이름 정규화 후 매칭 — 공백/형식 차이로 본인 기도가 board 조회에 실패해
+    //   녹색 확인(🙏)이 안 뜨던 문제 방지
+    const entry  = board[n] || board[_pnorm(n)] || _prayerFindEntry(board, n);
+    const prayed = entry && entry.text;
+    const isMe   = _pnorm(n)===_pnorm(me);
     return `<span style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:20px;`
       + `font-size:calc(var(--fs)-3px);font-weight:700;white-space:nowrap;`
       + `background:${isMe?'var(--accent)':'var(--surface)'};color:${isMe?'#04231a':'var(--text)'};`
@@ -254,7 +270,7 @@ function renderPrayerFeed(board){
   el.innerHTML = entries.map(e=>{
     const t=e.savedAt ? new Date(e.savedAt) : null;
     const time = t ? ((t.getHours()<12?'오전':'오후')+' '+(((t.getHours()%12)||12))+':'+String(t.getMinutes()).padStart(2,'0')) : '';
-    const mine = e.name===me;
+    const mine = _pnorm(e.name)===_pnorm(me);
     return `<div style="padding:12px 0;border-bottom:1px solid var(--line)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <span style="font-size:calc(var(--fs)-2px);font-weight:700;color:var(--text)">🙏 ${esc(e.name)}님의 기도${mine?' <span style=\"color:var(--accent);font-size:calc(var(--fs)-4px)\">· 나</span>':''}</span>
@@ -297,7 +313,7 @@ function renderPrayer(){
 
   const me      = currentPrayerMember();
   const board   = loadFamilyPrayers(today);
-  const mine    = board[me];
+  const mine    = board[me] || _prayerFindEntry(board, me);
   const textEl  = document.getElementById('prayerText');
   const badge   = document.getElementById('prayerDoneBadge');
   const saveBtn = document.getElementById('prayerSaveBtn');
@@ -329,7 +345,17 @@ function renderPrayer(){
       if(!res || !Array.isArray(res.prayers)) return;
       const merged = loadFamilyPrayers(today);
       res.prayers.forEach(p=>{
-        if(p.memberName) merged[p.memberName] = { text: p.text||'', savedAt: p.updatedAt||0 };
+        if(!p.memberName) return;
+        const name = _pnorm(p.memberName);
+        const inText = _pnorm(p.text);
+        const inSaved = p.updatedAt||0;
+        const prev = merged[name] || _prayerFindEntry(merged, name);
+        // ★ 2026-07-02: 빈 서버 기록이 방금 저장한 로컬 기도(비어있지 않음)를 덮어쓰지 않도록 방어.
+        //   (경합으로 서버가 옛 빈 값을 돌려줄 때 녹색 확인이 사라지던 문제 원인)
+        if(!inText && prev && _pnorm(prev.text)){ merged[name] = prev; return; }
+        // 로컬이 더 최신이면 유지
+        if(prev && prev.savedAt && prev.savedAt > inSaved && !inText){ merged[name] = prev; return; }
+        merged[name] = { text: p.text||'', savedAt: inSaved || (prev&&prev.savedAt) || 0 };
       });
       storeFamilyPrayers(today, merged);
       renderPrayerChips(merged);
@@ -337,7 +363,7 @@ function renderPrayer(){
       // 본인 기도칸도 서버값으로 보정 (입력 중이 아니면)
       const tEl=document.getElementById('prayerText');
       if(tEl && document.activeElement!==tEl){
-        const mn=merged[me];
+        const mn=merged[me] || _prayerFindEntry(merged, me);
         tEl.value=(mn && mn.text) || '';
         if(typeof updatePrayerTextLength==='function') updatePrayerTextLength();
         const b=document.getElementById('prayerDoneBadge');
