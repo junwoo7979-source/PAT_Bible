@@ -30,7 +30,7 @@
   }
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=165').catch(function() {});
+    navigator.serviceWorker.register('sw.js?v=166').catch(function() {});
   });
 })();
 </script>
@@ -61,8 +61,8 @@
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=165"></script>
-<script src="firebase-db.js?v=165"></script>
+<script src="firebase-config.js?v=166"></script>
+<script src="firebase-db.js?v=166"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -1181,25 +1181,25 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 </div>
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/login-auth.js?v=165"></script>
-<script src="js/app-core.js?v=165"></script>
-<script src="js/verse.js?v=165"></script>
-<script src="js/family.js?v=165"></script>
+<script src="js/login-auth.js?v=166"></script>
+<script src="js/app-core.js?v=166"></script>
+<script src="js/verse.js?v=166"></script>
+<script src="js/family.js?v=166"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
-<script src="js/history.js?v=165"></script>
-<script src="js/voice.js?v=165"></script>
-<script src="js/voice-ui.js?v=165"></script>
-<script src="js/progress-store.js?v=165"></script>
-<script src="js/whisper-asr.js?v=165"></script>
-<script src="js/groq-asr.js?v=165"></script>
-<script src="js/memorize.js?v=165"></script>
-<script src="js/prayer.js?v=165"></script>
-<script src="js/reading-plan.js?v=165"></script>
-<script src="js/reading.js?v=165"></script>
-<script src="js/reset-pw.js?v=165"></script>
-<script src="js/admin.js?v=165"></script>
-<script src="js/worship.js?v=165"></script>
-<script src="js/pwa-install.js?v=165"></script>
+<script src="js/history.js?v=166"></script>
+<script src="js/voice.js?v=166"></script>
+<script src="js/voice-ui.js?v=166"></script>
+<script src="js/progress-store.js?v=166"></script>
+<script src="js/whisper-asr.js?v=166"></script>
+<script src="js/groq-asr.js?v=166"></script>
+<script src="js/memorize.js?v=166"></script>
+<script src="js/prayer.js?v=166"></script>
+<script src="js/reading-plan.js?v=166"></script>
+<script src="js/reading.js?v=166"></script>
+<script src="js/reset-pw.js?v=166"></script>
+<script src="js/admin.js?v=166"></script>
+<script src="js/worship.js?v=166"></script>
+<script src="js/pwa-install.js?v=166"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';
@@ -1255,13 +1255,29 @@ function saveAdminParishData() {
 }
 
 // 집계된 실제 데이터를 완료 칸에 반영
+// ★ 2026-07-02: "전체 인원"을 등록가정 참여인원(registeredByParish)과 자동 동기화.
+//   관리자가 수동으로 전체 인원을 저장한 적이 없으면, 등록가정 탭과 동일한 서버 집계값으로
+//   자동 채워 두 화면의 등록 숫자를 항상 일치시키고 실천율(완료/전체)이 올바르게 계산되게 한다.
+//   (관리자가 명시적으로 다른 값을 저장한 경우엔 그 값을 존중)
 function applyAggregatedToAdmin(data) {
   if (!document.getElementById('parishRowsBody') || !data) return;
   const groups = _parishGroups();
   const by = data.byParish || {};
+  const reg = data.registeredByParish || {};
+  const savedTotals = _parishTotalsObj();  // 관리자가 수동 저장한 전체 인원
   groups.forEach((g, i) => {
     const el = document.getElementById(`pg${i}_done`);
     if (el) el.textContent = (by[g] != null ? by[g] : 0);
+    // 전체 인원 자동 동기화: 수동 저장값이 있으면 존중, 없으면 등록가정 참여인원으로 채움
+    const totalEl = document.getElementById(`pg${i}_total`);
+    if (totalEl) {
+      const manual = savedTotals[g];
+      const hasManual = (manual != null && manual !== '' && Number(manual) > 0);
+      if (!hasManual) {
+        const regCount = Number(reg[g]) || 0;
+        totalEl.value = regCount > 0 ? regCount : '';
+      }
+    }
     updateParishPctIdx(i);
   });
 }
