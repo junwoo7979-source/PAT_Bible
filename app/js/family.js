@@ -1122,7 +1122,7 @@ function renderFamilyMemberList(members){
     return `<div class="member" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
               <div style="flex:1;min-width:0">
                 <span style="color:var(--muted);margin-right:8px;font-weight:700;font-size:calc(var(--fs)-2px)">${orderNum}.</span>
-                <span>${esc(m.name)}</span>
+                <span style="color:#A5A5A5">${esc(m.name)}</span>
                 ${status}
               </div>
               ${delBtn}
