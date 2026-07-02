@@ -20,11 +20,15 @@ const families = [
   assert.deepEqual(loginDecision('', '11111'), { action:'SELECT_CHURCH', code:'11111' });
   // 교회 선택됨
   assert.equal(loginDecision(CHURCH, '').action, 'NEED_FAMILY_PW');
-  // 교회 코드를 비번칸에 → 거부 (교회코드로는 입장 불가)
-  assert.equal(loginDecision(CHURCH, '11111').action, 'REJECT_CHURCHCODE');
+  // 교회 코드를 비번칸에 → 판정은 AUTH_FAMILY_PW로 통과한다.
+  //   ★ 2026-07-01: loginDecision에서 REJECT_CHURCHCODE 분기를 제거했다(교회코드=비번인
+  //     방이 존재할 여지를 서버 판정에 위임). 대신 교회코드로는 매칭되는 방이 없어
+  //     resolveFamilyByPassword가 null을 반환해 입장이 실패한다(아래 testChurchCodeCannotEnter).
+  //     서버 saveFamily도 비번===교회코드 저장을 차단하므로 그런 방은 애초에 만들어지지 않는다.
+  assert.equal(loginDecision(CHURCH, '11111').action, 'AUTH_FAMILY_PW');
   // 가족 비번 → 인증 진행
   assert.deepEqual(loginDecision(CHURCH, '12365'), { action:'AUTH_FAMILY_PW', password:'12365' });
-  console.log('  ✓ loginDecision: 교회코드=선택전용, 가족비번=인증전용, 교회코드 입장 차단');
+  console.log('  ✓ loginDecision: 교회코드=선택전용, 가족비번=인증전용 (교회코드 입장은 resolve/서버에서 차단)');
 })();
 
 // ── 필수 테스트: 각 가정 비번 → 해당 가정 입장 성공 ──────────────
@@ -37,11 +41,11 @@ const families = [
 
 // ── 필수 테스트: 교회 코드로는 가족방 입장 실패 ─────────────────
 (function testChurchCodeCannotEnter(){
-  // 판정 단계에서 이미 거부
-  assert.equal(loginDecision(CHURCH, CHURCH).action, 'REJECT_CHURCHCODE');
-  // 설령 검증까지 가더라도 교회코드와 같은 비번을 가진 방은 없음 → null
+  // 판정 단계는 통과하지만(REJECT_CHURCHCODE 제거) 매칭되는 방이 없어 실제 입장은 실패한다.
+  assert.equal(loginDecision(CHURCH, CHURCH).action, 'AUTH_FAMILY_PW');
+  // 교회코드와 같은 비번을 가진 방은 없음(서버가 저장 차단) → null → 입장 불가
   assert.equal(resolveFamilyByPassword(families, CHURCH, '11111'), null, '교회코드 → 매칭 방 없음');
-  console.log('  ✓ 교회 코드 입력 → 가족방 입장 실패 (2중 차단)');
+  console.log('  ✓ 교회 코드 입력 → 가족방 입장 실패 (매칭 방 없음 + 서버 저장 차단)');
 })();
 
 // ── 필수 테스트: A 가정에서 B 가정 비번 입력 → 입장 실패 ───────────
@@ -55,11 +59,10 @@ const families = [
 
 // ── 필수 테스트: 비번칸에 교회코드 입력 → 실패 (가족/구역 공통) ─────
 (function testChurchCodeInPasswordField(){
-  assert.equal(loginDecision(CHURCH, '11111').action, 'REJECT_CHURCHCODE', '가족방: 교회코드 비번 → 거부');
-  // 구역 로그인(joinAnotherRoom)도 findFamilyByPasswordGlobal(비번) 검색이라
-  // 교회코드로 만든 방이 없으므로 매칭 실패 = 입장 불가
-  assert.equal(resolveFamilyByPassword(families, CHURCH, '11111'), null, '구역: 교회코드 → 매칭 방 없음');
-  console.log('  ✓ 가족/구역 비번칸에 교회 코드 → 입장 실패');
+  // 판정은 통과해도 교회코드로 만든 방이 없어 매칭 실패 = 입장 불가(권위 계층에서 차단)
+  assert.equal(loginDecision(CHURCH, '11111').action, 'AUTH_FAMILY_PW', '가족방: 교회코드 비번 → 판정 통과(서버/resolve에서 차단)');
+  assert.equal(resolveFamilyByPassword(families, CHURCH, '11111'), null, '가족방: 교회코드 → 매칭 방 없음');
+  console.log('  ✓ 가족방 비번칸에 교회 코드 → 입장 실패 (매칭 방 없음)');
 })();
 
 console.log('\n✅ family-login-auth: 모든 테스트 통과');

@@ -1,4 +1,4 @@
-const assert = require('node:assert/strict');
+﻿const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 const html = fs.readFileSync('app/index.html', 'utf8');
@@ -22,14 +22,10 @@ assert.equal(icon512.type, 'image/png');
 assert.match(icon512.purpose, /maskable/);
 
 assert.match(html, /<link rel="apple-touch-icon" href="icons\/pat-icon-192\.png">/);
-assert.match(sw, /'\.\/icons\/pat-icon-192\.png'/);
-assert.match(sw, /'\.\/icons\/pat-icon-512\.png'/);
-assert.match(sw, /'\.\/js\/app-core\.js'/);
-assert.match(sw, /'\.\/js\/verse\.js'/);
-assert.match(sw, /'\.\/js\/family\.js'/);
-assert.match(sw, /'\.\/js\/voice\.js'/);
-assert.match(sw, /'\.\/js\/voice-ui\.js'/);
-assert.match(sw, /'\.\/js\/memorize\.js'/);
+assert.match(sw, /self\.addEventListener\('fetch'/);
+assert.match(sw, /event\.request\.mode === 'navigate'/);
+assert.match(sw, /fetch\(event\.request\)\.catch/);
+assert.doesNotMatch(sw, /cache\.addAll|caches\.open/);
 assert.doesNotMatch(
   html,
   /window\.location\.reload\(\)/,
@@ -54,3 +50,4 @@ assert.ok(
 );
 
 console.log('pwa assets: PASS');
+

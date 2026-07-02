@@ -425,6 +425,14 @@ exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
   try {
     const { churchCode, familyId, ...data } = req.body;
     if (!assertChurchCode(churchCode, res)) return;
+    // ★ 2026-07-01: 방어 심층화 — 클라이언트(family.js)는 이미 familyPassword===churchCode를
+    //   막고 있지만, 서버는 그동안 검증이 없어 직접 API 호출/레거시 경로로는 여전히
+    //   "교회코드 = 가족 비밀번호"인 상태가 만들어질 수 있었다(대표 등록 후에도 기존
+    //   교회코드가 함께 통하는 문제의 원인 중 하나). 새 비밀번호를 저장할 때는 항상 차단한다.
+    if (data.familyPassword && data.familyPassword === churchCode) {
+      res.status(400).json({ error: 'PASSWORD_EQUALS_CHURCHCODE', message: '교회 코드와 다른 비밀번호를 설정하세요.' });
+      return;
+    }
     const familyData = sanitizeFamilyDataForSave(churchCode, data);
     const col = db.collection(`churches/${churchCode}/families`);
     // ★ 비번 중복 방지: 같은 교회 안에서 다른 방이 이미 쓰는 비밀번호면 거부.
@@ -498,8 +506,14 @@ exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
   } catch (e) { errRes(res, e); }
 });
 
-// 가정 삭제 (관리자 전용) — family 문서 + members 서브컬렉션 + 해당 가정 records 정리.
+// 가정 삭제 (관리자 전용) — family 문서 + members 서브컬렉션 정리.
 //   중복 가정 정리/관리자 데이터 관리용. 교회별 admin 인증 필요(레거시 11111 전역 폴백).
+// ★ 2026-07-01 안정성 수정: 예전에는 여기서 records(미션 수행 기록)까지 함께 지웠으나,
+//   이는 "어떤 함수도 수행 기록을 삭제하지 않는다(시상 근거 보존)"는 이 코드베이스 전체의
+//   설계 원칙(history.js, getMissionHistory 주석 참조)과 정면으로 어긋난다.
+//   현재 앱 UI에는 이 엔드포인트를 호출하는 버튼이 없어(직접 API 호출 시에만 실행) 즉각적인
+//   사용자 영향은 없었지만, 앞으로 "가족방 삭제" 버튼이 추가될 경우 수행 기록이 함께
+//   삭제되는 재발을 원천 차단하기 위해 records 삭제 로직을 제거한다.
 exports.deleteFamily = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
   if (!begin(req, res)) return;
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
@@ -510,10 +524,8 @@ exports.deleteFamily = onRequest({ cors: true, region: 'us-central1' }, async (r
     if (!(await assertChurchAdmin(req, res, churchCode))) return;
     const subs = await db.collection(`churches/${churchCode}/families/${familyId}/members`).get();
     await Promise.all(subs.docs.map(d => d.ref.delete()));
-    const recs = await db.collection(`churches/${churchCode}/records`).where('familyId', '==', familyId).get();
-    await Promise.all(recs.docs.map(d => d.ref.delete()));
     await db.doc(`churches/${churchCode}/families/${familyId}`).delete();
-    res.json({ ok: true, familyId, deletedMembers: subs.size, deletedRecords: recs.size });
+    res.json({ ok: true, familyId, deletedMembers: subs.size, deletedRecords: 0 });
   } catch (e) { errRes(res, e); }
 });
 

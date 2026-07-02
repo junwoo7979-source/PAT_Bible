@@ -658,7 +658,7 @@ function openFamilyRegister(tab){
  *  7️⃣ 대시보드 렌더링 (renderFamily())
  *
  * [검증 규칙]
- *  ✅ roomName, leaderName, parish, district: 필수
+ *  ✅ roomName, leaderName, parish: 필수 (district는 구역방 삭제로 더 이상 필수 아님 — 2026-07-01)
  *  ✅ familyPassword: 4자 이상 + 교회코드와 다름
  *  ✅ 같은 교회 내 비번 중복 금지
  *
@@ -699,8 +699,12 @@ async function saveFamilyProfileAsLeader(){
   const _L = groupLabels(groupType);
 
   // ── STEP 3: 필수 필드 검증 ──
-  if(!roomName||!leaderName||!parish||!district){
-    toast(`${_L.roomName}, ${_L.leader}, 교구와 구역을 입력하세요`);
+  // ★ 2026-07-01 CRITICAL FIX: 구역방 삭제로 familyDistrict가 hidden 필드가 되어
+  //   항상 빈 값('')인데도 이 검증이 district를 필수로 요구해서
+  //   모든 신규 가족 등록이 무조건 실패하는 치명적 버그였다. district는
+  //   더 이상 필수 조건이 아니며, 하위호환용 데이터 보존 목적으로만 남긴다.
+  if(!roomName||!leaderName||!parish){
+    toast(`${_L.roomName}, ${_L.leader}, 교구를 입력하세요`);
     return;
   }
 

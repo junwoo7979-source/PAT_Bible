@@ -198,30 +198,30 @@ function readRecords(ctx) {
   console.log('  ✓ 다른 구성원 터치 시 카운트 리셋');
 })();
 
-// ── 6) groupType: 기본 '가정'(하위호환) + 대표 등록 시 종류 저장 ──
-(function testGroupType() {
+// ── 6) 구역방 삭제 후: groupType은 항상 '가정' 고정, district는 더 이상 필수 아님 ──
+// ★ 2026-07-01: groupTypeOf()는 구역방 삭제로 함께 제거되었다(항상 '가정'). 예전 테스트는
+//   삭제된 함수를 직접 호출하고 있었고, familyDistrict를 항상 채워서 저장해 실제 앱(빈 hidden
+//   필드)과 다른 조건으로 테스트하는 바람에 "구역방 삭제 후 신규 가족 등록이 district 필수
+//   검증 때문에 100% 실패하는" 회귀를 전혀 잡아내지 못했다. 실제 UI와 동일하게
+//   familyDistrict를 비워둔 채로 저장이 성공하는지 검증한다.
+(function testNewFamilyRegistrationDoesNotRequireDistrict() {
   const ctx = makeContext();
-  // 기본값: 누락 시 '가정'
-  assert.equal(ctx.groupTypeOf(null), '가정', '프로필 없으면 가정');
-  assert.equal(ctx.groupTypeOf({}), '가정', 'groupType 누락 시 가정(하위호환)');
-  assert.equal(ctx.groupTypeOf({ groupType: '구역' }), '구역', '구역 반영');
-
-  // 대표 등록 시 종류 저장 — 폼 입력값 세팅
   ctx.go = () => {}; ctx.toast = () => {}; ctx.renderFamily = () => {};
   const setVal = (id, v) => { ctx.document.getElementById(id).value = v; };
-  setVal('familyGroupType', '구역');
-  setVal('familyRoomName', '3구역 모임');
-  setVal('familyLeaderName', '김구역장');
+  setVal('familyGroupType', '가정');   // hidden 필드, 항상 '가정' 고정값
+  setVal('familyRoomName', '예운이네 말씀방');
+  setVal('familyLeaderName', '김예운');
   setVal('familyParish', '1교구');
-  setVal('familyDistrict', '3구역');
+  setVal('familyDistrict', '');        // ★ 실제 UI처럼 항상 빈 값(hidden, 값 채워지지 않음)
   setVal('familyPassword', 'pw1234');
 
   ctx.saveFamilyProfileAsLeader();
   const p = JSON.parse(ctx._storage.get('pat_family_profile'));
-  assert.equal(p.groupType, '구역', '대표 등록 시 groupType=구역 저장');
-  assert.equal(p.roomName, '3구역 모임');
-  assert.equal(p.leaderName, '김구역장');
-  console.log('  ✓ groupType 기본 가정 + 구역 등록 저장');
+  assert.ok(p, 'district가 비어 있어도 신규 가족 등록이 저장되어야 한다 (치명적 회귀 재발 방지)');
+  assert.equal(p.groupType, '가정', '구역방 삭제 후 groupType은 항상 가정');
+  assert.equal(p.roomName, '예운이네 말씀방');
+  assert.equal(p.leaderName, '김예운');
+  console.log('  ✓ district 빈 값이어도 신규 가족 등록 성공 (groupType 항상 가정)');
 })();
 
 console.log('\n✅ family-delete-preserves-records: 모든 테스트 통과');

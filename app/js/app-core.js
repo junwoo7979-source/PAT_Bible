@@ -857,7 +857,23 @@ function isChurchCodeFormat(input){
   return /^\d{5,}$/.test(trimmed);
 }
 
+// ★ 2026-07-01: 연속 클릭/Enter 중복 제출 방지 가드.
+//   enterChurch()는 버튼 onclick과 Enter keyup 양쪽에 바인딩되어 있고 내부에 await가
+//   여러 개 있어, 빠르게 두 번 누르면 SELECT_CHURCH 분기가 동시에 두 번 실행되어
+//   "이미 가족이 등록되어 있습니다" 토스트가 중복으로 뜨는 것처럼 보일 수 있었다.
+//   진행 중에는 재진입을 막고, 끝나면(성공/실패/에러 무관) 항상 해제한다.
+let _enterChurchInFlight = false;
 async function enterChurch(){
+  if(_enterChurchInFlight) return;
+  _enterChurchInFlight = true;
+  try{
+    await _enterChurchImpl();
+  } finally {
+    _enterChurchInFlight = false;
+  }
+}
+
+async function _enterChurchImpl(){
   const raw = (document.getElementById('churchCode').value || '').trim();
 
   // ★ 핵심 수정: 새로운 교회 코드 입력이면 상태 초기화
@@ -947,13 +963,26 @@ async function enterChurch(){
             toast('이미 가족이 등록되어 있습니다.\n가족 비밀번호로 입장해주세요.');
             return;  // 비밀번호 입력으로 진행 (DB.church.code는 이미 설정됨)
           }
+          // ★ 2026-07-01 CRITICAL FIX: 이 교회에 등록된 가족이 0개(신규 교회의 첫 교인)라면
+          //   비밀번호 입력을 요구해도 대조할 가족이 아예 없어 어떤 값을 넣어도
+          //   "가정 비밀번호가 올바르지 않습니다"만 반복되는 막다른 길이었다.
+          //   (실제로 신규 교회를 등록하고 첫 교인으로 입장해 재현 확인함.)
+          //   가족이 0개로 확인된 경우에만 곧바로 대표 등록(가족방 만들기) 화면으로 안내한다.
+          console.log(`[LOGIN] ${decision.code}에 등록된 가족 없음 → 대표 등록 화면 안내`);
+          if(typeof loadChurchConfig === 'function') await loadChurchConfig();
+          if(typeof openFamilyRegister === 'function'){
+            window._creatingNewRoom = false;
+            toast('✓ 교회가 선택됐어요. 첫 가족방을 만들어보세요');
+            openFamilyRegister('leader');
+            return;
+          }
         }
       }catch(e){
         console.warn('[LOGIN] 가족 목록 확인 실패:', e.message);
-        // 네트워크 오류 시 계속 진행 (정상적으로 비밀번호 입력으로)
+        // 네트워크 오류 시: 가족 유무를 확신할 수 없으므로 안전하게 비밀번호 입력으로 진행
       }
 
-      // 정상 흐름: 가족 등록 없음 또는 예외 → 비밀번호 입력으로
+      // 폴백: 가족 목록 조회 자체가 실패했거나 응답이 비정상일 때만 비밀번호 입력으로
       if(typeof loadChurchConfig === 'function') await loadChurchConfig();
       toast('✓ 교회가 선택됐어요. 가족 비밀번호로 입장하세요');
       return;
