@@ -212,16 +212,30 @@ async function computeAggregatedData(){
     console.error('[PAT-DASHBOARD-AGGREGATE] ❌ 로컬 기록 오류:', e.message);
   }
 
+  // ★ 2026-07-02(속도개선): 독립적인 Firebase 호출 3개(가족진도·기도·교구집계)를
+  //   순차 await 하면 왕복이 더해져 대시보드 갱신이 느렸다 → 동시에 프리페치(Promise.all)해
+  //   전체 지연을 '합계'가 아니라 '최댓값'으로 줄인다.
+  const _ready   = !!(window.PAT_DB && PAT_DB.ready());
+  const _profile = loadFamilyProfile();
+  const _familyId= localStorage.getItem('pat_family_id');
+  const _pFamily = (_ready && _profile && _familyId && PAT_DB.getFamilyProgress)
+    ? Promise.resolve(PAT_DB.getFamilyProgress(DB.church.code, _familyId, DB.verse.ref)).catch(()=>null)
+    : Promise.resolve(null);
+  const _pPrayed = (typeof fetchPrayedMembersToday==='function')
+    ? Promise.resolve(fetchPrayedMembersToday()).catch(()=>new Set())
+    : Promise.resolve(new Set());
+  const _pStats  = (_ready && PAT_DB.getDashboardStats)
+    ? Promise.resolve(PAT_DB.getDashboardStats(DB.church.code, DB.verse.ref)).catch(()=>null)
+    : Promise.resolve(null);
+  const [_members, _prayedSet, _stats] = await Promise.all([_pFamily, _pPrayed, _pStats]);
+
   // ✅ 2️⃣ 가족방 데이터 (우리 가족 달성률)
   try {
-    const profile = loadFamilyProfile();
-    const familyId = localStorage.getItem('pat_family_id');
-
-    if(profile && familyId && window.PAT_DB && PAT_DB.ready()){
-      const members = await PAT_DB.getFamilyProgress(DB.church.code, familyId, DB.verse.ref);
+    if(_profile && _familyId && _ready){
+      const members = _members;
       if(Array.isArray(members)){
         // ★ 기도 미션도 합산: 완료 = 암송(m.done) 또는 오늘 기도
-        const prayedSet = (typeof fetchPrayedMembersToday==='function') ? await fetchPrayedMembersToday() : new Set();
+        const prayedSet = _prayedSet || new Set();
         result.familyTotal = members.length;
         result.familyDone = members.filter(m => m.done || prayedSet.has(m.displayName || m.name || '')).length;
         console.log('[PAT-DASHBOARD-AGGREGATE] ✅ 가족 진도(암송+기도):', result.familyDone, '/', result.familyTotal);
@@ -239,8 +253,8 @@ async function computeAggregatedData(){
   try {
     console.log('[PAT-DASHBOARD-AGGREGATE] 📡 Firebase 교구 데이터 조회 시작');
 
-    if(window.PAT_DB && PAT_DB.ready()){
-      const stats = await PAT_DB.getDashboardStats(DB.church.code, DB.verse.ref);
+    if(_ready){
+      const stats = _stats;
       console.log('[PAT-DASHBOARD-AGGREGATE] 📥 Firebase 응답:', stats);
 
       if(stats && typeof stats.byParish === 'object'){

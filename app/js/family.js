@@ -1017,7 +1017,8 @@ async function fetchPrayedMembersToday(){
   // 2) 가족 전체 (다른 구성원 포함) — 3초 캐시된 네트워크 조회
   try{
     const now = Date.now();
-    if(now - _prayedNetCache.t >= 3000 && window.PAT_DB && PAT_DB.ready() && PAT_DB.getPrayers){
+    // ★ 2026-07-02(속도개선): 기도 실천 반영 지연 단축 (3초 캐시 → 1초, 1초 폴링과 맞춤)
+    if(now - _prayedNetCache.t >= 1000 && window.PAT_DB && PAT_DB.ready() && PAT_DB.getPrayers){
       const res = await PAT_DB.getPrayers(DB.church.code, todayKey());
       const ns = new Set();
       if(res && Array.isArray(res.prayers)){
