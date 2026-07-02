@@ -69,7 +69,12 @@ function applyAppTitle(){
     localStorage.removeItem('pat_app_title');
     title = APP_TITLE_DEFAULT;
   }
-  document.getElementById('loginAppTitle').textContent = title;
+  var _titleEl = document.getElementById('loginAppTitle');
+  if(_titleEl){
+    // 기본 브랜드는 'Bible'만 굵게(딥그린) 강조, 교회 커스텀명은 텍스트로 표기
+    if(title === APP_TITLE_DEFAULT){ _titleEl.innerHTML = 'PAT <b>Bible</b>'; }
+    else { _titleEl.textContent = title; }
+  }
   return title;
 }
 function applyCloudConfig(config){
@@ -619,7 +624,9 @@ function renderAdmin(){
   const _pp = document.getElementById('inPastor'); if(_pp) _pp.value = localStorage.getItem('pat_church_pastor') || '';
   const _ad = document.getElementById('inChurchAddr'); if(_ad) _ad.value = localStorage.getItem('pat_church_addr') || '';
   if(!document.getElementById('inDate').value){
-    document.getElementById('inDate').value = new Date().toISOString().slice(0,10);
+    // ★ 2026-07-03 FIX: UTC(toISOString) 대신 로컬 기준 오늘 (KST 새벽 어제 표시 버그 방지)
+    document.getElementById('inDate').value = (typeof patLocalToday==='function')
+      ? patLocalToday() : new Date().toISOString().slice(0,10);
   }
   syncAdminVerseFields();
   // 적용 주차·기간을 기준 날짜로부터 항상 재계산 (저장된 weekOf로 덮어쓰지 않음)

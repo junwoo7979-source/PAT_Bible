@@ -1,6 +1,14 @@
 // ====== PAT Bible — verse.js ======
 // 구절 등록/목록/적용, 날짜·주차 포맷, 관리자 미리보기
 
+// ★ 2026-07-03 FIX: 로컬(기기) 시간대 기준 오늘 날짜(YYYY-MM-DD).
+//   toISOString()은 UTC라 KST 00:00~09:00 사이엔 '오늘'이 어제로 계산되는 버그가 있었음.
+function patLocalToday(){
+  const n = new Date();
+  const p = x => (x<10?'0':'')+x;
+  return n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate());
+}
+
 function formatWeekPeriod(dateValue){
   if(!dateValue) return '';
   const picked = new Date(dateValue+'T00:00:00');
@@ -28,7 +36,8 @@ function formatTodayLabel(dateValue){
   const weekdays = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
   return `오늘은 ${date.getMonth()+1}월 ${date.getDate()}일 ${weekdays[date.getDay()]}입니다`;
 }
-function renderMemberDateLabels(dateValue=new Date().toISOString().slice(0,10)){
+function renderMemberDateLabels(dateValue){
+  if(!dateValue) dateValue = patLocalToday();
   const week  = formatWeekPeriod(dateValue);
   const today = formatTodayLabel(dateValue);
   document.getElementById('weekLabel').textContent   = week;
