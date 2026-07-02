@@ -205,6 +205,11 @@ function storeFamilyPrayers(dateStr, board){
   try { localStorage.setItem(fprayerKey(dateStr), JSON.stringify(board)); } catch(e){}
 }
 
+// ★ 2026-07-02: 방금 저장한 '내' 기도를, 아직 전파 안 된 옛 서버값(getPrayers 콜백)이
+//   덮어써 저장이 사라지던 문제 방지용 보호 플래그. (같은 기기 시계라 비교 신뢰 가능)
+let _prayerJustSaved = { name:'', text:'', at:0 };
+const PRAYER_PROTECT_MS = 20000;
+
 async function savePrayer(){
   const text  = document.getElementById('prayerText').value.trim();
   const today = todayKey();
@@ -212,10 +217,13 @@ async function savePrayer(){
   if(!me){ toast('가족 정보를 찾을 수 없습니다 — 다시 로그인 해주세요'); return; }
 
   // 1) 로컬 즉시 반영
+  const savedAt = Date.now();
   const board = loadFamilyPrayers(today);
-  if(text) board[me] = { text, savedAt: Date.now() };
+  if(text) board[me] = { text, savedAt };
   else delete board[me];
   storeFamilyPrayers(today, board);
+  // 방금 저장한 내 기도 보호 등록 (서버 전파 지연 동안 클로버 방지)
+  _prayerJustSaved = { name:_pnorm(me), text, at:savedAt };
   // 개인 기도 호환 키도 함께 보존 (기존 동작 유지)
   localStorage.setItem(prayerKey(today), JSON.stringify({ text, done: !!text, savedAt: Date.now() }));
 
@@ -323,9 +331,14 @@ function renderPrayer(){
   if(selfEl) selfEl.textContent = '오늘의 기도';
 
   // 본인 기도 입력칸 채우기 (사용자가 입력 중이 아니면)
+  // ★ 2026-07-02: 아직 저장 안 한 사용자 입력을 빈 값으로 덮어써 지우지 않도록 방어.
+  //   서버/로컬에 기도가 있으면 그 값으로 채우고, 없으면(빈 값) 입력칸이 비어 있을 때만 비운다.
   if(textEl && document.activeElement!==textEl){
-    textEl.value = (mine && mine.text) || '';
-    if(typeof updatePrayerTextLength==='function') updatePrayerTextLength();
+    const savedText = (mine && mine.text) || '';
+    if(savedText || !textEl.value.trim()){
+      textEl.value = savedText;
+      if(typeof updatePrayerTextLength==='function') updatePrayerTextLength();
+    }
   }
   if(badge)   badge.style.display = (mine && mine.text) ? 'inline-block' : 'none';
   if(saveBtn) saveBtn.textContent = (mine && mine.text) ? '🙏 기도 수정' : '🙏 기도 완료';
@@ -344,14 +357,19 @@ function renderPrayer(){
     PAT_DB.getPrayers(_prayerChurchCode(), today).then(res=>{
       if(!res || !Array.isArray(res.prayers)) return;
       const merged = loadFamilyPrayers(today);
+      const protectMine = _prayerJustSaved.name && (Date.now()-_prayerJustSaved.at) < PRAYER_PROTECT_MS;
       res.prayers.forEach(p=>{
         if(!p.memberName) return;
         const name = _pnorm(p.memberName);
         const inText = _pnorm(p.text);
         const inSaved = p.updatedAt||0;
         const prev = merged[name] || _prayerFindEntry(merged, name);
-        // ★ 2026-07-02: 빈 서버 기록이 방금 저장한 로컬 기도(비어있지 않음)를 덮어쓰지 않도록 방어.
-        //   (경합으로 서버가 옛 빈 값을 돌려줄 때 녹색 확인이 사라지던 문제 원인)
+        // ★ 방금 저장한 '내' 기도는 서버 전파 지연 동안 옛 서버값이 덮어쓰지 못하게 보호
+        if(protectMine && name===_prayerJustSaved.name){
+          merged[name] = { text:_prayerJustSaved.text, savedAt:_prayerJustSaved.at };
+          return;
+        }
+        // ★ 빈 서버 기록이 비어있지 않은 로컬 기도를 덮어쓰지 않도록 방어
         if(!inText && prev && _pnorm(prev.text)){ merged[name] = prev; return; }
         // 로컬이 더 최신이면 유지
         if(prev && prev.savedAt && prev.savedAt > inSaved && !inText){ merged[name] = prev; return; }
@@ -364,8 +382,12 @@ function renderPrayer(){
       const tEl=document.getElementById('prayerText');
       if(tEl && document.activeElement!==tEl){
         const mn=merged[me] || _prayerFindEntry(merged, me);
-        tEl.value=(mn && mn.text) || '';
-        if(typeof updatePrayerTextLength==='function') updatePrayerTextLength();
+        const savedText=(mn && mn.text) || '';
+        // ★ 2026-07-02: 저장 안 한 입력을 빈 서버값으로 덮어쓰지 않음(입력칸 비어 있을 때만 반영)
+        if(savedText || !tEl.value.trim()){
+          tEl.value=savedText;
+          if(typeof updatePrayerTextLength==='function') updatePrayerTextLength();
+        }
         const b=document.getElementById('prayerDoneBadge');
         const sb=document.getElementById('prayerSaveBtn');
         if(b)  b.style.display=(mn && mn.text)?'inline-block':'none';
