@@ -33,7 +33,7 @@
   }
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=171').catch(function() {});
+    navigator.serviceWorker.register('sw.js?v=172').catch(function() {});
   });
 })();
 </script>
@@ -64,8 +64,8 @@
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=171"></script>
-<script src="firebase-db.js?v=171"></script>
+<script src="firebase-config.js?v=172"></script>
+<script src="firebase-db.js?v=172"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -276,6 +276,10 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 .brand-mark{display:flex;filter:drop-shadow(0 2px 6px rgba(15,122,82,.18));}
 .brand-text{font-size:28px;font-weight:400;letter-spacing:-.02em;color:var(--text);}
 .brand-text b{font-weight:800;color:var(--accent);}
+/* 초기화면 로고(이미지) + 교회명 세로 배치 */
+.brand-logo{flex-direction:column;gap:6px;margin:28px 0 10px;}
+.brand-logo-img{width:200px;max-width:70%;height:auto;display:block;filter:drop-shadow(0 2px 8px rgba(0,0,0,.08));}
+.brand-church{font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--text);text-align:center;}
 /* 관리자 탭 메뉴 */
 .admin-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);
   padding:10px 16px;font-size:calc(var(--fs) - 1px);cursor:pointer;font-family:inherit;
@@ -308,15 +312,10 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- 옛 참조 호환용(숨김) -->
     <button id="installBtn" style="display:none" onclick="pwaInstall()" aria-hidden="true"></button>
 
-    <div class="brand" aria-label="PAT Bible">
-      <span class="brand-mark">
-        <svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
-          <rect width="64" height="64" rx="16" fill="#1a2332"/>
-          <path d="M18 14h28a4 4 0 0 1 4 4v34H20a6 6 0 0 1-6-6V18a4 4 0 0 1 4-4z" fill="#0f7a52"/>
-          <path d="M22 22h20M22 30h20M22 38h14" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
-        </svg>
-      </span>
-      <span class="brand-text" id="loginAppTitle">PAT <b>Bible</b></span>
+    <div class="brand brand-logo" aria-label="PAT Bible">
+      <img class="brand-logo-img" src="icons/pat-logo.png?v=172" alt="PAT Bible 로고">
+      <span class="brand-church">세광교회</span>
+      <span id="loginAppTitle" style="display:none" aria-hidden="true"></span>
     </div>
     <p class="center" style="line-height:1.8;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--text)">말씀과 기도로 가족의 신앙을 세워가요.<br>매일 작은 실천이 큰 변화를 만듭니다</p>
     <div class="spacer"></div>
@@ -1202,25 +1201,25 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 </div>
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/login-auth.js?v=171"></script>
-<script src="js/app-core.js?v=171"></script>
-<script src="js/verse.js?v=171"></script>
-<script src="js/family.js?v=171"></script>
+<script src="js/login-auth.js?v=172"></script>
+<script src="js/app-core.js?v=172"></script>
+<script src="js/verse.js?v=172"></script>
+<script src="js/family.js?v=172"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
-<script src="js/history.js?v=171"></script>
-<script src="js/voice.js?v=171"></script>
-<script src="js/voice-ui.js?v=171"></script>
-<script src="js/progress-store.js?v=171"></script>
-<script src="js/whisper-asr.js?v=171"></script>
-<script src="js/groq-asr.js?v=171"></script>
-<script src="js/memorize.js?v=171"></script>
-<script src="js/prayer.js?v=171"></script>
-<script src="js/reading-plan.js?v=171"></script>
-<script src="js/reading.js?v=171"></script>
-<script src="js/reset-pw.js?v=171"></script>
-<script src="js/admin.js?v=171"></script>
-<script src="js/worship.js?v=171"></script>
-<script src="js/pwa-install.js?v=171"></script>
+<script src="js/history.js?v=172"></script>
+<script src="js/voice.js?v=172"></script>
+<script src="js/voice-ui.js?v=172"></script>
+<script src="js/progress-store.js?v=172"></script>
+<script src="js/whisper-asr.js?v=172"></script>
+<script src="js/groq-asr.js?v=172"></script>
+<script src="js/memorize.js?v=172"></script>
+<script src="js/prayer.js?v=172"></script>
+<script src="js/reading-plan.js?v=172"></script>
+<script src="js/reading.js?v=172"></script>
+<script src="js/reset-pw.js?v=172"></script>
+<script src="js/admin.js?v=172"></script>
+<script src="js/worship.js?v=172"></script>
+<script src="js/pwa-install.js?v=172"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';
