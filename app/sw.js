@@ -1,4 +1,4 @@
-// PAT Bible — Service Worker (v172) — 무캐시 패스스루(no-cache passthrough)
+// PAT Bible — Service Worker (v173) — 무캐시 패스스루(no-cache passthrough)
 // ──────────────────────────────────────────────────────────────
 // 목적: PWA "홈화면 설치" 조건을 충족시키기 위한 최소 서비스워커.
 //   Android Chrome의 설치 가능(installable) 판정 = HTTPS + 유효한 manifest
