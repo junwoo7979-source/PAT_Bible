@@ -1,12 +1,12 @@
 ﻿<!DOCTYPE html>
-<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v64-admin-tab-fix-20260620">
+<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v170-design-refine-20260703">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="theme-color" content="#e8ecf1">
+<meta name="theme-color" content="#f7f9fc">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="PAT Bible">
@@ -14,6 +14,9 @@
 <title>PAT Bible — 성경 암송</title>
 <link rel="manifest" href="manifest.json?t=20260617-v46">
 <link rel="apple-touch-icon" href="icons/pat-icon-192.png">
+
+<!-- ★ Pretendard 웹폰트 (전세대 가독성·모던·선명) -->
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231a2332'/%3E%3Cpath d='M18 14h28a4 4 0 0 1 4 4v34H20a6 6 0 0 1-6-6V18a4 4 0 0 1 4-4z' fill='%2300d4aa'/%3E%3Cpath d='M22 22h20M22 30h20M22 38h14' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 
 <!-- ★ 서비스워커: '무캐시 패스스루 SW' 등록 (PWA 홈화면 설치조건 충족용)
@@ -30,7 +33,7 @@
   }
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=169').catch(function() {});
+    navigator.serviceWorker.register('sw.js?v=170').catch(function() {});
   });
 })();
 </script>
@@ -61,13 +64,14 @@
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=169"></script>
-<script src="firebase-db.js?v=169"></script>
+<script src="firebase-config.js?v=170"></script>
+<script src="firebase-db.js?v=170"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
-  --bg:#e8ecf1; --surface:#f8fafb; --accent:#00a854; --accent-d:#008f45;
-  --text:#0f1419; --muted:#5f6b7c; --line:#d9dfe8; --danger:#ef4444;
+  --bg:#f7f9fc; --surface:#ffffff; --accent:#0f7a52; --accent-d:#0b5d3e;
+  --accent-soft:#e3f3ec;
+  --text:#111827; --muted:#4b5563; --line:#e2e8f0; --danger:#dc2626;
   --danger-soft:#d98a8a; --danger-soft-bg:#f6dede; --danger-soft-text:#a85a5a;
   --fs:16px; --fs-lg:20px; --fs-xl:26px; --radius:14px; --lh:1.8; --lh-title:1.4;
 }
@@ -78,7 +82,8 @@
 }
 [data-fontsize="large"]{ --fs:20px; --fs-lg:25px; --fs-xl:32px; }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);
+body{font-family:'Pretendard Variable','Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-0.01em;background:var(--bg);
   color:var(--text);font-size:var(--fs);line-height:var(--lh);transition:background .3s,color .3s;}
 .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
 .screen{flex:1;padding:24px 20px 120px;display:none;}
@@ -130,7 +135,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 .family-member-chips{display:flex;flex-wrap:wrap;gap:8px;}
 .family-member-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-weight:700;}
 .family-member-chip small{color:var(--accent);font-size:calc(var(--fs) - 5px);}
-.family-member-delete{border:none;background:transparent;color:#818181;font-weight:700;cursor:pointer;font-family:inherit;}
+.family-member-delete{border:none;background:transparent;color:#4374D9;font-weight:700;cursor:pointer;font-family:inherit;}
 .tag-ok{color:var(--accent);font-weight:700;}
 .tag-wait{color:var(--muted);}
 .mic{width:96px;height:96px;border-radius:50%;background:var(--accent);margin:24px auto;
@@ -154,10 +159,14 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 .voice-diff .hint{display:block;margin-bottom:6px;color:var(--muted);font-size:calc(var(--fs) - 4px);}
 @keyframes blink{50%{border-color:transparent}}
 .tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
-  display:flex;background:var(--surface);border-top:1px solid var(--line);}
-.tab{flex:1;text-align:center;padding:12px 0;font-size:calc(var(--fs) - 4px);color:var(--muted);cursor:pointer;border:none;background:none;font-family:inherit;}
-.tab.active{color:var(--accent);}
-.tab .ico{font-size:20px;display:block;}
+  display:flex;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px rgba(17,24,39,.05);}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:8px 0;font-size:calc(var(--fs) - 4px);font-weight:600;color:var(--muted);
+  cursor:pointer;border:none;background:none;font-family:inherit;border-radius:14px;transition:background .15s,color .15s;}
+.tab.active{color:var(--accent);background:var(--accent-soft);}
+.tab .ico{font-size:23px;display:block;line-height:1;transition:transform .15s;}
+.tab.active .ico{transform:translateY(-1px);}
 .toggle{display:flex;justify-content:space-between;align-items:center;background:var(--surface);
   border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
 .sw{width:48px;height:28px;background:var(--line);border-radius:14px;position:relative;cursor:pointer;transition:background .2s;}
@@ -263,6 +272,10 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
   border-radius:10px;padding:6px 12px;font-size:calc(var(--fs) - 4px);cursor:pointer;font-family:inherit;}
 /* 로고 이미지 */
 .logo-img{width:100px;margin:20px auto 4px;display:block;}
+.brand{display:flex;align-items:center;justify-content:center;gap:10px;margin:24px 0 8px;}
+.brand-mark{display:flex;filter:drop-shadow(0 2px 6px rgba(15,122,82,.18));}
+.brand-text{font-size:28px;font-weight:400;letter-spacing:-.02em;color:var(--text);}
+.brand-text b{font-weight:800;color:var(--accent);}
 /* 관리자 탭 메뉴 */
 .admin-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);
   padding:10px 16px;font-size:calc(var(--fs) - 1px);cursor:pointer;font-family:inherit;
@@ -295,8 +308,16 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- 옛 참조 호환용(숨김) -->
     <button id="installBtn" style="display:none" onclick="pwaInstall()" aria-hidden="true"></button>
 
-    <img src="icons/pat-logo.png" class="logo-img" alt="PAT Bible 로고">
-    <h1 class="center" id="loginAppTitle" style="font-size:var(--fs-lg);margin-bottom:4px">PAT Bible</h1>
+    <div class="brand" aria-label="PAT Bible">
+      <span class="brand-mark">
+        <svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
+          <rect width="64" height="64" rx="16" fill="#1a2332"/>
+          <path d="M18 14h28a4 4 0 0 1 4 4v34H20a6 6 0 0 1-6-6V18a4 4 0 0 1 4-4z" fill="#0f7a52"/>
+          <path d="M22 22h20M22 30h20M22 38h14" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="brand-text" id="loginAppTitle">PAT <b>Bible</b></span>
+    </div>
     <p class="center" style="line-height:1.8;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--text)">말씀과 기도로 가족의 신앙을 세워가요.<br>매일 작은 실천이 큰 변화를 만듭니다</p>
     <div class="spacer"></div>
     <!-- ★ 2026-07-01: 교회 코드 표시 제거, 입력창 높이 축소 -->
@@ -1181,25 +1202,25 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 </div>
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/login-auth.js?v=169"></script>
-<script src="js/app-core.js?v=169"></script>
-<script src="js/verse.js?v=169"></script>
-<script src="js/family.js?v=169"></script>
+<script src="js/login-auth.js?v=170"></script>
+<script src="js/app-core.js?v=170"></script>
+<script src="js/verse.js?v=170"></script>
+<script src="js/family.js?v=170"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
-<script src="js/history.js?v=169"></script>
-<script src="js/voice.js?v=169"></script>
-<script src="js/voice-ui.js?v=169"></script>
-<script src="js/progress-store.js?v=169"></script>
-<script src="js/whisper-asr.js?v=169"></script>
-<script src="js/groq-asr.js?v=169"></script>
-<script src="js/memorize.js?v=169"></script>
-<script src="js/prayer.js?v=169"></script>
-<script src="js/reading-plan.js?v=169"></script>
-<script src="js/reading.js?v=169"></script>
-<script src="js/reset-pw.js?v=169"></script>
-<script src="js/admin.js?v=169"></script>
-<script src="js/worship.js?v=169"></script>
-<script src="js/pwa-install.js?v=169"></script>
+<script src="js/history.js?v=170"></script>
+<script src="js/voice.js?v=170"></script>
+<script src="js/voice-ui.js?v=170"></script>
+<script src="js/progress-store.js?v=170"></script>
+<script src="js/whisper-asr.js?v=170"></script>
+<script src="js/groq-asr.js?v=170"></script>
+<script src="js/memorize.js?v=170"></script>
+<script src="js/prayer.js?v=170"></script>
+<script src="js/reading-plan.js?v=170"></script>
+<script src="js/reading.js?v=170"></script>
+<script src="js/reset-pw.js?v=170"></script>
+<script src="js/admin.js?v=170"></script>
+<script src="js/worship.js?v=170"></script>
+<script src="js/pwa-install.js?v=170"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';
