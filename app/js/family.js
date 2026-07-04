@@ -1158,14 +1158,31 @@ async function syncFamilyProgressFromCloud(profile){
     const myNameT = String(myName).trim();
     if (myNameT && DB.verse && DB.verse.ref) {
       const mineCloud = cloudMembers.find(m => ((m.displayName || m.name || '').trim()) === myNameT);
+      const today = todayKey();
       if (mineCloud && mineCloud.doneToday) {
         const recs = loadRec();
-        const today = todayKey();
         const hasToday = recs.some(r => { const ts = r.completedAt || r.date; return ts && _localDateStr(ts) === today; });
         if (!hasToday) {
           recs.push({ ref: DB.verse.ref, completedAt: new Date().toISOString(), badge: 'weekly_complete', _src: 'server-sync' });
           saveRec(recs);
           if (typeof updateHomeDisplay === 'function') updateHomeDisplay();
+        }
+      } else if (mineCloud && !mineCloud.doneToday) {
+        // ★ 자가치유(v177): 서버가 '오늘(KST) 미완료'라고 확정했는데도 로컬에 오늘 날짜의
+        //   server-sync '자동배치 플레이스홀더'가 남아 본인 기기에서만 계속 ✓완료로 보이는
+        //   증상 제거. 실제 점수가 담긴 진짜 완료 기록(_src 없음)은 절대 건드리지 않는다
+        //   (오프라인 저장 유실 방지). 오직 서버가 만든 합성 플레이스홀더만 정리한다.
+        const recs = loadRec();
+        const pruned = recs.filter(r => !(
+          r._src === 'server-sync' &&
+          r.ref === DB.verse.ref &&
+          (r.completedAt || r.date) &&
+          _localDateStr(r.completedAt || r.date) === today
+        ));
+        if (pruned.length !== recs.length) {
+          saveRec(pruned);
+          if (typeof updateHomeDisplay === 'function') updateHomeDisplay();
+          console.log('[PAT-HEAL] server-sync 플레이스홀더 정리 — 서버 doneToday=false 확정');
         }
       }
     }
