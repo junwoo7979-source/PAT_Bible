@@ -78,8 +78,31 @@ function updateTyped(rawInput){
     `진행률 ${pct}%`+(typedEnough?(pass?' · 통과! 완료 확인을 누르세요':''):'  · 끝까지 입력하세요');
   document.getElementById('typeDone').disabled = !pass;
 }
+// ── 암송 완료 판정 SSOT (Single Source of Truth) ───────────
+// "암송 완료" 여부는 오직 이 함수 하나로만 판정한다. (하드코딩·임시 예외 금지)
+// 완료 조건(모두 충족해야 함):
+//   • 읽기(음성) 2회 통과 — voiceScore1·voiceScore2 각각 TH().voice 이상
+//   • 쓰기(타이핑) 2회 통과 — typeScore1·typeScore2 각각 TH().typing 이상
+// 하나라도 미달이면 절대 완료가 아니다. 화면 위치·상태 복원·단계 점프 등
+// 어떤 경로로 들어와도 이 함수 결과만이 '완료'의 진실이다.
+function isMemorizeComplete(){
+  const th = (typeof TH === 'function') ? TH() : { voice:85, typing:100 };
+  const readOK  = (voiceScore1 >= th.voice)  && (voiceScore2 >= th.voice);   // 읽기(음성) 2회
+  const writeOK = (typeScore1  >= th.typing) && (typeScore2  >= th.typing);  // 쓰기(타이핑) 2회
+  return readOK && writeOK;
+}
+
 // ── 암송 완료 / 재검수 ────────────────────────────────────
 function completeMemorize(){
+  // ★ 근본 수정(SSOT 게이트): 읽기2·쓰기2를 실제로 모두 통과하지 않으면
+  //   완료 기록을 만들지 않는다. 복원/단계점프/리뷰 등 비정상 경로로 진입해도
+  //   여기서 최종 차단 → "안 했는데 완료로 기록됨" 오류를 구조적으로 원천 봉쇄한다.
+  if(!isMemorizeComplete()){
+    if(typeof toast === 'function') toast('아직 모든 단계를 통과하지 않았습니다 — 읽기 2회·쓰기 2회를 모두 완료해주세요');
+    console.warn('[PAT-COMPLETE] SSOT 미충족으로 완료 차단:',
+      { voiceScore1, voiceScore2, typeScore1, typeScore2 });
+    return;
+  }
   const record = { ref:DB.verse.ref, voiceScore1, voiceScore2, typeScore1, typeScore2,
     voiceInput1, voiceInput2, typeInput1, typeInput2, typingPassed:true,
     completedAt:new Date().toISOString(), badge:'weekly_complete' };
@@ -132,8 +155,9 @@ function completeMemorize(){
   }
 
   document.getElementById('completeRef').textContent  = DB.verse.ref+' 암송 성공';
-  document.getElementById('cVoice1').textContent = (voiceScore1||90)+'%';
-  document.getElementById('cVoice2').textContent = (voiceScore2||92)+'%';
+  // ★ SSOT 게이트 통과 후이므로 실제 점수가 보장됨 → 0점을 90/92%로 위장하던 fallback 제거
+  document.getElementById('cVoice1').textContent = voiceScore1+'%';
+  document.getElementById('cVoice2').textContent = voiceScore2+'%';
   renderSteps(5, false);
   go('s-complete');
   // 완료 상태 저장 (모바일 새로고침 시 완료 화면 유지)
@@ -234,10 +258,14 @@ async function computeAggregatedData(){
     if(_profile && _familyId && _ready){
       const members = _members;
       if(Array.isArray(members)){
-        // ★ 기도 미션도 합산: 완료 = 암송(m.done) 또는 오늘 기도
+        // ★ 일간 초기화(FIX): '우리 가족 달성률'도 가족방 홈과 동일하게 '오늘(KST) 완료'만 센다.
+        //   서버 done(주간누적)을 쓰면 이번 주에 한 번 완료한 사람이 날짜가 바뀌어도 계속
+        //   완료로 잡혀 대시보드가 자정에 초기화되지 않는다 → 반드시 doneToday 사용.
+        //   (교구/교회 통계는 getDashboardStats 서버 집계라 별도 — 여기서 손대지 않음)
+        // 완료 = 암송(m.doneToday) 또는 오늘 기도
         const prayedSet = _prayedSet || new Set();
         result.familyTotal = members.length;
-        result.familyDone = members.filter(m => m.done || prayedSet.has(m.displayName || m.name || '')).length;
+        result.familyDone = members.filter(m => m.doneToday || prayedSet.has(m.displayName || m.name || '')).length;
         console.log('[PAT-DASHBOARD-AGGREGATE] ✅ 가족 진도(암송+기도):', result.familyDone, '/', result.familyTotal);
       } else {
         console.log('[PAT-DASHBOARD-AGGREGATE] ⚠️ 가족 데이터 없음 (가족방 미입장)');

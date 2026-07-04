@@ -1098,7 +1098,7 @@ function renderFamilyMemberList(members){
   // ★ 실제 완료(실천)한 구성원만 카운트 — 등록만으로 완료 처리하지 않음
   const confirmedCount = safeMembers.filter(m => m.done).length;
   const pct = safeMembers.length ? Math.round(confirmedCount / safeMembers.length * 100) : 0;
-  document.getElementById('familyProgress').textContent = `이번 주 달성률 ${confirmedCount}/${safeMembers.length}명`;
+  document.getElementById('familyProgress').textContent = `오늘의 달성률 ${confirmedCount}/${safeMembers.length}명`;
   document.getElementById('familyBar').style.width = pct+'%';
 
   // ★ 가족방이 등록된 경우에만 삭제 버튼 노출 (대표 포함 모든 구성원 삭제 가능)
@@ -1172,10 +1172,15 @@ async function syncFamilyProgressFromCloud(profile){
   } catch(e) {}
 
   // Firebase는 완료 여부를 가져오고, 구성원 목록이 있으면 대표가 저장한 목록을 기준으로 삼음
+  // ★ 일간 초기화(FIX): 홈 구성원 '완료'는 '오늘(KST) 완료'만 반영해야 한다.
+  //   서버가 주간누적 done 과 오늘기준 doneToday 를 모두 내려주는데, 여기서는
+  //   반드시 doneToday 를 사용한다. (done 을 쓰면 이번 주에 한 번 완료한 사람이
+  //   날짜가 바뀌어도 계속 '완료'로 남아 어제 기록이 오늘까지 유지되는 버그가 남음)
+  //   ※ done(주간누적)은 시상/현황 통계에서만 사용하고, 여기 홈 표시는 손대지 않음.
   const doneMap = {};
   cloudMembers.forEach(m => {
     const n = m.displayName || m.name || '';
-    if(n) doneMap[n] = !!m.done;
+    if(n) doneMap[n] = !!m.doneToday;
   });
 
   const cloudNames = normalizeFamilyMemberNames(cloudMembers);
@@ -1290,8 +1295,14 @@ function renderFamily(){
   // memberName(이 기기 사용자 이름)으로 "나" 판별 — 없으면 leaderName, 없으면 첫 번째
   const myName  = (profile?.memberName || profile?.leaderName || '').trim();
   const familyId = localStorage.getItem('pat_family_id')||'';
-  // ★ 본인 완료 여부 = 암송(현재 구절 기록) 또는 오늘 기도 — 두 미션 합산
-  const myVerseDone = loadRec().some(r => r.ref === DB.verse.ref) || _isPrayerDoneToday();
+  // ★ 본인 완료 여부 = 오늘(KST) 암송 완료 또는 오늘 기도 — 두 미션 합산
+  //   (일간 초기화 FIX) 기존엔 r.ref===DB.verse.ref 만 봐서 '이번 주에 한 번이라도
+  //   완료'면 날짜가 바뀌어도 계속 완료로 남았음 → 오늘 날짜로 필터링해 매일 초기화.
+  const _today = todayKey();
+  const myVerseDone = loadRec().some(r => {
+    const ts = r.completedAt || r.date;
+    return r.ref === DB.verse.ref && ts && _localDateStr(ts) === _today;
+  }) || _isPrayerDoneToday();
   if(profileMembers.length){
     DB.members = profileMembers.map((name,i)=>{
       const isMe = myName ? name === myName : i===0;
@@ -1310,7 +1321,11 @@ function renderFamily(){
       const names = familyMemberNames(freshProfile);
       const currentName = (freshProfile.memberName || freshProfile.leaderName || '').trim();
       if(names.length){
-        const myDone2 = loadRec().some(r => r.ref === DB.verse.ref) || _isPrayerDoneToday();
+        // ★ 일간 초기화 FIX (myVerseDone 과 동일) — 오늘(KST) 완료만 반영
+        const myDone2 = loadRec().some(r => {
+          const ts = r.completedAt || r.date;
+          return r.ref === DB.verse.ref && ts && _localDateStr(ts) === _today;
+        }) || _isPrayerDoneToday();
         DB.members = names.map((name,i)=>{
           const isMe = currentName ? name === currentName : i===0;
           return { name, me: isMe, done: isMe ? myDone2 : false };
