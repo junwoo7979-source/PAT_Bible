@@ -1155,11 +1155,21 @@ async function syncFamilyProgressFromCloud(profile){
   //   - 기기 교체·재설치·캐시초기화·멀티폰으로 로컬이 비어도 개인 점수가
   //     0으로 잘못 표시되는 문제(데이터 초기화처럼 보임)를 막는다.
   try {
-    const myNameT = String(myName).trim();
-    if (myNameT && DB.verse && DB.verse.ref) {
-      const mineCloud = cloudMembers.find(m => ((m.displayName || m.name || '').trim()) === myNameT);
+    // ★ 본인 식별은 deviceId 우선(서버에 이름이 깨진 인코딩/공백 차이로 저장돼도 안전),
+    //   보조로 정규화(공백 제거) 이름 매칭. 방장/구성원 이름이 서버에서 mojibake로
+    //   저장된 케이스에서도 자가치유가 반드시 동작하게 한다.
+    let myDeviceId = '';
+    try { myDeviceId = localStorage.getItem('pat_device_id') || ''; } catch(e) {}
+    const _norm = s => String(s || '').replace(/\s+/g, '').trim();
+    const myNameN = _norm(myName);
+    if (DB.verse && DB.verse.ref) {
+      const mineCloud =
+        (myDeviceId ? cloudMembers.find(m => m.deviceId && m.deviceId === myDeviceId) : null)
+        || (myNameN ? cloudMembers.find(m => _norm(m.displayName || m.name) === myNameN) : null);
       const today = todayKey();
-      if (mineCloud && mineCloud.doneToday) {
+      // 서버가 '오늘(KST) 완료'를 확정한 경우에만 true. 나를 못 찾으면(이름 깨짐 등) false 취급.
+      const serverConfirmsToday = !!(mineCloud && mineCloud.doneToday);
+      if (serverConfirmsToday) {
         const recs = loadRec();
         const hasToday = recs.some(r => { const ts = r.completedAt || r.date; return ts && _localDateStr(ts) === today; });
         if (!hasToday) {
@@ -1167,11 +1177,10 @@ async function syncFamilyProgressFromCloud(profile){
           saveRec(recs);
           if (typeof updateHomeDisplay === 'function') updateHomeDisplay();
         }
-      } else if (mineCloud && !mineCloud.doneToday) {
-        // ★ 자가치유(v177): 서버가 '오늘(KST) 미완료'라고 확정했는데도 로컬에 오늘 날짜의
-        //   server-sync '자동배치 플레이스홀더'가 남아 본인 기기에서만 계속 ✓완료로 보이는
-        //   증상 제거. 실제 점수가 담긴 진짜 완료 기록(_src 없음)은 절대 건드리지 않는다
-        //   (오프라인 저장 유실 방지). 오직 서버가 만든 합성 플레이스홀더만 정리한다.
+      } else {
+        // ★ 자가치유(강화): 서버가 '오늘 완료'를 확정하지 못하면(미완료이거나, 이름 깨짐으로
+        //   나를 못 찾는 경우 포함) 오늘 날짜의 server-sync 합성 플레이스홀더를 제거한다.
+        //   실제 점수가 담긴 진짜 완료 기록(_src 없음)은 절대 건드리지 않는다(오프라인 저장 보존).
         const recs = loadRec();
         const pruned = recs.filter(r => !(
           r._src === 'server-sync' &&
@@ -1182,7 +1191,7 @@ async function syncFamilyProgressFromCloud(profile){
         if (pruned.length !== recs.length) {
           saveRec(pruned);
           if (typeof updateHomeDisplay === 'function') updateHomeDisplay();
-          console.log('[PAT-HEAL] server-sync 플레이스홀더 정리 — 서버 doneToday=false 확정');
+          console.log('[PAT-HEAL] server-sync 플레이스홀더 정리 — 서버 오늘완료 미확정(deviceId 우선 매칭)');
         }
       }
     }

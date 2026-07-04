@@ -653,11 +653,10 @@ exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, asy
       if(name) memberMap.set(name, member);
     });
     const members = Array.from(memberMap.values());
-    // ★ done = 현재 구절을 실제로 완료(기록 존재)한 멤버만 true.
-    //   등록/입장만으로 done 처리하지 않는다(발생하지 않은 데이터 반영 금지).
-    const doneByName = {}, doneByDevice = {};
-    // ★ doneToday = '오늘(KST)' 현재 구절을 완료한 멤버. 개인 실천율을 기기 데이터가
-    //   비어도 서버 기준으로 복구하기 위함(멀티폰/재설치/캐시초기화 대비). 기존 done은 유지.
+    // ★ 완료 판정은 오직 'doneToday'(오늘 KST 현재 구절 완료) 하나만 쓴다(SSOT).
+    //   주간누적 done 은 '이번 주에 한 번이라도 완료'면 계속 true 라, 어제 완료가
+    //   오늘까지 '완료'로 새는 버그의 원인이었다 → 응답에서 완전히 제거한다.
+    //   (교구/교회 주간 통계는 getDashboard/aggregate 가 별도로 담당하며 여기 영향 없음)
     const doneTodayByName = {}, doneTodayByDevice = {};
     const todayKst = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
     const kstDate = (ts) => {
@@ -671,8 +670,7 @@ exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, asy
         const r = doc.data();
         if (r.verseRef !== verseRef) return;
         const nm = r.memberName ? String(r.memberName).trim() : '';
-        if (nm) doneByName[nm] = true;
-        if (r.deviceId) doneByDevice[r.deviceId] = true;
+        // ★ 오늘(KST) 생성된 기록만 doneToday 로 집계 — 어제 이전 기록은 제외.
         if (r.createdAt && kstDate(r.createdAt) === todayKst) {
           if (nm) doneTodayByName[nm] = true;
           if (r.deviceId) doneTodayByDevice[r.deviceId] = true;
@@ -687,9 +685,9 @@ exports.getFamilyProgress = onRequest({ cors: true, region: 'us-central1' }, asy
       groupType: familyData.groupType || '',
       members: members.map(m => {
         const name = (m.displayName || m.name || '').trim();
-        const done = !!(doneByName[name] || (m.deviceId && doneByDevice[m.deviceId]));
         const doneToday = !!(doneTodayByName[name] || (m.deviceId && doneTodayByDevice[m.deviceId]));
-        return { ...m, done, doneToday };
+        // done(주간누적)은 제거 — 하위호환을 위해 doneToday 값을 그대로 미러링해 둔다.
+        return { ...m, done: doneToday, doneToday };
       })
     });
   } catch (e) { errRes(res, e); }

@@ -87,6 +87,26 @@ function restoreMemorizeState() {
       return null;
     }
 
+    // ★ '완료' 화면은 오늘 실제 완료 기록(_src 없는 진짜 기록)이 있을 때만 복원한다.
+    //   서버 동기화 플레이스홀더(_src:server-sync)나 다른 날/다른 기기의 완료 잔상 때문에
+    //   오늘 안 했는데도 '암송 성공' 화면이 남아 가족방/개인 완료로 오인되는 것을 차단.
+    if (state.screen === 's-complete') {
+      try {
+        const recs = (typeof loadRec === 'function') ? loadRec() : [];
+        const dstr = (ts) => (typeof _localDateStr === 'function')
+          ? _localDateStr(ts) : String(ts || '').slice(0, 10);
+        const hasRealToday = recs.some(r => {
+          const ts = r.completedAt || r.date;
+          return r._src !== 'server-sync' && ts && dstr(ts) === todayString;
+        });
+        if (!hasRealToday) {
+          localStorage.removeItem(MEMORIZE_STATE_KEY);
+          console.log('[PAT-PROGRESS] 완료 화면 잔상 폐기 — 오늘 실제 완료 기록 없음');
+          return null;
+        }
+      } catch (e) {}
+    }
+
     // 전역 변수 복원
     voiceStage = (typeof state.voiceStage === 'number') ? state.voiceStage : 1;
     typeStage = (typeof state.typeStage === 'number') ? state.typeStage : 1;
