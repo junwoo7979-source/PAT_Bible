@@ -1063,6 +1063,8 @@ async function _enterChurchImpl(){
             else { try{ localStorage.setItem('pat_family_profile', JSON.stringify(tempProfile)); }catch(e){} }
 
             if(typeof enterMemberHome === 'function') enterMemberHome();
+            // ★ 성능: 홈 먼저 표시 후 교회 설정(구절·제목)을 백그라운드 로드(구독 설정 포함)
+            if(typeof loadChurchConfig === 'function') loadChurchConfig().catch(()=>{});
             toast('✓ 가족방에 입장했습니다! 🎉');
           }
           return;
@@ -1131,8 +1133,12 @@ async function _enterFoundFamily(found, pw, profile){
   if(typeof setFamilyStorage === 'function') setFamilyStorage('pat_family_profile', JSON.stringify(nextProfile));
   else { try{ localStorage.setItem('pat_family_profile', JSON.stringify(nextProfile)); }catch(e){} }
   if(typeof upsertRoom === 'function'){ try{ upsertRoom({ familyId: found.id, ...nextProfile }); }catch(e){} }
-  if(typeof loadChurchConfig === 'function') await loadChurchConfig();
+  // ★ 성능(로그인 체감속도): 홈을 먼저 즉시 렌더한다(부팅 시 pat_verses 캐시로 시드된 DB.verse 사용).
+  //   교회 설정(구절·제목)은 블로킹하지 않고 백그라운드로 로드 → subscribeConfig 가
+  //   도착 시 활성 화면(s-family)을 자동 재렌더하므로 값이 seamless 하게 갱신된다.
+  //   기존: await loadChurchConfig(); → getConfig(~0.5~1.4s)가 홈 표시를 막아 반응이 느렸음.
   enterMemberHome();
+  if(typeof loadChurchConfig === 'function') loadChurchConfig().catch(()=>{});
 }
 
 // ════════════════════════════════════════════════════════════════
