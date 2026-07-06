@@ -42,10 +42,10 @@ function _readingFullLabel(track, raw){
 
 // 오늘의 바이블버스 메뉴 렌더
 const _READING_TRACKS=[
-  {k:'si', i:0, emoji:'🎵', name:'시편'},
-  {k:'ot', i:1, emoji:'📜', name:'구약'},
-  {k:'nt', i:2, emoji:'✝️', name:'신약'},
-  {k:'pr', i:3, emoji:'💡', name:'잠언'}
+  {k:'si', i:0, emoji:'', name:'시편'},
+  {k:'ot', i:1, emoji:'', name:'구약'},
+  {k:'nt', i:2, emoji:'', name:'신약'},
+  {k:'pr', i:3, emoji:'', name:'잠언'}
 ];
 function renderTodayPlan(){
   const dateEl=document.getElementById('todayPlanDate');
@@ -66,7 +66,7 @@ function renderTodayPlan(){
     html+='<button data-rtrack="'+t.k+'" onclick="openTodayReading(\''+t.k+'\')" '+
       'style="position:relative;text-align:left;padding:12px 26px 12px 14px;border:none;border-left:4px solid var(--accent);border-radius:12px;cursor:pointer;background:var(--surface);transition:transform .05s" '+
       'ontouchstart="" onmousedown="this.style.transform=\'scale(.97)\'" onmouseup="this.style.transform=\'\'" onmouseleave="this.style.transform=\'\'">'+
-      '<div class="muted" style="font-size:calc(var(--fs)-5px);font-weight:700">'+t.emoji+' '+t.name+'</div>'+
+      '<div class="muted" style="font-size:calc(var(--fs)-5px);font-weight:700">'+(t.emoji?t.emoji+' ':'')+t.name+'</div>'+
       '<div style="font-weight:800;font-size:calc(var(--fs)+1px);margin-top:3px;color:var(--text)">'+label+'</div>'+
       '<span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:800;font-size:calc(var(--fs)+2px)">›</span>'+
       '</button>';
