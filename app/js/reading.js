@@ -61,14 +61,14 @@ function renderTodayPlan(){
   let html='';
   _READING_TRACKS.forEach(t=>{
     const raw=plan[t.i]||'';
-    // 시편/잠언은 트랙명이 곧 책이름이라 값(숫자)만 표시, 구약/신약은 정식 책이름+장
-    const label=(t.k==='si'||t.k==='pr') ? raw : _readingFullLabel(t.k, raw);
+    // 한 줄 표시(트랙명 라벨 제거). 시편/잠언은 값이 숫자뿐이라 앞에 이름을 붙여 구분,
+    // 구약/신약은 값 자체가 책이름+장이라 라벨 없이 그것만 표시.
+    const text=(t.k==='si'||t.k==='pr') ? (t.name+' '+raw) : _readingFullLabel(t.k, raw);
     html+='<button data-rtrack="'+t.k+'" onclick="openTodayReading(\''+t.k+'\')" '+
-      'style="position:relative;text-align:left;padding:12px 26px 12px 14px;border:none;border-left:4px solid var(--accent);border-radius:12px;cursor:pointer;background:var(--surface);transition:transform .05s" '+
+      'style="position:relative;text-align:left;padding:14px 30px 14px 14px;border:none;border-left:4px solid var(--accent);border-radius:12px;cursor:pointer;background:var(--surface);transition:transform .05s" '+
       'ontouchstart="" onmousedown="this.style.transform=\'scale(.97)\'" onmouseup="this.style.transform=\'\'" onmouseleave="this.style.transform=\'\'">'+
-      '<div class="muted" style="font-size:calc(var(--fs)-5px);font-weight:700">'+(t.emoji?t.emoji+' ':'')+t.name+'</div>'+
-      '<div style="font-weight:800;font-size:calc(var(--fs)+1px);margin-top:3px;color:var(--text)">'+label+'</div>'+
-      '<span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:800;font-size:calc(var(--fs)+2px)">›</span>'+
+      '<div style="font-weight:800;font-size:calc(var(--fs)+1px);color:var(--text)">'+text+'</div>'+
+      '<span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:800;font-size:calc(var(--fs)+2px)">›</span>'+
       '</button>';
   });
   menuEl.innerHTML=html;
@@ -76,15 +76,14 @@ function renderTodayPlan(){
   closeTodayReading();
 }
 
-// 선택 버튼 강조 (자식: [0]트랙명(muted) [1]본문값 [2]화살표)
+// 선택 버튼 강조 (자식: [0]본문값 [1]화살표)
 function _highlightTrack(track){
   document.querySelectorAll('#todayPlanMenu button[data-rtrack]').forEach(b=>{
     const on=(b.getAttribute('data-rtrack')===track);
     b.style.background = on ? 'var(--accent)' : 'var(--surface)';
     const kids=b.children;
-    if(kids[0]) kids[0].style.color = on ? 'rgba(255,255,255,.85)' : '';      // 트랙명
-    if(kids[1]) kids[1].style.color = on ? '#fff' : 'var(--text)';            // 본문값
-    if(kids[2]) kids[2].style.color = on ? '#fff' : 'var(--accent)';          // 화살표
+    if(kids[0]) kids[0].style.color = on ? '#fff' : 'var(--text)';            // 본문값
+    if(kids[1]) kids[1].style.color = on ? '#fff' : 'var(--accent)';          // 화살표
   });
 }
 
