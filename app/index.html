@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v179-login-fast-render-20260705">
+<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v180-remove-bus-icon-20260706">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -33,7 +33,7 @@
   }
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=179').catch(function() {});
+    navigator.serviceWorker.register('sw.js?v=180').catch(function() {});
   });
 })();
 </script>
@@ -64,8 +64,8 @@
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=179"></script>
-<script src="firebase-db.js?v=179"></script>
+<script src="firebase-config.js?v=180"></script>
+<script src="firebase-db.js?v=180"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -1077,7 +1077,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     </div>
     <!-- 바이블버스 안내 -->
     <div class="card" style="margin-top:4px;background:var(--surface);border-left:4px solid var(--accent)">
-      <h2 style="margin:0 0 8px;font-size:var(--fs)">🚌 바이블버스 성경읽기표 안내</h2>
+      <h2 style="margin:0 0 8px;font-size:var(--fs)">바이블버스 성경읽기표 안내</h2>
       <p class="muted" style="line-height:1.8;margin:0;font-size:calc(var(--fs) - 2px)">
         바이블버스 성경읽기표는 구약과 신약을 1년에 1독하고, 시편은 2독, 잠언은 12독하도록 구성된 성경 통독 프로그램입니다.
         온 가족이 함께 말씀과 기도로 하나님과 동행하며 믿음 안에서 성장하고, 다음 세대에 신앙의 유산이 이어지기를 소망합니다.
@@ -1089,7 +1089,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- 오늘의 바이블버스 (날짜 연동 메뉴) -->
     <div class="card" id="todayPlanCard" style="margin-top:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <h2 style="margin:0;font-size:var(--fs)">🚌 오늘의 성경읽기</h2>
+        <h2 style="margin:0;font-size:var(--fs)">오늘의 성경읽기</h2>
         <span class="muted" id="todayPlanDate" style="font-size:calc(var(--fs) - 3px)"></span>
       </div>
       <div id="todayPlanMenu" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
@@ -1218,25 +1218,25 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 </div>
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/login-auth.js?v=179"></script>
-<script src="js/app-core.js?v=179"></script>
-<script src="js/verse.js?v=179"></script>
-<script src="js/family.js?v=179"></script>
+<script src="js/login-auth.js?v=180"></script>
+<script src="js/app-core.js?v=180"></script>
+<script src="js/verse.js?v=180"></script>
+<script src="js/family.js?v=180"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
-<script src="js/history.js?v=179"></script>
-<script src="js/voice.js?v=179"></script>
-<script src="js/voice-ui.js?v=179"></script>
-<script src="js/progress-store.js?v=179"></script>
-<script src="js/whisper-asr.js?v=179"></script>
-<script src="js/groq-asr.js?v=179"></script>
-<script src="js/memorize.js?v=179"></script>
-<script src="js/prayer.js?v=179"></script>
-<script src="js/reading-plan.js?v=179"></script>
-<script src="js/reading.js?v=179"></script>
-<script src="js/reset-pw.js?v=179"></script>
-<script src="js/admin.js?v=179"></script>
-<script src="js/worship.js?v=179"></script>
-<script src="js/pwa-install.js?v=179"></script>
+<script src="js/history.js?v=180"></script>
+<script src="js/voice.js?v=180"></script>
+<script src="js/voice-ui.js?v=180"></script>
+<script src="js/progress-store.js?v=180"></script>
+<script src="js/whisper-asr.js?v=180"></script>
+<script src="js/groq-asr.js?v=180"></script>
+<script src="js/memorize.js?v=180"></script>
+<script src="js/prayer.js?v=180"></script>
+<script src="js/reading-plan.js?v=180"></script>
+<script src="js/reading.js?v=180"></script>
+<script src="js/reset-pw.js?v=180"></script>
+<script src="js/admin.js?v=180"></script>
+<script src="js/worship.js?v=180"></script>
+<script src="js/pwa-install.js?v=180"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';
