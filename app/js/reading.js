@@ -87,16 +87,18 @@ function _highlightTrack(track){
 
 // 메뉴 탭 → 같은 화면 아래에 본문 펼치기 (토글)
 let _readingActiveTrack=null;
-function openTodayReading(track){
+const _READ_TRACK_IDX={si:0,ot:1,nt:2,pr:3};
+// 오늘 이 트랙의 planId (reading_plan/reading_progress 공용): "MM-DD:track"
+function _todayPlanId(track){ return _readingTodayKey()+':'+track; }
+
+async function openTodayReading(track){
   const plan=_readingTodayPlan();
   if(!plan){ if(typeof toast==='function')toast('오늘 통독표가 없습니다'); return; }
   if(_readingActiveTrack===track){ closeTodayReading(); return; } // 같은 버튼 → 닫기
-  const map={si:0,ot:1,nt:2,pr:3};
-  const ref=_readingFullLabel(track, plan[map[track]]||'');
+  const raw=plan[_READ_TRACK_IDX[track]]||'';
+  const ref=_readingFullLabel(track, raw);
   _readingActiveTrack=track;
-  // ★ 오늘 통독 읽음 기록 (홈 '오늘의 달성률' 점수에 반영)
-  //   키는 점수계산(_isReadingDoneToday)과 동일하게 todayKey()(YYYY-MM-DD)로 통일.
-  //   (이전엔 _readingTodayKey()=MM-DD 라 키가 달라 통독이 점수에 안 잡혔음)
+  // ★ 오늘 통독 읽음 기록 (홈 '오늘의 달성률' 점수에 반영) — 키 = todayKey()(YYYY-MM-DD)
   try{
     const k = (typeof todayKey==='function') ? todayKey() : new Date().toISOString().slice(0,10);
     localStorage.setItem('pat_read_done_'+k,'1');
@@ -106,10 +108,12 @@ function openTodayReading(track){
   const title=document.getElementById('todayReadingTitle');
   const body=document.getElementById('todayReadingBody');
   if(title) title.textContent='📖 '+ref;
-  if(body) body.innerHTML=_readingBibleHtml(ref);  // ★ API 연동 시 여기에 본문 채움
-  if(pane){
-    pane.style.display='block';
-    pane.scrollIntoView({behavior:'smooth', block:'nearest'});
+  if(pane){ pane.style.display='block'; pane.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  if(body){
+    body.innerHTML='<p class="muted" style="text-align:center;padding:18px">본문 불러오는 중…</p>';
+    // 오프라인이어도 IndexedDB(로컬)에서 조회 → 인터넷 불필요
+    const html=await _loadPassageHtml(track, raw, ref);
+    if(_readingActiveTrack===track) body.innerHTML=html;   // 그 사이 다른 버튼 눌렀으면 무시
   }
 }
 function closeTodayReading(){
@@ -118,13 +122,68 @@ function closeTodayReading(){
   if(pane) pane.style.display='none';
   _highlightTrack(null);
 }
-// ★ 성경 본문 HTML — 현재는 안내. 대한성서공회 개역개정 API 승인 후
-//   이 함수만 교체하면(또는 async fetch) 버튼 아래에 본문이 표시된다.
-function _readingBibleHtml(ref){
+
+// ★ 성경 본문 HTML — IndexedDB(로컬 저장 개역한글)에서 조회.
+//   전체 성경 데이터가 아직 없는 책은 빈 화면 대신 안내를 표시한다(빈 화면 금지).
+async function _loadPassageHtml(track, raw, ref){
+  const planId=_todayPlanId(track);
+  const done = await _isReadingDone(planId);
+  const footer=_completeBtnHtml(planId, done);
+  try{
+    const DB=window.PAT_BIBLE_DB;
+    if(!DB || !DB.supported()) return _passageNotice(ref, '이 기기에서는 로컬 성경 저장을 지원하지 않습니다.')+footer;
+    const parsed=(typeof parseRef==='function') ? parseRef(track, raw) : null;
+    if(!parsed || !parsed.spec) return _passageNotice(ref, '본문 위치를 해석하지 못했습니다.')+footer;
+    const chs=(typeof chaptersInSpec==='function') ? chaptersInSpec(parsed.spec) : null;
+    if(!chs) return _passageNotice(ref, '본문 범위를 찾지 못했습니다.')+footer;
+    let inner='', found=0;
+    for(const ch of chs){
+      const verses=await DB.getChapterVerses(parsed.bookId, ch);
+      const sel=(verses||[]).filter(v=> verseInSpec(parsed.spec, v.chapterNumber, v.verseNumber));
+      if(!sel.length) continue;
+      if(chs.length>1) inner+='<div style="font-weight:800;color:var(--accent);margin:14px 0 6px">'+ch+'장</div>';
+      sel.forEach(v=>{
+        inner+='<p style="margin:0 0 8px"><sup style="color:var(--accent);font-weight:700;margin-right:5px">'+v.verseNumber+'</sup>'+_esc(v.text)+'</p>';
+      });
+      found+=sel.length;
+    }
+    if(!found) return _passageNotice(ref, '이 본문은 전체 성경 데이터 도입 후 표시됩니다.<br>(현재 샘플 데이터에는 일부 구절만 포함)')+footer;
+    return '<div style="line-height:1.9">'+inner+'</div>'+footer;
+  }catch(e){
+    return _passageNotice(ref, '본문을 불러오지 못했습니다: '+(e&&e.message||''))+footer;
+  }
+}
+function _passageNotice(ref, msg){
   return '<div style="text-align:center;padding:22px 8px">'+
-    '<div style="font-size:calc(var(--fs)+4px);font-weight:800;color:var(--accent)">'+ref+'</div>'+
-    '<p class="muted" style="margin-top:14px;line-height:1.7">개역개정 본문은 대한성서공회 API<br>승인 후 여기에 표시됩니다.</p>'+
-    '</div>';
+    '<div style="font-size:calc(var(--fs)+2px);font-weight:800;color:var(--accent)">'+_esc(ref)+'</div>'+
+    '<p class="muted" style="margin-top:12px;line-height:1.7">'+msg+'</p></div>';
+}
+function _completeBtnHtml(planId, done){
+  const label=done?'✅ 오늘 읽기 완료됨':'오늘 읽기 완료';
+  const bg=done?'var(--surface)':'var(--accent)';
+  const col=done?'var(--muted)':'#fff';
+  return '<button id="readingDoneBtn" onclick="completeTodayReading(\''+planId+'\')" '+
+    'style="margin-top:16px;width:100%;padding:13px;border:none;border-radius:12px;cursor:pointer;'+
+    'font-weight:800;font-size:var(--fs);background:'+bg+';color:'+col+'">'+label+'</button>';
+}
+function _esc(s){ return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+async function _isReadingDone(planId){
+  try{ if(window.PAT_READING_PROGRESS) return await window.PAT_READING_PROGRESS.isComplete(planId); }catch(e){}
+  return false;
+}
+// 읽기 완료 저장(로컬 우선, 온라인 시 동기화) — 중복 클릭해도 1건만.
+async function completeTodayReading(planId){
+  try{
+    if(window.PAT_READING_PROGRESS) await window.PAT_READING_PROGRESS.markComplete(planId);
+  }catch(e){}
+  try{
+    const k=(typeof todayKey==='function')?todayKey():new Date().toISOString().slice(0,10);
+    localStorage.setItem('pat_read_done_'+k,'1');
+  }catch(e){}
+  const btn=document.getElementById('readingDoneBtn');
+  if(btn){ btn.textContent='✅ 오늘 읽기 완료됨'; btn.style.background='var(--surface)'; btn.style.color='var(--muted)'; }
+  if(typeof toast==='function') toast('오늘 읽기 완료 ✅');
 }
 
 // ── 렌더 ─────────────────────────────────────────────
