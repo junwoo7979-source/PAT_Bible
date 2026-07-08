@@ -65,9 +65,10 @@ function renderTodayPlan(){
     // 구약/신약은 값 자체가 책이름+장이라 라벨 없이 그것만 표시.
     const text=(t.k==='si'||t.k==='pr') ? (t.name+' '+raw) : _readingFullLabel(t.k, raw);
     html+='<button data-rtrack="'+t.k+'" onclick="openTodayReading(\''+t.k+'\')" '+
-      'style="text-align:center;padding:12px 6px;border:none;border-top:4px solid var(--accent);border-radius:12px;cursor:pointer;background:var(--surface);transition:transform .05s;word-break:keep-all;line-height:1.35;min-height:64px;display:flex;align-items:center;justify-content:center" '+
+      'style="text-align:center;padding:10px 6px;border:none;border-top:4px solid var(--accent);border-radius:12px;cursor:pointer;background:var(--surface);transition:transform .05s;word-break:keep-all;line-height:1.3;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px" '+
       'ontouchstart="" onmousedown="this.style.transform=\'scale(.97)\'" onmouseup="this.style.transform=\'\'" onmouseleave="this.style.transform=\'\'">'+
       '<div style="font-weight:800;font-size:calc(var(--fs)-2px);color:var(--text)">'+text+'</div>'+
+      '<div style="font-size:calc(var(--fs)-6px);color:var(--muted);font-weight:600">개역한글</div>'+
       '</button>';
   });
   menuEl.innerHTML=html;
@@ -75,13 +76,14 @@ function renderTodayPlan(){
   closeTodayReading();
 }
 
-// 선택 버튼 강조 (자식: [0]본문값)
+// 선택 버튼 강조 (자식: [0]본문값 [1]개역한글 라벨)
 function _highlightTrack(track){
   document.querySelectorAll('#todayPlanMenu button[data-rtrack]').forEach(b=>{
     const on=(b.getAttribute('data-rtrack')===track);
     b.style.background = on ? 'var(--accent)' : 'var(--surface)';
     const kids=b.children;
-    if(kids[0]) kids[0].style.color = on ? '#fff' : 'var(--text)';            // 본문값
+    if(kids[0]) kids[0].style.color = on ? '#fff' : 'var(--text)';                       // 본문값
+    if(kids[1]) kids[1].style.color = on ? 'rgba(255,255,255,.85)' : 'var(--muted)';     // 개역한글 라벨
   });
 }
 
@@ -107,7 +109,7 @@ async function openTodayReading(track){
   const pane=document.getElementById('todayReadingPane');
   const title=document.getElementById('todayReadingTitle');
   const body=document.getElementById('todayReadingBody');
-  if(title) title.textContent='📖 '+ref;
+  if(title) title.textContent='📖 '+ref+'  ·  개역한글';
   if(pane){ pane.style.display='block'; pane.scrollIntoView({behavior:'smooth', block:'nearest'}); }
   if(body){
     body.innerHTML='<p class="muted" style="text-align:center;padding:18px">본문 불러오는 중…</p>';
