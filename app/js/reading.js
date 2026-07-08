@@ -133,21 +133,30 @@ async function _loadPassageHtml(track, raw, ref){
     const DB=window.PAT_BIBLE_DB;
     if(!DB || !DB.supported()) return _passageNotice(ref, '이 기기에서는 로컬 성경 저장을 지원하지 않습니다.')+footer;
     const parsed=(typeof parseRef==='function') ? parseRef(track, raw) : null;
-    if(!parsed || !parsed.spec) return _passageNotice(ref, '본문 위치를 해석하지 못했습니다.')+footer;
-    const chs=(typeof chaptersInSpec==='function') ? chaptersInSpec(parsed.spec) : null;
-    if(!chs) return _passageNotice(ref, '본문 범위를 찾지 못했습니다.')+footer;
+    if(!parsed || !parsed.segments || !parsed.segments.length) return _passageNotice(ref, '본문 위치를 해석하지 못했습니다.')+footer;
+    const multiBook = parsed.segments.length>1;   // 교차-책(예: 암 8~옵1)
     let inner='', found=0;
-    for(const ch of chs){
-      const verses=await DB.getChapterVerses(parsed.bookId, ch);
-      const sel=(verses||[]).filter(v=> verseInSpec(parsed.spec, v.chapterNumber, v.verseNumber));
-      if(!sel.length) continue;
-      if(chs.length>1) inner+='<div style="font-weight:800;color:var(--accent);margin:14px 0 6px">'+ch+'장</div>';
-      sel.forEach(v=>{
-        inner+='<p style="margin:0 0 8px"><sup style="color:var(--accent);font-weight:700;margin-right:5px">'+v.verseNumber+'</sup>'+_esc(v.text)+'</p>';
-      });
-      found+=sel.length;
+    for(const seg of parsed.segments){
+      if(!seg.spec) continue;
+      const chs=(typeof chaptersInSpec==='function') ? (chaptersInSpec(seg.spec)||[]) : [];
+      const multiCh = chs.length>1 || multiBook;
+      let bookHeaded=false;
+      for(const ch of chs){
+        const verses=await DB.getChapterVerses(seg.bookId, ch);
+        const sel=(verses||[]).filter(v=> verseInSpec(seg.spec, v.chapterNumber, v.verseNumber));
+        if(!sel.length) continue;
+        if(multiBook && !bookHeaded){
+          inner+='<div style="font-weight:800;color:var(--accent);margin:16px 0 6px;font-size:calc(var(--fs)+1px)">'+_esc(seg.book.ko)+'</div>';
+          bookHeaded=true;
+        }
+        if(multiCh) inner+='<div style="font-weight:700;color:var(--muted);margin:12px 0 4px">'+ch+'장</div>';
+        sel.forEach(v=>{
+          inner+='<p style="margin:0 0 8px"><sup style="color:var(--accent);font-weight:700;margin-right:5px">'+v.verseNumber+'</sup>'+_esc(v.text)+'</p>';
+        });
+        found+=sel.length;
+      }
     }
-    if(!found) return _passageNotice(ref, '이 본문은 전체 성경 데이터 도입 후 표시됩니다.<br>(현재 샘플 데이터에는 일부 구절만 포함)')+footer;
+    if(!found) return _passageNotice(ref, '이 본문은 전체 성경 데이터 도입 후 표시됩니다.')+footer;
     return '<div style="line-height:1.9">'+inner+'</div>'+footer;
   }catch(e){
     return _passageNotice(ref, '본문을 불러오지 못했습니다: '+(e&&e.message||''))+footer;

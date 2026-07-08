@@ -3,7 +3,10 @@
 // IndexedDB/브라우저 의존성 없음 → node 테스트로 그대로 검증 가능.
 // window(브라우저)와 module.exports(테스트) 양쪽에 노출한다.
 
-// 66권 정경 표: {id, abbr(한글약어), ko, en, testament, order}
+// 각 책의 장 수(정경 순서). 교차-책 범위 계산에 사용.
+const _CH_COUNTS = [50,40,27,36,34,24,21,4,31,24,22,25,29,36,10,13,10,42,150,31,12,8,66,52,5,48,12,14,3,9,1,4,7,3,3,3,2,14,4,28,16,24,21,28,16,16,13,6,6,4,4,5,3,6,4,3,1,13,5,5,3,5,1,1,1,22];
+
+// 66권 정경 표: {id, abbr(한글약어), ko, en, testament, order, ch(장수)}
 // id = 영문 3~4자 코드(안정적 키). abbr = reading-plan.js(PAT_PLAN)의 약어와 동일.
 const PAT_BOOKS = [
   {id:'GEN',abbr:'창',ko:'창세기',en:'Genesis',t:'OT'},
@@ -72,7 +75,7 @@ const PAT_BOOKS = [
   {id:'3JN',abbr:'요삼',ko:'요한삼서',en:'3 John',t:'NT'},
   {id:'JUD',abbr:'유',ko:'유다서',en:'Jude',t:'NT'},
   {id:'REV',abbr:'계',ko:'요한계시록',en:'Revelation',t:'NT'}
-].map((b,i)=>({...b, order:i+1}));
+].map((b,i)=>({...b, order:i+1, ch:_CH_COUNTS[i]}));
 
 const _ABBR2BOOK = {};
 const _ID2BOOK = {};
@@ -109,21 +112,41 @@ function _splitChV(s){
   return { ch: parseInt(s.slice(0,i),10), v: parseInt(s.slice(i+1),10) };
 }
 
-// 트랙(si/ot/nt/pr) + 원본값 → {book, spec:{...}}  또는 null
+// 트랙(si/ot/nt/pr) + 원본값 → {bookId, book, spec, segments:[{bookId,book,spec}]} 또는 null
 // si=시편(PSA), pr=잠언(PRO)는 값이 장/절만. ot/nt는 "약어 장절".
+// 교차-책 범위("암 8~옵1" = 아모스8~오바댜1)는 segments 여러 개로 분해.
+function _single(book, spec){
+  if(!book) return null;
+  return { bookId:book.id, book, spec, segments:[{bookId:book.id, book, spec}] };
+}
 function parseRef(track, raw){
   raw = String(raw||'').trim();
   if(!raw) return null;
-  let book, spec;
-  if(track==='si'){ book=bookByAbbr('시'); spec=parseChapterSpec(raw); }
-  else if(track==='pr'){ book=bookByAbbr('잠'); spec=parseChapterSpec(raw); }
-  else {
-    const sp = raw.indexOf(' ');
-    if(sp<0){ book=bookByAbbr(raw); spec=null; }   // 약어만
-    else { book=bookByAbbr(raw.slice(0,sp)); spec=parseChapterSpec(raw.slice(sp+1)); }
+  if(track==='si') return _single(bookByAbbr('시'), parseChapterSpec(raw));
+  if(track==='pr') return _single(bookByAbbr('잠'), parseChapterSpec(raw));
+  // ot/nt: "약어 범위"
+  const sp = raw.indexOf(' ');
+  if(sp<0) return _single(bookByAbbr(raw), null);           // 약어만(책 전체)
+  const startBook = bookByAbbr(raw.slice(0,sp));
+  if(!startBook) return null;
+  const rangeStr = raw.slice(sp+1).replace(/\s+/g,'');
+  // 교차-책? '~' 뒤에 한글 책약어가 오는 경우 ("8~옵1")
+  const cm = rangeStr.match(/^(.+?)~([가-힣].*)$/);
+  if(cm){
+    const s = _splitChV(cm[1]);
+    const em = cm[2].match(/^([가-힣]+)(.*)$/);
+    const endBook = em ? bookByAbbr(em[1]) : null;
+    const endSpec = parseChapterSpec((em && em[2]) || '1');
+    const seg1 = { bookId:startBook.id, book:startBook,
+      spec:{ startCh:s.ch, startV:s.v, endCh:(startBook.ch||s.ch), endV:null } };
+    const segs = [seg1];
+    if(endBook){
+      segs.push({ bookId:endBook.id, book:endBook,
+        spec:{ startCh:1, startV:null, endCh:endSpec.endCh, endV:endSpec.endV } });
+    }
+    return { bookId:startBook.id, book:startBook, spec:seg1.spec, segments:segs };
   }
-  if(!book) return null;
-  return { bookId: book.id, book, spec };
+  return _single(startBook, parseChapterSpec(rangeStr));
 }
 
 // spec 범위에 해당하는 (bookId,chapter,verse) 절이 포함되는지 판정 (필터용)

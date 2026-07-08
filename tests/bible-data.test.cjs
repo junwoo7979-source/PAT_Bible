@@ -16,21 +16,31 @@ const PAT_PLAN = JSON.parse(PLAN_SRC.match(/window\.PAT_PLAN=(\{.*\});?\s*$/s)[1
 let pass=0;
 function t(name, fn){ fn(); pass++; console.log('  ✓ '+name); }
 
+// 절 인덱스: (bookId.ch) → [verses]  (전체 3만절 반복 필터 방지)
+const _VIDX = new Map();
+for(const v of KRV.verses){
+  const k = v.bookId+'.'+v.chapterNumber;
+  if(!_VIDX.has(k)) _VIDX.set(k, []);
+  _VIDX.get(k).push(v);
+}
+for(const arr of _VIDX.values()) arr.sort((a,b)=>a.verseNumber-b.verseNumber);
 // 로컬 IDB 대체: krv.json 절 배열에서 (bookId,chapter) 절 조회
 function chapterVerses(bookId, ch){
-  return KRV.verses.filter(v=>v.bookId===bookId && v.chapterNumber===ch)
-                   .sort((a,b)=>a.verseNumber-b.verseNumber);
+  return _VIDX.get(bookId+'.'+ch) || [];
 }
 // parsed spec으로 본문 절들 선택 (reading.js _loadPassageHtml 과 동일 로직)
 function selectVerses(track, raw){
   const ref=P.parseRef(track, raw);
-  if(!ref || !ref.spec) return [];
+  if(!ref || !ref.segments) return [];
   const out=[];
-  P.chaptersInSpec(ref.spec).forEach(ch=>{
-    chapterVerses(ref.bookId, ch).forEach(v=>{
-      if(P.verseInSpec(ref.spec, v.chapterNumber, v.verseNumber)) out.push(v);
+  for(const seg of ref.segments){
+    if(!seg.spec) continue;
+    (P.chaptersInSpec(seg.spec)||[]).forEach(ch=>{
+      chapterVerses(seg.bookId, ch).forEach(v=>{
+        if(P.verseInSpec(seg.spec, v.chapterNumber, v.verseNumber)) out.push(v);
+      });
     });
-  });
+  }
   return out;
 }
 
@@ -126,6 +136,25 @@ t('9. 4트랙 전부 렌더: 시편6·역대하11~12·행16:16~40·잠언6 + 잠
   const act=selectVerses('nt','행 16:16~40');
   assert.ok(act.every(v=>v.verseNumber>=16 && v.verseNumber<=40));
   assert.equal(act[0].verseNumber, 16);
+});
+
+// ── 10) 365일 전체 통독표 × 4트랙 완전 연동 (전체 성경 데이터 전제) ──
+t('10. 통독표 전 날짜×4트랙 모두 실제 본문 연결(누락 0)', ()=>{
+  const TRACKS=[['si',0],['ot',1],['nt',2],['pr',3]];
+  const dates=Object.keys(PAT_PLAN);
+  let checked=0; const missing=[];
+  for(const date of dates){
+    const arr=PAT_PLAN[date];
+    for(const [tk,idx] of TRACKS){
+      const raw=arr[idx]; if(!raw) continue;
+      checked++;
+      if(selectVerses(tk, raw).length===0) missing.push(date+' '+tk+' "'+raw+'"');
+    }
+  }
+  if(missing.length){ console.log('   누락 예:', missing.slice(0,10).join(' | ')); }
+  assert.equal(missing.length, 0, missing.length+'건 본문 누락');
+  assert.ok(dates.length>=365, '통독표 날짜 '+dates.length);
+  console.log('   → '+dates.length+'일 × 4트랙 = '+checked+'개 참조 전부 본문 연결됨');
 });
 
 console.log('bible-data.test: '+pass+'개 통과 ✅');

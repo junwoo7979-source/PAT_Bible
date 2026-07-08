@@ -73,16 +73,26 @@
     try{
       const [storedVer, vcount] = await Promise.all([ DB.metaGet(META_VER), DB.count('verses') ]);
       let seeded = false;
-      // 성경 본문 시딩
-      let json = null;
+      // 1) 가벼운 버전 매니페스트만 먼저 확인 → 전체 7MB 매번 다운로드 방지
+      let remoteVer = null;
       try{
-        const res = await fetch('data/bible/krv.json', {cache:'no-store'});
-        if(res.ok) json = await res.json();
+        const vr = await fetch('data/bible/krv.version.json', {cache:'no-store'});
+        if(vr.ok){ const vj = await vr.json(); remoteVer = vj && vj.version; }
       }catch(e){ /* 오프라인: 이미 저장돼 있으면 그대로 사용 */ }
-      if(json && needsSeed(json.version, storedVer, vcount)){
-        await _seedBible(json);
-        seeded = true;
-        console.log('[bible] 성경 데이터 저장 완료 v='+json.version+' (verses '+(json.verses?json.verses.length:0)+')');
+      // 2) 버전이 바뀌었거나(=업데이트) 아직 데이터가 없을 때만 전체 본문 다운로드
+      const wantSeed = remoteVer ? needsSeed(remoteVer, storedVer, vcount) : (!vcount || vcount<=0);
+      if(wantSeed){
+        try{
+          const res = await fetch('data/bible/krv.json', {cache:'no-store'});
+          if(res.ok){
+            const json = await res.json();
+            if(needsSeed(json.version, storedVer, vcount)){
+              await _seedBible(json);
+              seeded = true;
+              console.log('[bible] 성경 데이터 저장 완료 v='+json.version+' (verses '+(json.verses?json.verses.length:0)+')');
+            }
+          }
+        }catch(e){ /* 오프라인: 기존 저장 데이터 사용 */ }
       }
       // 읽기표 시딩(버전 다르면 갱신)
       const [storedPlan, pcount] = await Promise.all([ DB.metaGet(META_PLAN), DB.count('reading_plan') ]);
