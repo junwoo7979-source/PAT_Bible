@@ -115,4 +115,17 @@ t('8. 업데이트: 성경 버전 변경 시 재시딩하되 완료기록 스토
   assert.ok(!/\.put\(\s*['"]reading_progress/.test(loaderSrc));    // 개별 쓰기도 없음
 });
 
+// ── 9) 오늘 읽기표 4개 트랙 전부 본문 연결 (07-06 실제 통독일) ──
+t('9. 4트랙 전부 렌더: 시편6·역대하11~12·행16:16~40·잠언6 + 잠언1', ()=>{
+  assert.equal(selectVerses('si','6').length, 10);          // 시편 6편
+  assert.equal(selectVerses('ot','대하 11~12').length, 39); // 역대하 11~12장
+  assert.equal(selectVerses('nt','행 16:16~40').length, 25);// 사도행전 16:16~40
+  assert.equal(selectVerses('pr','6').length, 35);          // 잠언 6장
+  assert.equal(selectVerses('pr','1').length, 33);          // 잠언 1장(요청)
+  // 신약 절범위 정확성: 16:16 포함, 16:15/16:41 미포함
+  const act=selectVerses('nt','행 16:16~40');
+  assert.ok(act.every(v=>v.verseNumber>=16 && v.verseNumber<=40));
+  assert.equal(act[0].verseNumber, 16);
+});
+
 console.log('bible-data.test: '+pass+'개 통과 ✅');

@@ -59,8 +59,17 @@ const books = PAT_BOOKS.map(b => ({
   bookId: b.id, bookNameKo: b.ko, bookNameEn: b.en, testament: b.t, order: b.order
 }));
 
+// ibibles.net(개역한글)에서 받아온 본문 병합 — 원문 우선(같은 절이면 fetched 채택)
+let FETCHED = [];
+try { FETCHED = require('./krv-fetched.json'); } catch(e) { console.warn('krv-fetched.json 없음 — 손검증 샘플만 사용'); }
+const merged = new Map();                      // key = bookId.ch.v
+SAMPLE_VERSES.forEach(([b,c,v,t]) => merged.set(b+'.'+c+'.'+v, [b,c,v,t]));
+FETCHED.forEach(([b,c,v,t]) => merged.set(b+'.'+c+'.'+v, [b,c,v,t]));   // 원문이 손입력 덮어씀
+const ALL = [...merged.values()].sort((a,b)=>
+  a[0]<b[0]?-1:a[0]>b[0]?1:(a[1]-b[1])||(a[2]-b[2]));
+
 const chapterSet = new Set();
-const verses = SAMPLE_VERSES.map(([bookId, ch, v, text]) => {
+const verses = ALL.map(([bookId, ch, v, text]) => {
   chapterSet.add(bookId + '.' + ch);
   return { verseId: bookId+'.'+ch+'.'+v, bookId, chapterNumber: ch, verseNumber: v, text };
 });
@@ -70,7 +79,7 @@ const chapters = [...chapterSet].map(cid => {
 });
 
 const out = {
-  version: 'krv-sample-2026-07-10',
+  version: 'krv-sample-2026-07-10-4tracks',
   translation: '개역한글',
   sample: true,
   note: '샘플 데이터입니다. 라이선스 확보한 전체 개역한글 데이터로 verses/chapters 를 교체 후 version 을 올리면 전 성경이 동작합니다.',

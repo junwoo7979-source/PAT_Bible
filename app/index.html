@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v185-psalm9-sample-20260710">
+<html lang="ko" data-theme="light" data-fontsize="normal" data-version="v186-4tracks-krv-20260709">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -33,7 +33,7 @@
   }
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=185').catch(function() {});
+    navigator.serviceWorker.register('sw.js?v=186').catch(function() {});
     // ★ 성경 데이터(개역한글) 최초 1회 IndexedDB 시딩 + 미동기 완료기록 동기화
     try {
       if (typeof initBibleData === 'function') {
@@ -72,8 +72,8 @@
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=185"></script>
-<script src="firebase-db.js?v=185"></script>
+<script src="firebase-config.js?v=186"></script>
+<script src="firebase-db.js?v=186"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -1226,29 +1226,29 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 </div>
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/login-auth.js?v=185"></script>
-<script src="js/app-core.js?v=185"></script>
-<script src="js/verse.js?v=185"></script>
-<script src="js/family.js?v=185"></script>
+<script src="js/login-auth.js?v=186"></script>
+<script src="js/app-core.js?v=186"></script>
+<script src="js/verse.js?v=186"></script>
+<script src="js/family.js?v=186"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
-<script src="js/history.js?v=185"></script>
-<script src="js/voice.js?v=185"></script>
-<script src="js/voice-ui.js?v=185"></script>
-<script src="js/progress-store.js?v=185"></script>
-<script src="js/whisper-asr.js?v=185"></script>
-<script src="js/groq-asr.js?v=185"></script>
-<script src="js/memorize.js?v=185"></script>
-<script src="js/prayer.js?v=185"></script>
-<script src="js/reading-plan.js?v=185"></script>
-<script src="js/bible-passage.js?v=185"></script>
-<script src="js/bible-db.js?v=185"></script>
-<script src="js/reading-progress.js?v=185"></script>
-<script src="js/bible-loader.js?v=185"></script>
-<script src="js/reading.js?v=185"></script>
-<script src="js/reset-pw.js?v=185"></script>
-<script src="js/admin.js?v=185"></script>
-<script src="js/worship.js?v=185"></script>
-<script src="js/pwa-install.js?v=185"></script>
+<script src="js/history.js?v=186"></script>
+<script src="js/voice.js?v=186"></script>
+<script src="js/voice-ui.js?v=186"></script>
+<script src="js/progress-store.js?v=186"></script>
+<script src="js/whisper-asr.js?v=186"></script>
+<script src="js/groq-asr.js?v=186"></script>
+<script src="js/memorize.js?v=186"></script>
+<script src="js/prayer.js?v=186"></script>
+<script src="js/reading-plan.js?v=186"></script>
+<script src="js/bible-passage.js?v=186"></script>
+<script src="js/bible-db.js?v=186"></script>
+<script src="js/reading-progress.js?v=186"></script>
+<script src="js/bible-loader.js?v=186"></script>
+<script src="js/reading.js?v=186"></script>
+<script src="js/reset-pw.js?v=186"></script>
+<script src="js/admin.js?v=186"></script>
+<script src="js/worship.js?v=186"></script>
+<script src="js/pwa-install.js?v=186"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';
