@@ -57,6 +57,7 @@
       const prompt = document.getElementById('loginPrompt');
       const startBtn = document.getElementById('loginStartBtn');
       const pwToggleBtn = document.getElementById('loginPwToggleBtn');
+      const resetChurchBtn = document.getElementById('loginResetChurchBtn');
 
       if (input) {
         input.type = 'password';
@@ -66,6 +67,8 @@
       if (prompt) prompt.style.display = 'none';
       if (startBtn) startBtn.textContent = '입장하기';
       if (pwToggleBtn) pwToggleBtn.style.display = 'block';
+      // ★ 2026-07-09: 저장된 교회코드가 있을 때 '교회 변경' 탈출구 노출
+      if (resetChurchBtn) resetChurchBtn.style.display = 'block';
     }
   } catch(e) {}
 })();
@@ -361,7 +364,10 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     </div>
     <button class="btn ghost" style="margin-top:8px;border:1.5px solid var(--accent);color:var(--accent);font-weight:700" onclick="openInstallGuide()">📱 폰 홈 화면에 앱 설치하기</button>
     <button class="btn ghost" style="margin-top:8px" onclick="location.reload()">🔄 새로고침</button>
-    <!-- ★ 2026-07-01: "다른 교회 선택" 버튼 제거 -->
+    <!-- ★ 2026-07-09: 교회코드 변경 탈출구 복원 — 기기에 옛/잘못된 교회코드가 저장돼
+         비밀번호가 계속 거부되는 갇힘 현상(예: 세광 재편 전 013579 잔존) 해소용.
+         교회코드가 저장돼 비번모드일 때만 노출. -->
+    <button class="btn ghost" id="loginResetChurchBtn" style="margin-top:8px;display:none;color:var(--muted);border-color:var(--line)" onclick="resetLoginState()">🔁 다른 교회 코드로 입장</button>
     <!-- 2026-07-01: 개발자 메뉴 삭제 — 운영 환경에서는 노출하지 않음 -->
     <button class="btn ghost" style="margin-top:8px" onclick="go('s-church-register')">🏛️ 교회 등록 (관리자)</button>
     <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-reset-pw')">🔑 교회 관리자 초기화</button>
@@ -1232,7 +1238,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
 <script src="js/login-auth.js?v=191"></script>
-<script src="js/app-core.js?v=191"></script>
+<script src="js/app-core.js?v=192"></script>
 <script src="js/verse.js?v=191"></script>
 <script src="js/family.js?v=191"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->

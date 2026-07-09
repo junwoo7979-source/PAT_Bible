@@ -553,20 +553,23 @@ exports.findFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
     const col = db.collection(`churches/${churchCode}/families`);
     const passwordHash = hashFamilyPassword(churchCode, familyPassword);
 
+    // ★ familyId는 '빠른 경로'일 뿐 — 일치하면 즉시 반환, 아니면(삭제됨/비번불일치)
+    //   null로 막지 말고 아래 전역 비번검색으로 폴백한다. 비밀번호 자체가 인증수단이므로
+    //   stale한 familyId(옛 교회·삭제된 방 id)로 인해 정상 로그인이 막히는 것을 방지.
     if (familyId) {
       const doc = await col.doc(familyId).get();
-      if (!doc.exists) { res.json({ family: null }); return; }
-      const data = doc.data();
-      if (verifyFamilyPassword(churchCode, familyPassword, data.familyPasswordHash)) {
-        res.json({ family: publicFamily(doc.id, data) });
-        return;
+      if (doc.exists) {
+        const data = doc.data();
+        if (verifyFamilyPassword(churchCode, familyPassword, data.familyPasswordHash)) {
+          res.json({ family: publicFamily(doc.id, data) });
+          return;
+        }
+        if (data.familyPassword === familyPassword) {
+          res.json({ family: await migrateAndReturn(doc, passwordHash) });
+          return;
+        }
       }
-      if (data.familyPassword === familyPassword) {
-        res.json({ family: await migrateAndReturn(doc, passwordHash) });
-        return;
-      }
-      res.json({ family: null });
-      return;
+      // familyId 미해결 → 아래 전역 비번검색으로 폴백
     }
 
     const hashSnap = await col.where('familyPasswordHash', '==', passwordHash).limit(1).get();

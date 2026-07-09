@@ -1259,6 +1259,10 @@ function resetLoginState(){
   // 4️⃣ UI 상태 복구
   if(typeof refreshLoginMode === 'function') refreshLoginMode();
 
+  // ★ 2026-07-09: 교회코드 삭제됨 → '교회 변경' 탈출구 버튼 숨김(다시 코드 입력 모드)
+  const resetChurchBtn = document.getElementById('loginResetChurchBtn');
+  if(resetChurchBtn) resetChurchBtn.style.display = 'none';
+
   console.log('[LOGIN] 상태 초기화 완료');
   toast('초기화됐습니다. 교회 코드를 입력하세요.');
 }
