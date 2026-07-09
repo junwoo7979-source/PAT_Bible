@@ -1,5 +1,53 @@
 # Claude Code 인수인계
 
+## 최신 상태 - 2026-07-09 본문 폰트 크기 조절 배포 완료
+
+### 반드시 이어서 작업할 위치
+- 정식 프로젝트 폴더: `C:\projects\PAT_Bible`
+- 예전/잔재 폴더 `C:\Users\SAMSUNG\Desktop\ai\PAT_Bible`에서 작업하지 말 것.
+
+### 최신 배포/커밋
+- 최신 커밋: `9be77df feat(reading): add passage font size control`
+- GitHub `main` 푸시 완료: `https://github.com/junwoo7979-source/PAT_Bible`
+- Firebase Hosting 배포 완료: `https://pat-bible-app.web.app`
+- 앱 캐시 버전: `v191-reading-font-slider-20260709`
+- 서비스워커 표시 버전: `v191`
+
+### 이번 작업 내용
+- `오늘의 성경읽기`에서 아래쪽 길게 펼쳐지는 본문 카드 상단에 본문 폰트 크기 조절 UI 추가.
+- 위치: `📖 잠언 9 · 개역한글` 같은 본문 제목 줄 바로 아래, 실제 절 본문 목록 위.
+- UI 구성: `가-` 버튼, 가운데 터치 슬라이더, `가+` 버튼.
+- 조절 범위: `16px`부터 `28px`, 기본값 `20px`.
+- 저장 키: `localStorage.pat_reading_font_size`.
+- 저장된 크기는 다음 본문을 열 때도 유지됨.
+
+### 변경 파일
+- `app/index.html`
+  - `todayReadingPane` 안에 `readingFontSizeToolbar` 추가.
+  - `readingFontSizeControl` 슬라이더와 `가-`, `가+` 버튼 추가.
+  - 캐시 쿼리 버전 `v191`로 갱신.
+  - `오늘의 성경읽기 (개역한글)` 배지 크기는 제목과 같은 크기(`1em`)로 유지.
+- `app/js/reading.js`
+  - `setReadingFontSize(value)` 추가.
+  - `adjustReadingFontSize(delta)` 추가.
+  - 본문을 `readingPassageText` 컨테이너로 감싸고 저장된 글자 크기를 적용.
+  - 본문 카드가 열릴 때 슬라이더 값과 본문 크기를 동기화.
+- `app/sw.js`
+  - 표시 버전 `v191`로 갱신.
+- `tests/reading-font-size.test.cjs`
+  - 폰트 조절 UI 위치와 저장/적용/범위 제한 검증 테스트 추가.
+
+### 검증 완료
+- `node tests\reading-font-size.test.cjs` PASS
+- `node tests\bible-data.test.cjs` 10개 PASS
+- `node --check app\js\reading.js` PASS
+- 배포 후 `git status --short` 깨끗함.
+
+### 다음에 Claude Code에서 확인할 것
+- 사용자가 폰에서 새로고침/앱 재실행 후 `읽기표` 탭에서 본문 카드를 열면 제목 아래에 `가- / 슬라이더 / 가+`가 보여야 함.
+- 보이지 않으면 캐시 문제 가능성이 높으므로 `?reset=1` 접속 또는 앱 재실행 안내.
+- 추가 개선 요청이 있으면 `app/index.html`의 `readingFontSizeToolbar` 인라인 스타일과 `app/js/reading.js`의 `READING_FONT_SIZE_MIN/MAX/DEFAULT`부터 확인.
+
 ---
 
 ## ✅ 최신 상태 (2026-06-10)
