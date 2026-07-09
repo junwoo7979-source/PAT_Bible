@@ -1185,6 +1185,8 @@ function refreshLoginMode(){
   const startBtn = document.getElementById('loginStartBtn');
   const devResetBtn = document.getElementById('devResetChurchBtn');
   const pwToggleBtn = document.getElementById('loginPwToggleBtn');
+  // ★ 2026-07-09: 교회코드 변경 탈출구 버튼 — 옛/잘못된 교회코드 갇힘 해소용
+  const resetChurchBtn = document.getElementById('loginResetChurchBtn');
   if(hasChurch){
     // ★ 2026-07-01: 비밀번호 입력 시 교회 코드 관련 텍스트 완전 제거, placeholder를 "비밀번호"로 변경
     if(prompt) prompt.style.display = 'none';           // 안내 문구 숨김
@@ -1197,6 +1199,7 @@ function refreshLoginMode(){
     if(pwToggleBtn) pwToggleBtn.style.display='block';  // 눈 아이콘 표시
     if(startBtn) startBtn.textContent = '입장하기';
     if(devResetBtn) devResetBtn.style.display='none';   // 다른 교회 선택 버튼 숨김
+    if(resetChurchBtn) resetChurchBtn.style.display='block';  // ★ 교회코드 있을 때 탈출구 노출
   } else {
     // ★ 2026-07-01: "교회 코드" 안내 문구/placeholder 완전 제거 (요청에 따라 아무 텍스트도 안 보이게)
     if(prompt) prompt.style.display = 'none';           // 안내 문구 계속 숨김
@@ -1208,6 +1211,7 @@ function refreshLoginMode(){
     if(pwToggleBtn) pwToggleBtn.style.display='none';   // 눈 아이콘 숨김
     if(startBtn) startBtn.textContent = '시작하기';
     if(devResetBtn) devResetBtn.style.display='none';   // 버튼 숨김
+    if(resetChurchBtn) resetChurchBtn.style.display='none';  // ★ 교회코드 없으면 탈출구 숨김
   }
 }
 
