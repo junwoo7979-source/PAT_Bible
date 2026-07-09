@@ -1,4 +1,4 @@
-// PAT Bible — Service Worker (v191) — 무캐시 패스스루(no-cache passthrough)
+// PAT Bible — Service Worker (v193) — 무캐시 패스스루(no-cache passthrough)
 // ──────────────────────────────────────────────────────────────
 // 목적: PWA "홈화면 설치" 조건을 충족시키기 위한 최소 서비스워커.
 //   Android Chrome의 설치 가능(installable) 판정 = HTTPS + 유효한 manifest
@@ -31,8 +31,10 @@ self.addEventListener('fetch', function(event) {
   // 네비게이션 요청은 명시적으로 네트워크 응답 + 오프라인 폴백 메시지.
   // (설치조건에서 요구하는 '동작하는 fetch 핸들러'를 확실히 보증)
   if (event.request.mode === 'navigate') {
+    // ★ 2026-07-09: 네비게이션은 HTTP 캐시를 무시(no-store)하고 항상 네트워크 최신 index.html.
+    //   (루트 '/'가 옛 max-age 캐시로 굳어 v갱신이 폰에 반영 안 되던 문제 근본차단)
     event.respondWith(
-      fetch(event.request).catch(function() {
+      fetch(event.request, { cache: 'no-store' }).catch(function() {
         return new Response(
           '<meta charset="utf-8"><body style="font-family:sans-serif;padding:24px;text-align:center;color:#333">' +
           '오프라인 상태입니다.<br>인터넷 연결 후 다시 열어주세요.</body>',
