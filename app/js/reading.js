@@ -88,8 +88,37 @@ function _highlightTrack(track){
 // 메뉴 탭 → 같은 화면 아래에 본문 펼치기 (토글)
 let _readingActiveTrack=null;
 const _READ_TRACK_IDX={si:0,ot:1,nt:2,pr:3};
+const READING_FONT_SIZE_KEY='pat_reading_font_size';
+const READING_FONT_SIZE_MIN=16;
+const READING_FONT_SIZE_MAX=28;
+const READING_FONT_SIZE_DEFAULT=20;
 // 오늘 이 트랙의 planId (reading_plan/reading_progress 공용): "MM-DD:track"
 function _todayPlanId(track){ return _readingTodayKey()+':'+track; }
+
+function _clampReadingFontSize(value){
+  const n=parseInt(value,10);
+  if(!Number.isFinite(n)) return READING_FONT_SIZE_DEFAULT;
+  return Math.max(READING_FONT_SIZE_MIN, Math.min(READING_FONT_SIZE_MAX, n));
+}
+function _getReadingFontSize(){
+  try{ return _clampReadingFontSize(localStorage.getItem(READING_FONT_SIZE_KEY)); }
+  catch(e){ return READING_FONT_SIZE_DEFAULT; }
+}
+function setReadingFontSize(value){
+  const size=_clampReadingFontSize(value);
+  try{ localStorage.setItem(READING_FONT_SIZE_KEY, String(size)); }catch(e){}
+  const body=document.getElementById('readingPassageText');
+  if(body) body.style.fontSize=size+'px';
+  const control=document.getElementById('readingFontSizeControl');
+  if(control) control.value=String(size);
+}
+function adjustReadingFontSize(delta){
+  setReadingFontSize(_getReadingFontSize()+Number(delta||0));
+}
+function _readingPassageShellHtml(inner){
+  const size=_getReadingFontSize();
+  return '<div id="readingPassageText" style="font-size:'+size+'px;line-height:1.9">'+inner+'</div>';
+}
 
 async function openTodayReading(track){
   const plan=_readingTodayPlan();
@@ -109,6 +138,7 @@ async function openTodayReading(track){
   const body=document.getElementById('todayReadingBody');
   if(title) title.textContent='📖 '+ref+'  ·  개역한글';
   if(pane){ pane.style.display='block'; pane.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  setReadingFontSize(_getReadingFontSize());
   if(body){
     body.innerHTML='<p class="muted" style="text-align:center;padding:18px">본문 불러오는 중…</p>';
     // 오프라인이어도 IndexedDB(로컬)에서 조회 → 인터넷 불필요
@@ -131,9 +161,9 @@ async function _loadPassageHtml(track, raw, ref){
   const footer=_completeBtnHtml(planId, done);
   try{
     const DB=window.PAT_BIBLE_DB;
-    if(!DB || !DB.supported()) return _passageNotice(ref, '이 기기에서는 로컬 성경 저장을 지원하지 않습니다.')+footer;
+    if(!DB || !DB.supported()) return _readingPassageShellHtml(_passageNotice(ref, '이 기기에서는 로컬 성경 저장을 지원하지 않습니다.'))+footer;
     const parsed=(typeof parseRef==='function') ? parseRef(track, raw) : null;
-    if(!parsed || !parsed.segments || !parsed.segments.length) return _passageNotice(ref, '본문 위치를 해석하지 못했습니다.')+footer;
+    if(!parsed || !parsed.segments || !parsed.segments.length) return _readingPassageShellHtml(_passageNotice(ref, '본문 위치를 해석하지 못했습니다.'))+footer;
     const multiBook = parsed.segments.length>1;   // 교차-책(예: 암 8~옵1)
     let inner='', found=0;
     for(const seg of parsed.segments){
@@ -156,10 +186,10 @@ async function _loadPassageHtml(track, raw, ref){
         found+=sel.length;
       }
     }
-    if(!found) return _passageNotice(ref, '이 본문은 전체 성경 데이터 도입 후 표시됩니다.')+footer;
-    return '<div style="line-height:1.9">'+inner+'</div>'+footer;
+    if(!found) return _readingPassageShellHtml(_passageNotice(ref, '이 본문은 전체 성경 데이터 도입 후 표시됩니다.'))+footer;
+    return _readingPassageShellHtml(inner)+footer;
   }catch(e){
-    return _passageNotice(ref, '본문을 불러오지 못했습니다: '+(e&&e.message||''))+footer;
+    return _readingPassageShellHtml(_passageNotice(ref, '본문을 불러오지 못했습니다: '+(e&&e.message||'')))+footer;
   }
 }
 function _passageNotice(ref, msg){
