@@ -33,7 +33,7 @@
   }
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=199').catch(function() {});
+    navigator.serviceWorker.register('sw.js?v=200').catch(function() {});
     // ★ 성경 데이터(개역한글) 최초 1회 IndexedDB 시딩 + 미동기 완료기록 동기화
     try {
       if (typeof initBibleData === 'function') {
@@ -75,7 +75,7 @@
 
 <!-- Cloud Firestore REST API 연동 -->
 <script src="firebase-config.js?v=191"></script>
-<script src="firebase-db.js?v=199"></script>
+<script src="firebase-db.js?v=200"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -372,104 +372,6 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-reset-pw')">🔑 교회 관리자 초기화</button>
     <button class="back" style="margin:8px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
     <button class="back" style="margin:8px auto 0;display:block" onclick="openReport()">💬 문의 · 오류 신고</button>
-    <div class="spacer"></div>
-  </section>
-
-  <!-- ══════════════════════════════════════════════════════════════ -->
-  <!-- ★ 2026-07-11: 자유입장 가족방 화면 — 교회코드 불필요            -->
-  <!--   기존 s-login(교회코드 입력)은 전혀 수정하지 않고 그대로 유지.   -->
-  <!--   신규 사용자의 기본 진입점은 s-entry로 변경(determineInitialScreen). -->
-  <!-- ══════════════════════════════════════════════════════════════ -->
-
-  <!-- S-entry: 자유입장 첫 화면 -->
-  <section class="screen" id="s-entry">
-    <div class="brand brand-logo" aria-label="PAT Bible">
-      <img class="brand-logo-img" src="icons/pat-logo.png?v=173" alt="PAT Bible 로고" style="width:160px">
-      <span style="display:block;text-align:center;font-size:calc(var(--fs) + 6px);font-weight:800;color:var(--text);margin-top:6px">PAT <b>Bible</b></span>
-    </div>
-    <p class="center" style="line-height:1.8;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--text)">말씀과 기도로 가족의 신앙을 세워가요.<br>매일 작은 실천이 큰 변화를 만듭니다</p>
-    <div class="spacer"></div>
-    <button class="btn" onclick="go('s-create-family')">🏠 가족방 만들기</button>
-    <button class="btn ghost" style="margin-top:10px" onclick="go('s-join-code')">🔑 가족코드로 들어가기</button>
-
-    <div style="margin-top:16px;padding:12px 14px;border-left:4px solid #ff9800;border-radius:8px;background:rgba(255,152,0,.05);text-align:left">
-      <p style="margin:0 0 6px;font-weight:700;color:var(--text);font-size:calc(var(--fs) - 1px)">📲 폰을 바꾸거나 앱을 다시 설치했나요?</p>
-      <p style="margin:0;color:#555;font-size:calc(var(--fs) - 3px);line-height:1.6">✓ 기록은 서버에 안전하게 보관됩니다<br>✓ 가족코드 + 가족 비밀번호로 로그인<br>✓ 가족방·수행 기록·진도가 모두 복원됩니다</p>
-    </div>
-
-    <button class="btn ghost" style="margin-top:8px;border:1.5px solid var(--accent);color:var(--accent);font-weight:700" onclick="openInstallGuide()">📱 폰 홈 화면에 앱 설치하기</button>
-    <button class="btn ghost" style="margin-top:8px" onclick="location.reload()">🔄 새로고침</button>
-    <!-- ★ 기존 사용자/관리자용 탈출구 — 교회코드 로그인(s-login)은 그대로 유지 -->
-    <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-login')">🏛️ 교회 코드로 입장 (기존 사용자·관리자)</button>
-    <button class="back" style="margin:8px auto 0;display:block" onclick="openReport()">💬 문의 · 오류 신고</button>
-    <div class="spacer"></div>
-  </section>
-
-  <!-- S-create-family: 가족방 만들기 -->
-  <section class="screen" id="s-create-family">
-    <button class="back" onclick="go('s-entry')">‹ 처음으로</button>
-    <div class="logo">🏠</div>
-    <h1 class="center">가족방 만들기</h1>
-    <p class="center muted">가족방 이름과 비밀번호를 정해주세요</p>
-    <div class="card" style="margin-top:16px">
-      <label class="lbl">가족방 이름</label>
-      <input class="field" id="cfRoomName" placeholder="예: 김민수네 가족" autocomplete="off">
-      <label class="lbl">대표자 이름</label>
-      <input class="field" id="cfLeaderName" placeholder="이름을 입력하세요" autocomplete="off">
-      <label class="lbl">가족 비밀번호 (4자 이상)</label>
-      <div class="pw-wrap"><input class="field" id="cfPassword" type="password" placeholder="비밀번호" autocomplete="off"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
-      <label class="lbl">비밀번호 확인</label>
-      <div class="pw-wrap"><input class="field" id="cfPasswordConfirm" type="password" placeholder="비밀번호 다시 입력" autocomplete="off"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
-    </div>
-    <button class="btn" style="margin-top:14px" onclick="handleCreateFamilySubmit()">가족방 만들기</button>
-    <div class="spacer"></div>
-  </section>
-
-  <!-- S-join-code: 가족코드 입력(1단계 — 코드만으로는 활동 화면 진입 불가) -->
-  <section class="screen" id="s-join-code">
-    <button class="back" onclick="go('s-entry')">‹ 처음으로</button>
-    <div class="logo">🔑</div>
-    <h1 class="center">가족코드로 들어가기</h1>
-    <p class="center muted">전달받은 가족코드를 입력하세요</p>
-    <div class="card" style="margin-top:16px">
-      <label class="lbl">가족코드</label>
-      <input class="field code-input" id="jcFamilyCode" maxlength="12" placeholder="예: AB12CD34" autocomplete="off" style="letter-spacing:3px;text-transform:uppercase">
-    </div>
-    <button class="btn" style="margin-top:14px" onclick="handleJoinCodeSubmit()">다음</button>
-    <div class="spacer"></div>
-  </section>
-
-  <!-- S-join-pw: 이름 + 가족 비밀번호 입력(2단계 — 통과해야만 대시보드 진입) -->
-  <section class="screen" id="s-join-pw">
-    <button class="back" onclick="go('s-join-code')">‹ 뒤로</button>
-    <div class="logo">🔒</div>
-    <h1 class="center" id="jpRoomNameTitle">가족방</h1>
-    <p class="center muted">이름과 가족 비밀번호를 입력하세요</p>
-    <div class="card" style="margin-top:16px">
-      <label class="lbl">이름</label>
-      <input class="field" id="jpMemberName" placeholder="이름을 입력하세요" autocomplete="off">
-      <label class="lbl">가족 비밀번호</label>
-      <div class="pw-wrap"><input class="field" id="jpPassword" type="password" placeholder="비밀번호" autocomplete="off"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
-    </div>
-    <button class="btn" style="margin-top:14px" onclick="handleJoinPasswordSubmit()">입장하기</button>
-    <div class="spacer"></div>
-  </section>
-
-  <!-- S-family-password: 자유입장 가족방 비밀번호 변경 (가족방 설정 하위 화면) -->
-  <section class="screen" id="s-family-password">
-    <button class="back" onclick="go('s-family')">‹ 가족방</button>
-    <div class="logo">🔒</div>
-    <h1 class="center">가족 비밀번호 변경</h1>
-    <p class="center muted">현재 비밀번호를 확인한 뒤 새 비밀번호로 바꿉니다</p>
-    <div class="card" style="margin-top:16px">
-      <label class="lbl">현재 비밀번호</label>
-      <div class="pw-wrap"><input class="field" id="fpOldPw" type="password" placeholder="현재 비밀번호" autocomplete="off"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
-      <label class="lbl">새 비밀번호 (4자 이상)</label>
-      <div class="pw-wrap"><input class="field" id="fpNewPw" type="password" placeholder="새 비밀번호" autocomplete="off"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
-      <label class="lbl">새 비밀번호 확인</label>
-      <div class="pw-wrap"><input class="field" id="fpNewPw2" type="password" placeholder="새 비밀번호 다시 입력" autocomplete="off"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
-    </div>
-    <button class="btn" style="margin-top:14px" onclick="submitChangeFamilyPasswordFree()">비밀번호 변경</button>
     <div class="spacer"></div>
   </section>
 
@@ -1335,9 +1237,9 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
 <script src="js/login-auth.js?v=191"></script>
-<script src="js/app-core.js?v=199"></script>
+<script src="js/app-core.js?v=200"></script>
 <script src="js/verse.js?v=191"></script>
-<script src="js/family.js?v=199"></script>
+<script src="js/family.js?v=200"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
 <script src="js/history.js?v=191"></script>
 <script src="js/voice.js?v=191"></script>
@@ -1353,7 +1255,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <script src="js/reading-progress.js?v=191"></script>
 <script src="js/bible-loader.js?v=191"></script>
 <script src="js/reading.js?v=191"></script>
-<script src="js/reset-pw.js?v=199"></script>
+<script src="js/reset-pw.js?v=200"></script>
 <script src="js/admin.js?v=191"></script>
 <script src="js/worship.js?v=191"></script>
 <script src="js/pwa-install.js?v=191"></script>

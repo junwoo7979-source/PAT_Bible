@@ -948,9 +948,7 @@ function checkInviteParam(){
     try{ showPublicJoinPage(JSON.parse(decodeURIComponent(atob(joinPublic)))); }catch(e){}
   }
 }
-// ★ 2026-07-11: 자유입장 가족방(DB.church.name이 빈 값)은 "PAT Bible"로 폴백 —
-//   기존 교회코드 가족방(이름 있음)의 동작은 그대로 유지된다.
-function memberHomeTitle(){ return DB.church.name ? (DB.church.name+' PAT') : (typeof APP_TITLE_DEFAULT !== 'undefined' ? APP_TITLE_DEFAULT : 'PAT Bible'); }
+function memberHomeTitle(){ return DB.church.name+' PAT'; }
 
 // ── 홈 화면 일일 과제 (church-bible-challenge 스타일) ─────
 // ★ 로컬(기기/한국시간) 날짜 키 — 자정(00시)에 정확히 날짜가 바뀐다.
@@ -1491,93 +1489,4 @@ async function submitFamilyJoinManual(){
   renderFamily();
   go('s-family');
   toast(`✓ 가족에 등록되었습니다! 🎉`);
-}
-
-// ════════════════════════════════════════════════════════════════
-// ★ 2026-07-11: 자유입장 가족방 — 화면(index.html) ↔ app-core.js 오케스트레이션 함수 연결
-//   여기 함수들은 DOM 입력값을 읽어 검증하고 app-core.js의 createFamilyRoom/
-//   lookupFamilyByCode/loginFamilyWithPassword/changeFamilyPasswordFree 를 호출한다.
-//   (실제 상태변경/저장 로직은 app-core.js 쪽에 있음 — 여기는 UI 접착 코드만)
-// ════════════════════════════════════════════════════════════════
-
-// s-create-family 화면 → "가족방 만들기" 버튼
-async function handleCreateFamilySubmit(){
-  const roomName = (document.getElementById('cfRoomName')?.value || '').trim();
-  const leaderName = (document.getElementById('cfLeaderName')?.value || '').trim();
-  const pw = (document.getElementById('cfPassword')?.value || '');
-  const pw2 = (document.getElementById('cfPasswordConfirm')?.value || '');
-
-  if(!roomName){ toast('가족방 이름을 입력하세요'); return; }
-  if(!leaderName){ toast('이름을 입력하세요'); return; }
-  if(!pw || pw.length < 4){ toast('비밀번호는 4자 이상으로 입력하세요'); return; }
-  if(pw !== pw2){ toast('비밀번호가 일치하지 않습니다'); return; }
-
-  const btn = document.querySelector('#s-create-family button.btn');
-  if(btn) btn.disabled = true;
-  const ok = await createFamilyRoom(roomName, pw, leaderName);
-  if(btn) btn.disabled = false;
-
-  if(ok){
-    ['cfRoomName','cfLeaderName','cfPassword','cfPasswordConfirm'].forEach(id=>{
-      const el = document.getElementById(id); if(el) el.value = '';
-    });
-  }
-}
-
-// s-join-code 화면 → "다음" 버튼 (가족코드 조회, 아직 활동 화면 진입 아님)
-async function handleJoinCodeSubmit(){
-  const code = (document.getElementById('jcFamilyCode')?.value || '').trim();
-  if(!code){ toast('가족코드를 입력하세요'); return; }
-
-  const btn = document.querySelector('#s-join-code button.btn');
-  if(btn) btn.disabled = true;
-  const ok = await lookupFamilyByCode(code);
-  if(btn) btn.disabled = false;
-
-  if(ok){
-    const title = document.getElementById('jpRoomNameTitle');
-    if(title) title.textContent = (_joinFlowState.roomName || '가족방') + ' 🔒';
-    const pwInput = document.getElementById('jpPassword');
-    if(pwInput) pwInput.value = '';
-    go('s-join-pw');
-  }
-}
-
-// s-join-pw 화면 → "입장하기" 버튼 (이름 + 비밀번호 확인 후에만 대시보드 진입)
-async function handleJoinPasswordSubmit(){
-  const name = (document.getElementById('jpMemberName')?.value || '').trim();
-  const pw = (document.getElementById('jpPassword')?.value || '');
-  if(!name){ toast('이름을 입력하세요'); return; }
-  if(!pw){ toast('가족 비밀번호를 입력하세요'); return; }
-
-  const btn = document.querySelector('#s-join-pw button.btn');
-  if(btn) btn.disabled = true;
-  const ok = await loginFamilyWithPassword(pw, name);
-  if(btn) btn.disabled = false;
-
-  if(ok){
-    ['jcFamilyCode','jpMemberName','jpPassword'].forEach(id=>{
-      const el = document.getElementById(id); if(el) el.value = '';
-    });
-  }
-}
-
-// s-family-password 화면 → "비밀번호 변경" 버튼 (자유입장 가족방 전용)
-async function submitChangeFamilyPasswordFree(){
-  const oldPw = (document.getElementById('fpOldPw')?.value || '').trim();
-  const newPw = (document.getElementById('fpNewPw')?.value || '').trim();
-  const newPw2 = (document.getElementById('fpNewPw2')?.value || '').trim();
-  if(!oldPw){ toast('현재 비밀번호를 입력하세요'); return; }
-  if(!newPw || newPw.length < 4){ toast('새 비밀번호는 4자 이상으로 입력하세요'); return; }
-  if(newPw !== newPw2){ toast('새 비밀번호가 일치하지 않습니다'); return; }
-
-  const btn = document.querySelector('#s-family-password button.btn');
-  if(btn) btn.disabled = true;
-  const ok = await changeFamilyPasswordFree(oldPw, newPw);
-  if(btn) btn.disabled = false;
-
-  if(ok){
-    ['fpOldPw','fpNewPw','fpNewPw2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-    go('s-family');
-  }
 }
