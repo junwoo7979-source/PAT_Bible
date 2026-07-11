@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { onRequest } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const { initializeApp } = require('firebase-admin/app');
@@ -1100,5 +1101,167 @@ exports.getFamiliesList = onRequest({ cors: true, region: 'us-central1' }, async
     }));
     families.sort((a, b) => (a.parish || '').localeCompare(b.parish || '') || (a.roomName || '').localeCompare(b.roomName || ''));
     res.json({ total: families.length, families });
+  } catch (e) { errRes(res, e); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// ★ 2026-07-11: 자유입장 가족방 시스템 (교회코드 불필요)
+//
+//   설계 원칙:
+//   - 기존 churchCode 기반 가족방(findFamily/saveFamily 등)은 단 한 줄도 수정하지 않는다.
+//   - 신규 가족방은 내부적으로 FREE_CHURCH_CODE 네임스페이스(churches/FREE/families)에
+//     저장되어, 기존 records/prayers/dashboard 인프라(churchCode+familyId 기반 API)를
+//     그대로 재사용한다 — 새 컬렉션을 만들지 않아 중복 코드/중복 위험이 없다.
+//   - familyCode(가족코드): 가족방을 "찾는" 용도로만 사용 — 활동 권한을 주지 않는다.
+//   - familyPasswordHash: familyId를 HMAC 메시지에 포함해 해싱 → 가족방마다
+//     완전히 독립적인 해시가 생성되어, 다른 가족방 비밀번호가 절대 통하지 않는다.
+//   - 비밀번호 검증은 항상 "특정 familyId 문서 하나"의 저장 해시와만 비교한다
+//     (전역 해시 검색을 하지 않음) → 가족방 간 비밀번호 혼선이 구조적으로 불가능.
+// ════════════════════════════════════════════════════════════════
+const FREE_CHURCH_CODE = 'FREE';
+const FAMILY_CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'; // 0/O, 1/I/L 등 헷갈리는 문자 제외
+const FAMILY_CODE_LENGTH = 8;
+
+function generateFamilyCode() {
+  const bytes = crypto.randomBytes(FAMILY_CODE_LENGTH);
+  let code = '';
+  for (let i = 0; i < FAMILY_CODE_LENGTH; i++) {
+    code += FAMILY_CODE_ALPHABET[bytes[i] % FAMILY_CODE_ALPHABET.length];
+  }
+  return code;
+}
+
+function validFamilyCodeFormat(code) {
+  return typeof code === 'string' && /^[A-Z0-9]{4,16}$/.test(code);
+}
+
+// 가족방 생성 — 교회코드 불필요. familyName + password + leaderName 만으로 즉시 생성.
+exports.createFamily = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const { familyName, password, leaderName } = req.body || {};
+    const roomName = String(familyName || '').trim().slice(0, 50);
+    const leader = String(leaderName || '').trim().slice(0, 30);
+    const pw = String(password || '');
+
+    if (!roomName) { res.status(400).json({ error: '가족방 이름을 입력하세요' }); return; }
+    if (!leader) { res.status(400).json({ error: '이름을 입력하세요' }); return; }
+    if (pw.length < 4) { res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다' }); return; }
+
+    const col = db.collection(`churches/${FREE_CHURCH_CODE}/families`);
+
+    // ★ 자유입장 풀 표시용 shell 문서(best-effort, 실패해도 가족방 생성은 계속 진행)
+    db.doc(`churches/${FREE_CHURCH_CODE}`).set({
+      name: '자유입장(교회 미지정) 가족방 모음', isFreeEntryPool: true,
+    }, { merge: true }).catch(() => {});
+
+    // familyCode 중복 방지 — 최대 5회 재시도(32^8 조합이라 실질적으로 충돌 거의 없음)
+    let familyCode = '';
+    for (let i = 0; i < 5; i++) {
+      const candidate = generateFamilyCode();
+      const dup = await col.where('familyCode', '==', candidate).limit(1).get();
+      if (dup.empty) { familyCode = candidate; break; }
+    }
+    if (!familyCode) { res.status(500).json({ error: '가족코드 생성에 실패했습니다. 다시 시도해주세요' }); return; }
+
+    const ref = col.doc(); // 먼저 문서 ID(familyId)를 확보 — 비밀번호 해시를 familyId 기준으로 생성하기 위함
+    const familyId = ref.id;
+    const pepper = getPepper();
+    const passwordHash = hashFamilyPassword(familyId, pw, pepper); // ★ familyId 기준 해시 — 가족방마다 완전 독립
+
+    const docData = {
+      familyCode,
+      roomName,
+      leaderName: leader,
+      parish: '', district: '',
+      groupType: '가정',
+      members: [leader],
+      familyPasswordHash: passwordHash,
+      authVersion: 2, // ★ familyId 기준 해시 방식 표시(기존 churchCode 기준 방식과 구분)
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    await ref.set(docData);
+
+    res.json({ ok: true, familyId, familyCode, roomName, leaderName: leader });
+  } catch (e) { errRes(res, e); }
+});
+
+// 가족코드로 가족방 "찾기"만 한다 — 비밀번호 검증 전까지 민감 정보(구성원/해시)는 절대 반환하지 않는다.
+exports.findFamilyByCode = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const raw = (req.body && req.body.familyCode) || '';
+    const familyCode = String(raw).trim().toUpperCase();
+    if (!validFamilyCodeFormat(familyCode)) {
+      res.json({ found: false, error: '가족코드 형식이 올바르지 않습니다' });
+      return;
+    }
+    const col = db.collection(`churches/${FREE_CHURCH_CODE}/families`);
+    const snap = await col.where('familyCode', '==', familyCode).limit(1).get();
+    if (snap.empty) {
+      res.json({ found: false, error: '가족방을 찾을 수 없습니다. 코드를 다시 확인해주세요' });
+      return;
+    }
+    const doc = snap.docs[0];
+    res.json({ found: true, familyId: doc.id, roomName: doc.data().roomName || '' });
+  } catch (e) { errRes(res, e); }
+});
+
+// 가족코드로 찾은 familyId + 비밀번호로 실제 "입장"(활동 인증)을 수행한다.
+//   ★ 반드시 familyId 하나의 저장 해시하고만 비교 — 다른 가족방 비밀번호가 통할 수 없다.
+exports.loginFamily = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const { familyId, password } = req.body || {};
+    const fid = String(familyId || '').trim();
+    const pw = String(password || '');
+    if (!fid) { res.status(400).json({ error: 'familyId required' }); return; }
+    if (!pw) { res.status(400).json({ error: '비밀번호를 입력하세요' }); return; }
+
+    const ref = db.doc(`churches/${FREE_CHURCH_CODE}/families/${fid}`);
+    const doc = await ref.get();
+    if (!doc.exists) { res.status(404).json({ error: '가족방을 찾을 수 없습니다' }); return; }
+
+    const data = doc.data();
+    const pepper = getPepper();
+    if (!verifyFamilyPassword(fid, pw, data.familyPasswordHash, pepper)) {
+      res.status(401).json({ error: '비밀번호가 일치하지 않습니다' });
+      return;
+    }
+    res.json({ ok: true, family: publicFamily(doc.id, data) });
+  } catch (e) { errRes(res, e); }
+});
+
+// 가족방 비밀번호 변경 — familyId 하나의 문서만 갱신한다(다른 가족방 영향 없음).
+//   현재 비밀번호 확인을 통과해야만 변경을 허용한다(탈취된 세션 남용 방지).
+exports.changeFamilyPasswordV2 = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const { familyId, oldPassword, newPassword } = req.body || {};
+    const fid = String(familyId || '').trim();
+    const oldPw = String(oldPassword || '');
+    const newPw = String(newPassword || '');
+    if (!fid) { res.status(400).json({ error: 'familyId required' }); return; }
+    if (newPw.length < 4) { res.status(400).json({ error: '새 비밀번호는 4자 이상이어야 합니다' }); return; }
+
+    const ref = db.doc(`churches/${FREE_CHURCH_CODE}/families/${fid}`);
+    const doc = await ref.get();
+    if (!doc.exists) { res.status(404).json({ error: '가족방을 찾을 수 없습니다' }); return; }
+
+    const data = doc.data();
+    const pepper = getPepper();
+    if (!verifyFamilyPassword(fid, oldPw, data.familyPasswordHash, pepper)) {
+      res.status(401).json({ error: '현재 비밀번호가 일치하지 않습니다' });
+      return;
+    }
+
+    const newHash = hashFamilyPassword(fid, newPw, pepper);
+    await ref.set({ familyPasswordHash: newHash, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    res.json({ ok: true });
   } catch (e) { errRes(res, e); }
 });
