@@ -33,7 +33,7 @@
   }
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=198').catch(function() {});
+    navigator.serviceWorker.register('sw.js?v=199').catch(function() {});
     // ★ 성경 데이터(개역한글) 최초 1회 IndexedDB 시딩 + 미동기 완료기록 동기화
     try {
       if (typeof initBibleData === 'function') {
@@ -75,7 +75,7 @@
 
 <!-- Cloud Firestore REST API 연동 -->
 <script src="firebase-config.js?v=191"></script>
-<script src="firebase-db.js?v=198"></script>
+<script src="firebase-db.js?v=199"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -1335,9 +1335,9 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
 <script src="js/login-auth.js?v=191"></script>
-<script src="js/app-core.js?v=198"></script>
+<script src="js/app-core.js?v=199"></script>
 <script src="js/verse.js?v=191"></script>
-<script src="js/family.js?v=198"></script>
+<script src="js/family.js?v=199"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
 <script src="js/history.js?v=191"></script>
 <script src="js/voice.js?v=191"></script>
@@ -1353,7 +1353,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <script src="js/reading-progress.js?v=191"></script>
 <script src="js/bible-loader.js?v=191"></script>
 <script src="js/reading.js?v=191"></script>
-<script src="js/reset-pw.js?v=198"></script>
+<script src="js/reset-pw.js?v=199"></script>
 <script src="js/admin.js?v=191"></script>
 <script src="js/worship.js?v=191"></script>
 <script src="js/pwa-install.js?v=191"></script>

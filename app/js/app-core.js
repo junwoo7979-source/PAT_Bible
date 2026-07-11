@@ -273,12 +273,15 @@ function completeAppInitialization(){
   checkInviteParam();
 
   // ─── 저장된 상태 복원 ───
-  let initialScreen = 's-login';
-  let reason = '초기 상태';
+  // ★ 2026-07-11: 기본값을 s-entry로 변경(자유입장) — determineInitialScreen()과 일관되게.
+  let initialScreen = 's-entry';
+  let reason = '초기 상태(자유입장)';
 
-  // ★ 로그인 화면 유지 의도면 자동 라우팅 건너뜀(새로고침 시 가족화면 튕김 방지)
-  let _stayLogin = false;
-  try { _stayLogin = !!sessionStorage.getItem('pat_stay_login'); } catch(e) {}
+  // ★ 로그인/자유입장 화면 유지 의도면 자동 라우팅 건너뜀(새로고침 시 가족화면 튕김 방지)
+  //   값 자체('s-login' 또는 's-entry')를 그대로 보존한다(하드코딩된 's-login' 덮어쓰기 금지).
+  let _stayValue = '';
+  try { _stayValue = sessionStorage.getItem('pat_stay_login') || ''; } catch(e) {}
+  const _stayLogin = !!_stayValue;
 
   // 1️⃣ 저장된 가족방이 있으면 가족방으로 이동
   // ★ 중대버그 수정: familyId는 프로필 객체가 아니라 별도 키(pat_family_id)에 저장된다.
@@ -286,8 +289,9 @@ function completeAppInitialization(){
   //   determineInitialScreen 과 동일하게 "프로필 존재"만으로 가족방 우선.
   const savedFamily = loadFamilyProfile();
   if(_stayLogin){
-    initialScreen = 's-login';
-    reason = '로그인 화면 유지';
+    // ★ 2026-07-11: 옛 캐시 호환 — 값이 'true'/'1' 등이면 's-login'으로 폴백
+    initialScreen = (_stayValue === 's-entry') ? 's-entry' : 's-login';
+    reason = '로그인/자유입장 화면 유지';
   }
   else if(savedFamily){
     console.log('[PAT-STARTUP] 가족방 발견:', {
@@ -306,8 +310,8 @@ function completeAppInitialization(){
 
   console.log('[PAT-STARTUP] 초기 화면 진입:', initialScreen, `(${reason})`);
 
-  // 로그인 화면이 이미 active이므로, 다른 화면으로 이동할 때만 go() 호출
-  if(initialScreen !== 's-login'){
+  // 로그인/자유입장 화면이 이미 active이므로, 다른 화면으로 이동할 때만 go() 호출
+  if(initialScreen !== 's-login' && initialScreen !== 's-entry'){
     go(initialScreen, true, false);
   }
 
