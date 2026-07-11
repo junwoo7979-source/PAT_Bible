@@ -944,6 +944,15 @@ async function _enterChurchImpl(){
 
       // Firebase에서 설정이 없으면 로컬 기본값 사용
       if(!cfg){
+        // ★ 2026-07-11: 레거시 교회 명시적 차단
+        // 013579는 세광 재편 전 폐지된 교회코드. Firestore에 없으면 로컬도 사용 금지
+        const legacyChurches = ['013579'];
+        if(legacyChurches.includes(decision.code)){
+          console.log('[LOGIN-STEP1-LEGACY] 레거시 교회 감지 및 차단:', decision.code);
+          toast(`churchCode:${decision.code}는 더 이상 운영되지 않습니다.\n현재 교회코드: 11111`);
+          return;
+        }
+
         console.log('[LOGIN-STEP1-FALLBACK] Firebase 설정 없음, 로컬 기본값 사용:', decision.code);
         cfg = initChurchDefaults(decision.code);
       }
@@ -1163,15 +1172,9 @@ function initChurchDefaults(churchCode) {
         text: '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라',
         weekOf: '2026년 7월 1주차'
       }
-    },
-    '013579': {
-      appTitle: '교회',
-      verse: {
-        ref: '시편 100:1',
-        text: '온 땅이여 여호와께 즐거워하라',
-        weekOf: '2026년 7월 1주차'
-      }
     }
+    // ★ 2026-07-11: 013579 제거 — 레거시 교회(세광 재편 전), Firestore 무존재
+    // SELECT_CHURCH에서 명시적으로 차단됨
   };
 
   return defaults[churchCode] || {
