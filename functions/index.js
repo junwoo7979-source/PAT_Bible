@@ -10,6 +10,18 @@ const {
   publicFamily,
 } = require('./password');
 
+// ★ 2026-07-11: pepper 중앙화
+function getPepper() {
+  // 1순위: 환경 변수 (production, .env)
+  if (process.env.PAT_PASSWORD_PEPPER) {
+    return process.env.PAT_PASSWORD_PEPPER;
+  }
+  // 2순위: Firebase Secret (필요시 추가 가능)
+  // 3순위: 폴백 (개발용)
+  console.warn('[PAT] PAT_PASSWORD_PEPPER 미설정 — dev-pepper 사용');
+  return 'pat-bible-dev-pepper';
+}
+
 initializeApp();
 const db = getFirestore();
 
@@ -86,7 +98,9 @@ async function assertChurchAdmin(req, res, churchCode) {
     const cred = credSnap.data();
     const id = hdr(req, 'x-pat-admin-id');
     const pw = hdr(req, 'x-pat-admin-password');
-    if (id && pw && id === cred.adminId && verifyFamilyPassword(churchCode, pw, cred.adminPwHash)) return true;
+    // ★ 2026-07-11: pepper 전달 (관리자 비번 검증)
+    const pepper = getPepper();
+    if (id && pw && id === cred.adminId && verifyFamilyPassword(churchCode, pw, cred.adminPwHash, pepper)) return true;
     res.status(401).json({ error: 'Unauthorized (church admin)' });
     return false;
   }
@@ -127,8 +141,10 @@ exports.registerChurch = onRequest({ cors: true, region: 'us-central1' }, async 
       res.status(409).json({ error: '이미 사용 중인 관리자 아이디입니다. 다른 아이디를 입력하세요.' }); return;
     }
     await db.doc(`churches/${code}`).set({ name: String(name).trim(), createdAt: FieldValue.serverTimestamp() });
+    // ★ 2026-07-11: pepper 전달 (관리자 비번도 동일한 pepper로 해시)
+    const pepper = getPepper();
     await db.doc(`churches/${code}/admin/cred`).set({
-      adminId: String(adminId), adminPwHash: hashFamilyPassword(code, adminPw), createdAt: FieldValue.serverTimestamp(),
+      adminId: String(adminId), adminPwHash: hashFamilyPassword(code, adminPw, pepper), createdAt: FieldValue.serverTimestamp(),
     });
     // ★ 관리자 아이디 전역 유일 인덱스 → 로그인 시 아이디만으로 교회 식별 (코드 불필요)
     await db.doc(`adminIds/${adminIdKey}`).set({ churchCode: code, adminId: String(adminId), createdAt: FieldValue.serverTimestamp() });
@@ -151,7 +167,9 @@ exports.adminLogin = onRequest({ cors: true, region: 'us-central1' }, async (req
     if (!idxSnap.exists) { res.status(404).json({ ok: false, error: '등록되지 않은 관리자 아이디입니다' }); return; }
     const code = idxSnap.data().churchCode;
     const credSnap = await db.doc(`churches/${code}/admin/cred`).get();
-    if (!credSnap.exists || !verifyFamilyPassword(code, adminPw, credSnap.data().adminPwHash)) {
+    // ★ 2026-07-11: pepper 전달 (관리자 비번 검증)
+    const pepper = getPepper();
+    if (!credSnap.exists || !verifyFamilyPassword(code, adminPw, credSnap.data().adminPwHash, pepper)) {
       res.status(401).json({ ok: false, error: '아이디 또는 비밀번호가 올바르지 않습니다' }); return;
     }
     const nameDoc = await db.doc(`churches/${code}`).get();
@@ -433,14 +451,16 @@ exports.saveFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
       res.status(400).json({ error: 'PASSWORD_EQUALS_CHURCHCODE', message: '교회 코드와 다른 비밀번호를 설정하세요.' });
       return;
     }
-    const familyData = sanitizeFamilyDataForSave(churchCode, data);
+    const pepper = getPepper();
+    const familyData = sanitizeFamilyDataForSave(churchCode, data, pepper);
     const col = db.collection(`churches/${churchCode}/families`);
     // ★ 비번 중복 방지: 같은 교회 안에서 다른 방이 이미 쓰는 비밀번호면 거부.
     //   (한 비번이 두 방을 가리키면 입장 시 엉뚱한 방으로 들어가 사생활이 노출됨)
     //   selfId(또는 재등록 대상 dup) 는 제외하고 검사한다.
     const clashesPassword = async (selfId) => {
       if (!data.familyPassword) return false;
-      const hash = hashFamilyPassword(churchCode, data.familyPassword);
+      // ★ 2026-07-11: pepper 전달 (저장된 해시와 일치)
+      const hash = hashFamilyPassword(churchCode, data.familyPassword, pepper);
       const snap = await col.where('familyPasswordHash', '==', hash).get();
       return snap.docs.some(d => d.id !== (selfId || ''));
     };
@@ -551,7 +571,9 @@ exports.findFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
     if (!familyPassword) { res.status(400).json({ error: 'familyPassword required' }); return; }
 
     const col = db.collection(`churches/${churchCode}/families`);
-    const passwordHash = hashFamilyPassword(churchCode, familyPassword);
+    // ★ 2026-07-11: pepper 명시적 전달 (저장된 해시와 일치하도록)
+    const pepper = getPepper();
+    const passwordHash = hashFamilyPassword(churchCode, familyPassword, pepper);
 
     // ★ familyId는 '빠른 경로'일 뿐 — 일치하면 즉시 반환, 아니면(삭제됨/비번불일치)
     //   null로 막지 말고 아래 전역 비번검색으로 폴백한다. 비밀번호 자체가 인증수단이므로
@@ -560,7 +582,8 @@ exports.findFamily = onRequest({ cors: true, region: 'us-central1' }, async (req
       const doc = await col.doc(familyId).get();
       if (doc.exists) {
         const data = doc.data();
-        if (verifyFamilyPassword(churchCode, familyPassword, data.familyPasswordHash)) {
+        // ★ 2026-07-11: pepper 전달하여 저장된 해시와 일치 검증
+        if (verifyFamilyPassword(churchCode, familyPassword, data.familyPasswordHash, pepper)) {
           res.json({ family: publicFamily(doc.id, data) });
           return;
         }
@@ -958,7 +981,9 @@ exports.resetFamilyPassword = onRequest({ cors: true, region: 'us-central1' }, a
     if (snap.empty) {
       res.status(404).json({ error: '일치하는 가족방을 찾을 수 없습니다. 대표자 이름·교구·구역을 확인해주세요.' }); return;
     }
-    const newHash = hashFamilyPassword(churchCode, newPassword);
+    // ★ 2026-07-11: pepper 전달 (저장된 해시와 일치)
+    const pepper = getPepper();
+    const newHash = hashFamilyPassword(churchCode, newPassword, pepper);
     await snap.docs[0].ref.set({
       familyPasswordHash: newHash,
       familyPassword: FieldValue.delete(),
