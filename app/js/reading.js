@@ -181,7 +181,7 @@ async function _loadPassageHtml(track, raw, ref){
         }
         if(multiCh) inner+='<div style="font-weight:700;color:var(--muted);margin:12px 0 4px">'+ch+'장</div>';
         sel.forEach(v=>{
-          inner+='<p style="margin:0 0 8px"><sup style="color:var(--accent);font-weight:700;margin-right:5px">'+v.verseNumber+'</sup>'+_esc(v.text)+'</p>';
+          inner+='<p style="margin:0 0 8px"><span style="color:var(--accent);font-weight:700;margin-right:5px;display:inline-block;line-height:inherit;vertical-align:baseline">'+v.verseNumber+'</span>'+_esc(v.text)+'</p>';
         });
         found+=sel.length;
       }
