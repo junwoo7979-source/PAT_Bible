@@ -966,8 +966,10 @@ async function _enterChurchImpl(){
         if(familiesRes.ok){
           const familiesData = await familiesRes.json();
           if(familiesData.families && familiesData.families.length > 0){
-            console.log(`[LOGIN] ${decision.code}에 기존 가족 존재, 비밀번호 입력 강제`);
-            toast('이미 가족이 등록되어 있습니다.\n가족 비밀번호로 입장해주세요.');
+            console.log(`[LOGIN] ${decision.code}에 기존 가족 존재 (${familiesData.families.length}개), 비밀번호 입력 강제`);
+            // ★ 2026-07-11: 기존 가족 목록과 함께 안내 메시지 개선
+            const familyNames = familiesData.families.map(f => f.leaderName || f.roomName || '(미확인)').join(', ');
+            toast(`✓ "${familyNames}"등이 등록되어 있습니다.\n가족 비밀번호로 입장하세요`);
             return;  // 비밀번호 입력으로 진행 (DB.church.code는 이미 설정됨)
           }
           // ★ 2026-07-01 CRITICAL FIX: 이 교회에 등록된 가족이 0개(신규 교회의 첫 교인)라면
@@ -1025,7 +1027,7 @@ async function _enterChurchImpl(){
           return;
         }
         if(found && found.id){
-          console.log('[LOGIN-STEP2-OK] 가족방 찾음:', found.id);
+          console.log('[LOGIN-STEP2-OK] 가족방 찾음:', found.id, '대표:', found.leaderName);
           // ★ 2026-07-01: 가족을 찾은 시점에서 무조건 churchCode 저장
           // (새 구성원 경로에서도 pat_church_code가 필요함)
           try{ localStorage.setItem('pat_church_code', DB.church.code); }catch(e){}
@@ -1069,8 +1071,9 @@ async function _enterChurchImpl(){
           }
           return;
         }
-        console.log('[LOGIN-STEP2-FAIL] 비밀번호 불일치 (서버)');
-        toast('가정 비밀번호가 올바르지 않습니다');
+        console.log('[LOGIN-STEP2-FAIL] 비밀번호 불일치 (서버)', 'churchCode:', DB.church.code, 'pw:', pw);
+        // ★ 2026-07-11: 더 명확한 에러 메시지 (입력값 재확인 안내)
+        toast('입력한 가족 비밀번호가 일치하지 않습니다.\n\n✓ 대문자/소문자/공백 확인\n✓ 특수문자 포함 확인\n\n가족 대표에게 비밀번호를 재확인하세요.');
         return;
       }
 
