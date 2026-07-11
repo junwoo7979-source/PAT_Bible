@@ -427,6 +427,42 @@ window.PAT_DB = (() => {
     } catch (e) { return null; }
   }
 
+  // ── ★ 2026-07-11: 자유입장 가족방(교회코드 불필요) ──────────────
+  //   가족코드(familyCode)=찾기/초대용, 가족비밀번호=활동 인증용 — 역할을 분리한다.
+  async function createFamily(familyName, password, leaderName) {
+    if (!ready()) return { ok: false, error: '서버 연결이 필요합니다' };
+    try {
+      const data = await apiPost('createFamily', { familyName, password, leaderName });
+      if (!data || data.ok === false) return { ok: false, error: (data && data.error) || '가족방 생성 실패' };
+      return data;
+    } catch (e) { return { ok: false, error: e.message }; }
+  }
+
+  async function findFamilyByCode(familyCode) {
+    if (!ready()) return null;
+    try {
+      return await apiPost('findFamilyByCode', { familyCode });
+    } catch (e) { return null; }
+  }
+
+  async function loginFamily(familyId, password) {
+    if (!ready()) return { ok: false, error: '서버 연결이 필요합니다' };
+    try {
+      const data = await apiPost('loginFamily', { familyId, password });
+      if (!data || data.ok === false) return { ok: false, error: (data && data.error) || '로그인 실패' };
+      return data;
+    } catch (e) { return { ok: false, error: e.message }; }
+  }
+
+  async function changeFamilyPassword(familyId, oldPassword, newPassword) {
+    if (!ready()) return { ok: false, error: '서버 연결이 필요합니다' };
+    try {
+      const data = await apiPost('changeFamilyPasswordV2', { familyId, oldPassword, newPassword });
+      if (!data || data.ok === false) return { ok: false, error: (data && data.error) || '변경 실패' };
+      return data;
+    } catch (e) { return { ok: false, error: e.message }; }
+  }
+
   function subscribeFamily(churchCode, familyId, callback) {
     if (!ready() || !familyId) return;
     const poll = async () => {
@@ -616,6 +652,7 @@ window.PAT_DB = (() => {
     saveVerse, getLatestVerse, subscribeVerse,
     saveFamily, findFamilyByPassword, findFamilyByPasswordGlobal, joinFamily, removeFamilyMember,
     getFamilyMembers, getFamilyInfo, subscribeFamily,
+    createFamily, findFamilyByCode, loginFamily, changeFamilyPassword,
     saveRecord, saveRecordCtx, hasRecord,
     getDashboardStats, getFamilyStats, getFamilyProgress,
     transcribeAudio, getAwardRanking, getFamiliesList,

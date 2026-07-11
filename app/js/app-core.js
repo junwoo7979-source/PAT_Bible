@@ -198,9 +198,12 @@ function applyStoredData(){
 function determineInitialScreen(){
   // localStorage 빠른 확인
   try {
-    // ★ 로그인 화면에 머무르려는 의도(세션) → 자동 로그인 건너뜀
-    //   (로그인 화면에서 새로고침/당겨서 새로고침 시 가족화면으로 튕기던 오류 방지)
-    if(sessionStorage.getItem('pat_stay_login')) return 's-login';
+    // ★ 로그인/자유입장 화면에 머무르려는 의도(세션) → 자동 로그인 건너뜀
+    //   (해당 화면에서 새로고침/당겨서 새로고침 시 가족화면으로 튕기던 오류 방지)
+    //   ★ 2026-07-11: 값이 'true'/'1'인 옛 캐시는 's-login'으로 폴백(하위호환)
+    const stay = sessionStorage.getItem('pat_stay_login');
+    if(stay === 's-entry') return 's-entry';
+    if(stay) return 's-login';
     const familyProfile = localStorage.getItem('pat_family_profile');
     const adminId = localStorage.getItem('pat_admin_id');
     const adminPw = localStorage.getItem('pat_admin_pw');
@@ -220,9 +223,11 @@ function determineInitialScreen(){
     console.error('[PAT] localStorage 확인 중 오류:', e.message);
   }
 
-  // 기본값: 로그인 페이지
-  console.log('[PAT-STARTUP] 로그인 페이지 표시');
-  return 's-login';
+  // ★ 2026-07-11: 기본값 변경 — 자유입장 화면(교회코드 불필요).
+  //   기존 교회코드 로그인(s-login)은 "교회 코드로 입장(기존 사용자)" 링크로 계속 접근 가능
+  //   → 기존 사용자/관리자 기능은 전혀 깨지지 않는다(하위호환 100% 유지).
+  console.log('[PAT-STARTUP] 자유입장 화면 표시');
+  return 's-entry';
 }
 
 function completeAppInitialization(){
@@ -574,6 +579,11 @@ function adminLogout(){
   toast('로그아웃되었습니다');
 }
 function memberLogout(){
+  // ★ 2026-07-11: 자유입장(FREE_CHURCH_CODE) 가족방이었으면 로그아웃 후 s-entry로,
+  //   기존 교회코드 가족방이었으면 그대로 s-login으로 (하위호환 유지).
+  const wasFreeEntry = (typeof FREE_CHURCH_CODE !== 'undefined' && DB.church.code === FREE_CHURCH_CODE);
+  const targetId = wasFreeEntry ? 's-entry' : 's-login';
+
   const code = document.getElementById('churchCode');
   if(code) code.value = '';
 
@@ -598,18 +608,18 @@ function memberLogout(){
   window.familyProgressPollTimer = null;
   window.familyProgressPollKey = '';
 
-  // ★ 새로고침(당겨서 새로고침) 시 이전 화면으로 튕기지 않도록 — go('s-login')과 동일한 보호 플래그.
-  try { sessionStorage.setItem('pat_stay_login', '1'); } catch(e) {}
+  // ★ 새로고침(당겨서 새로고침) 시 이전 화면으로 튕기지 않도록 — go(targetId)와 동일한 보호 플래그.
+  try { sessionStorage.setItem('pat_stay_login', targetId); } catch(e) {}
 
   // 로그아웃 후 뒤로가기에서 이전 페이지로 돌아가지 않도록
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
-  const target = document.getElementById('s-login');
+  const target = document.getElementById(targetId);
   if(target) target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
   if(tabbar) tabbar.style.display = 'none';
 
   // 누적된 히스토리를 루트로 접어 — 로그인 화면에서 back 한 번에 폰 홈으로 종료되게 함
-  collapseHistoryToLogin();
+  collapseHistoryToLogin(targetId);
   toast('로그아웃되었습니다. 다음 입장 시 비밀번호를 입력해주세요');
 }
 function syncAdminVerseFields(){
@@ -697,7 +707,7 @@ let _poppingState = false;
 
 // 화면 ID → 해시 URL 변환 (모바일에서 같은 URL 반복 시 히스토리 미생성 문제 방지)
 function _screenUrl(id){
-  const authScreens = ['s-login','s-adminlogin'];
+  const authScreens = ['s-login','s-adminlogin','s-entry'];
   if(authScreens.includes(id)) return location.pathname + location.search;
   return location.pathname + location.search + '#' + id;
 }
@@ -706,7 +716,8 @@ function go(id, resetScroll=true, animate=false){
   // ★ 로그인 화면 유지 플래그: s-login 진입 시 세트, 가족/관리자 콘텐츠 진입 시 해제.
   //   (로그인 화면에서 새로고침해도 가족화면으로 튕기지 않게)
   try {
-    if(id === 's-login') sessionStorage.setItem('pat_stay_login', '1');
+    // ★ 2026-07-11: 값으로 화면 id를 저장(기존 '1'과도 호환 — 아래 읽는 쪽에서 처리)
+    if(id === 's-login' || id === 's-entry') sessionStorage.setItem('pat_stay_login', id);
     else if(id === 's-family' || id === 's-admin') sessionStorage.removeItem('pat_stay_login');
   } catch(e) {}
   // animate는 항상 false (애니메이션 완전 제거)
@@ -715,7 +726,9 @@ function go(id, resetScroll=true, animate=false){
   if(!target) return;
   target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
-  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register','s-dev-stats','s-install','s-report'];
+  // ★ 2026-07-11: 자유입장 진입/생성/코드입장 화면 추가 — 탭바 숨김 목록에 포함
+  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register','s-dev-stats','s-install','s-report',
+    's-entry','s-create-family','s-join-code','s-join-pw','s-family-password'];
   tabbar.style.display = noTab.includes(id) ? 'none' : 'flex';
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);
@@ -761,16 +774,20 @@ function tabGo(id){ go(id); }
 // 로그아웃/로그인 진입 시 누적된 뒤로가기 히스토리를 루트(depth 0)로 한 번에 접는다.
 // 이렇게 해야 로그인 화면에서 시스템 back 한 번에 TWA가 종료되어 폰 홈으로 나갈 수 있다.
 let _collapsingToLogin = false;
-function collapseHistoryToLogin(){
+let _collapseTarget = 's-login';
+function collapseHistoryToLogin(targetId){
+  // ★ 2026-07-11: targetId 파라미터 추가(기본값 's-login', 하위호환) — 자유입장 로그아웃 시 's-entry'로 접기 위함
+  const root = targetId || 's-login';
+  _collapseTarget = root;
   if(typeof history === 'undefined') return;
   const d = (history.state && typeof history.state._depth === 'number') ? history.state._depth : 0;
   if(d > 0 && typeof history.go === 'function'){
-    // 현재 depth 만큼 뒤로 점프 → 루트(로그인) 엔트리로 이동. 이때 발생하는 popstate 는 무시한다.
+    // 현재 depth 만큼 뒤로 점프 → 루트 엔트리로 이동. 이때 발생하는 popstate 는 무시한다.
     _collapsingToLogin = true;
     history.go(-d);
   } else {
-    // 이미 루트면 그대로 로그인으로 고정
-    history.replaceState({ screen: 's-login', _depth: 0 }, '', _screenUrl('s-login'));
+    // 이미 루트면 그대로 고정
+    history.replaceState({ screen: root, _depth: 0 }, '', _screenUrl(root));
   }
 }
 
@@ -778,17 +795,17 @@ function collapseHistoryToLogin(){
 let _preventBack = false;
 if(typeof window !== 'undefined' && window.history){
   window.addEventListener('popstate', e => {
-    // 히스토리 접기(collapse) 중 발생한 popstate: 루트에 로그인 상태만 고정하고 종료.
+    // 히스토리 접기(collapse) 중 발생한 popstate: 루트 화면 상태만 고정하고 종료.
     if(_collapsingToLogin){
       _collapsingToLogin = false;
-      history.replaceState({ screen: 's-login', _depth: 0 }, '', _screenUrl('s-login'));
+      history.replaceState({ screen: _collapseTarget, _depth: 0 }, '', _screenUrl(_collapseTarget));
       return;
     }
 
-    // 현재 보이는 화면이 로그인 화면이면 뒤로가기를 트랩하지 않고 그대로 통과시킨다.
+    // 현재 보이는 화면이 로그인/자유입장 화면이면 뒤로가기를 트랩하지 않고 그대로 통과시킨다.
     // → 더 이상 history.forward() 로 가두지 않으므로, 시스템이 TWA 를 종료해 폰 홈으로 나간다.
     const currentActive = document.querySelector('.screen.active');
-    if(currentActive && (currentActive.id === 's-login' || currentActive.id === 's-adminlogin')){
+    if(currentActive && (currentActive.id === 's-login' || currentActive.id === 's-adminlogin' || currentActive.id === 's-entry')){
       return;
     }
 
@@ -797,12 +814,13 @@ if(typeof window !== 'undefined' && window.history){
     const screen = e.state?.screen
       || (hash && document.getElementById(hash) ? hash : null);
 
-    // 로그인 화면으로 가려는 시도 → 로그인 화면 유지
-    if(!screen || (screen === 's-login' || screen === 's-adminlogin')){
-      history.replaceState({ screen: 's-login' }, '', _screenUrl('s-login'));
+    // 로그인/자유입장 화면으로 가려는 시도 → 해당 화면 유지
+    if(!screen || (screen === 's-login' || screen === 's-adminlogin' || screen === 's-entry')){
+      const rootScreen = (screen === 's-login') ? 's-login' : 's-entry';
+      history.replaceState({ screen: rootScreen }, '', _screenUrl(rootScreen));
       document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));
-      const loginScreen = document.getElementById('s-login');
-      if(loginScreen) loginScreen.classList.add('active');
+      const rootEl = document.getElementById(rootScreen);
+      if(rootEl) rootEl.classList.add('active');
       const tabbar = document.getElementById('tabbar');
       if(tabbar) tabbar.style.display = 'none';
       return;
@@ -813,7 +831,8 @@ if(typeof window !== 'undefined' && window.history){
     _poppingState = false;
   });
   // 초기 상태: 해시 없이 replaceState — 루트 depth 0 으로 표시 (back 한 번에 앱 종료 가능)
-  history.replaceState({ screen: 's-login', _depth: 0 }, '', location.pathname + location.search);
+  // ★ 실제 화면은 곧이어 applyStoredData()→go()가 다시 확정하므로 여기 값은 임시 placeholder일 뿐.
+  history.replaceState({ screen: 's-entry', _depth: 0 }, '', location.pathname + location.search);
 }
 
 // ── 교회 입장 ─────────────────────────────────────────────
@@ -1280,6 +1299,187 @@ function resetLoginState(){
 // (개발자/테스트용) 11111 교회 + 테스트 가족방으로 바로 진입
 // ★ 2026-07-01: devEnterChurch() 함수 제거 — 개발자 메뉴 삭제
 // (운영 환경에서는 노출하지 않음)
+
+// ════════════════════════════════════════════════════════════════
+// ★ 2026-07-11: 자유입장 가족방 시스템 (교회코드 불필요)
+//
+//   [설계 원칙]
+//   · 기존 교회코드 로그인(enterChurch/_enterChurchImpl 등)은 단 한 줄도 수정하지 않는다
+//     — 기존 사용자·관리자·013579 차단 로직은 100% 그대로 유지된다.
+//   · 신규 가족방은 내부적으로 FREE_CHURCH_CODE 네임스페이스를 사용해 기존
+//     records/prayers/dashboard 인프라(churchCode+familyId 기반)를 그대로 재사용한다
+//     — 새 저장소·새 폴링 로직을 만들지 않아 회귀 위험이 없다.
+//   · 필드 역할을 명확히 분리한다:
+//       familyCode  = 가족방을 "찾는" 용도(초대/공유용, 비밀 아님)
+//       familyId    = Firestore 문서 ID(내부용, 절대 변경 안 함)
+//       familyPasswordHash = 가족방 "활동 인증"용 — familyId별로 완전히 독립된 해시
+//   · 비밀번호는 클라이언트 어디에도 평문으로 저장하지 않는다
+//     (기존 pat_family_profile.familyPassword 캐시 패턴은 신규 코드에서 사용하지 않음).
+// ════════════════════════════════════════════════════════════════
+const FREE_CHURCH_CODE = 'FREE';
+
+// 가족코드로 조회된 방 정보를 잠시 들고 있는 상태(비밀번호 입력 화면으로 넘어가기 전까지만 유효)
+let _joinFlowState = { familyId: '', familyCode: '', roomName: '' };
+
+// ── 가족방 만들기 ────────────────────────────────────────────
+async function createFamilyRoom(familyName, password, leaderName){
+  if(!window.PAT_DB || !PAT_DB.ready()){ toast('서버 연결이 필요합니다'); return false; }
+  const name = String(familyName || '').trim();
+  const pw = String(password || '');
+  const leader = String(leaderName || '').trim();
+
+  if(!name){ toast('가족방 이름을 입력하세요'); return false; }
+  if(!leader){ toast('이름을 입력하세요'); return false; }
+  if(pw.length < 4){ toast('비밀번호는 4자 이상으로 설정하세요'); return false; }
+
+  let result;
+  try{
+    result = await PAT_DB.createFamily(name, pw, leader);
+  }catch(e){
+    toast('네트워크 오류가 발생했습니다. 다시 시도해주세요');
+    return false;
+  }
+  if(!result || !result.ok){
+    toast((result && result.error) || '가족방 생성에 실패했습니다');
+    return false;
+  }
+
+  DB.church.code = FREE_CHURCH_CODE;
+  DB.church.name = '';
+  const profileData = {
+    roomName: result.roomName || name,
+    leaderName: result.leaderName || leader,
+    parish: '', district: '',
+    members: [result.leaderName || leader],
+    memberName: result.leaderName || leader,
+    groupType: '가정',
+    churchCode: FREE_CHURCH_CODE,   // ★ 내부 라우팅용(기존 records/dashboard 인프라 재사용) — 사용자에게 노출 안 함
+    familyCode: result.familyCode,  // ★ 초대코드 — 비밀 아님, "가족방 설정"에서 공유 가능
+    // ★ familyPassword는 절대 저장하지 않는다(평문 저장 금지)
+  };
+  if(typeof setFamilyStorage === 'function') setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
+  else localStorage.setItem('pat_family_profile', JSON.stringify(profileData));
+  try{
+    localStorage.setItem('pat_family_id', result.familyId);
+    localStorage.setItem('pat_church_code', FREE_CHURCH_CODE);
+    const backupData = { ...profileData, _familyId: result.familyId };
+    localStorage.setItem('pat_leader_family_profile', JSON.stringify(backupData));
+  }catch(e){}
+
+  if(PAT_DB.joinFamily) PAT_DB.joinFamily(FREE_CHURCH_CODE, result.familyId, leader);
+  if(typeof upsertRoom === 'function'){ try{ upsertRoom({ familyId: result.familyId, ...profileData, isLeader:true }); }catch(e){} }
+
+  toast('가족방이 만들어졌어요! 가족코드: ' + result.familyCode);
+  enterMemberHome();
+  return true;
+}
+
+// ── 가족코드로 가족방 찾기 (1단계: 코드만으로는 활동 화면에 들어갈 수 없음) ──
+async function lookupFamilyByCode(familyCode){
+  if(!window.PAT_DB || !PAT_DB.ready()){ toast('서버 연결이 필요합니다'); return false; }
+  const code = String(familyCode || '').trim().toUpperCase();
+  if(!code){ toast('가족코드를 입력하세요'); return false; }
+
+  let result;
+  try{
+    result = await PAT_DB.findFamilyByCode(code);
+  }catch(e){
+    toast('네트워크 오류가 발생했습니다. 다시 시도해주세요');
+    return false;
+  }
+  if(!result){ toast('네트워크 오류가 발생했습니다. 다시 시도해주세요'); return false; }
+  if(!result.found){
+    toast(result.error || '가족방을 찾을 수 없습니다. 코드를 다시 확인해주세요');
+    return false;
+  }
+  _joinFlowState = { familyId: result.familyId, familyCode: code, roomName: result.roomName || '' };
+  return true;
+}
+
+// ── 가족코드로 찾은 방 + 비밀번호로 실제 입장(활동 인증) ──
+//    ★ familyId 기준으로만 검증하므로 다른 가족방 비밀번호는 절대 통하지 않는다.
+async function loginFamilyWithPassword(password, memberName){
+  if(!_joinFlowState.familyId){ toast('먼저 가족코드를 입력하세요'); return false; }
+  if(!window.PAT_DB || !PAT_DB.ready()){ toast('서버 연결이 필요합니다'); return false; }
+  const pw = String(password || '');
+  const nameInput = String(memberName || '').trim();
+  if(!nameInput){ toast('이름을 입력하세요'); return false; }
+  if(!pw){ toast('가족 비밀번호를 입력하세요'); return false; }
+
+  let result;
+  try{
+    result = await PAT_DB.loginFamily(_joinFlowState.familyId, pw);
+  }catch(e){
+    toast('네트워크 오류가 발생했습니다. 다시 시도해주세요');
+    return false;
+  }
+  if(!result || !result.ok){
+    toast((result && result.error) || '비밀번호가 일치하지 않습니다');
+    return false;
+  }
+
+  const family = result.family || {};
+  const myName = nameInput || family.leaderName || '구성원';
+
+  DB.church.code = FREE_CHURCH_CODE;
+  DB.church.name = '';
+  const existingMembers = (typeof familyMemberNames === 'function')
+    ? familyMemberNames({ members: family.members || [] })
+    : (Array.isArray(family.members) ? family.members.filter(Boolean) : []);
+  const members = existingMembers.includes(myName) ? existingMembers : [...existingMembers, myName];
+
+  const profileData = {
+    roomName: family.roomName || _joinFlowState.roomName || '',
+    leaderName: family.leaderName || '',
+    parish: family.parish || '', district: family.district || '',
+    members,
+    memberName: myName,
+    groupType: family.groupType || '가정',
+    churchCode: FREE_CHURCH_CODE,
+    familyCode: _joinFlowState.familyCode,
+    // ★ familyPassword는 절대 저장하지 않는다(평문 저장 금지)
+  };
+
+  if(typeof setFamilyStorage === 'function') setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
+  else localStorage.setItem('pat_family_profile', JSON.stringify(profileData));
+  try{
+    localStorage.setItem('pat_family_id', _joinFlowState.familyId);
+    localStorage.setItem('pat_church_code', FREE_CHURCH_CODE);
+  }catch(e){}
+
+  if(PAT_DB.joinFamily) await PAT_DB.joinFamily(FREE_CHURCH_CODE, _joinFlowState.familyId, myName);
+  if(typeof upsertRoom === 'function'){ try{ upsertRoom({ familyId: _joinFlowState.familyId, ...profileData, isLeader:false }); }catch(e){} }
+
+  _joinFlowState = { familyId:'', familyCode:'', roomName:'' };
+  enterMemberHome();
+  return true;
+}
+
+// ── 가족방 비밀번호 변경 (familyId 하나의 문서만 갱신 — 다른 가족방 영향 없음) ──
+async function changeFamilyPasswordFree(oldPassword, newPassword){
+  const familyId = localStorage.getItem('pat_family_id') || '';
+  if(!familyId || DB.church.code !== FREE_CHURCH_CODE){
+    toast('가족방 정보를 찾을 수 없습니다');
+    return false;
+  }
+  if(!window.PAT_DB || !PAT_DB.ready()){ toast('서버 연결이 필요합니다'); return false; }
+  const np = String(newPassword || '');
+  if(np.length < 4){ toast('새 비밀번호는 4자 이상으로 설정하세요'); return false; }
+
+  let result;
+  try{
+    result = await PAT_DB.changeFamilyPassword(familyId, String(oldPassword || ''), np);
+  }catch(e){
+    toast('네트워크 오류가 발생했습니다. 다시 시도해주세요');
+    return false;
+  }
+  if(!result || !result.ok){
+    toast((result && result.error) || '비밀번호 변경에 실패했습니다');
+    return false;
+  }
+  toast('비밀번호가 변경되었습니다');
+  return true;
+}
 
 // ── 공통 유틸 ─────────────────────────────────────────────
 function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;'); }

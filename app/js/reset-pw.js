@@ -13,6 +13,13 @@ function togglePw(btn) {
 
 // 가족방에서 진입 시 — 교회코드·대표자·교구·구역 자동 입력
 function goResetPwFromFamily() {
+  // ★ 2026-07-11: 자유입장 가족방(FREE_CHURCH_CODE)은 familyId 기준 비밀번호 변경 화면으로.
+  //   (기존 교구/구역 기반 재설정 흐름은 교회코드 시스템 전용이라 자유입장 방에는 적용되지 않음)
+  if(typeof FREE_CHURCH_CODE !== 'undefined' && DB.church.code === FREE_CHURCH_CODE){
+    ['fpOldPw','fpNewPw','fpNewPw2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    go('s-family-password');
+    return;
+  }
   const profile = loadFamilyProfile();
   go('s-reset-pw');
   if (!profile) return;
