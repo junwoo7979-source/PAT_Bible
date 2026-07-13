@@ -1299,27 +1299,25 @@ function toast(msg){
     return;
   }
 
-  // ★ 기존 타이머 취소 + show 클래스 제거
+  // ★ 기존 타이머 취소
   if(toastT) clearTimeout(toastT);
-  t.classList.remove('show');
 
   // ★ 텍스트 설정
   t.textContent = msg;
   console.log('[TOAST] 메시지 설정:', msg.substring(0, 50));
 
-  // ★ 약간의 딜레이 후 show 추가 (CSS transition이 작동하도록)
-  // requestAnimationFrame 대신 setTimeout 0ms 사용 (더 안정적)
-  setTimeout(() => {
-    t.classList.add('show');
-    console.log('[TOAST] show 클래스 추가됨');
+  // ★ 직접 스타일로 opacity 변경 (CSS 클래스 대신)
+  // show 클래스가 작동하지 않으니 style.opacity로 직접 제어
+  t.style.opacity = '1';
+  t.style.pointerEvents = 'auto';
+  console.log('[TOAST] opacity=1 설정됨');
 
-    // ★ 토스트 노출 시간: 3.5초 (오류 메시지 읽을 시간 확보)
-    // 추가 0.5초는 CSS transition duration(0.3s) + 안전 마진
-    toastT = setTimeout(() => {
-      t.classList.remove('show');
-      console.log('[TOAST] show 클래스 제거됨');
-    }, 3500);
-  }, 0);
+  // ★ 토스트 노출 시간: 3.5초 (오류 메시지 읽을 시간 확보)
+  toastT = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.pointerEvents = 'none';
+    console.log('[TOAST] opacity=0 설정됨');
+  }, 3500);
 }
 
 // ── PWA 설치 ─────────────────────────────────────────────
