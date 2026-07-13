@@ -916,7 +916,12 @@ async function _enterChurchImpl(){
     ? loginDecision(DB.church.code, raw)
     : { action: raw ? (DB.church.code ? 'AUTH_FAMILY_PW' : 'SELECT_CHURCH') : 'NEED', password: raw, code: raw };
 
-  console.log('[LOGIN] 로그인 판정:', decision.action);
+  // ★ decision.code가 미설정이면 raw 값으로 보정 (fallback)
+  if (!decision.code && raw) {
+    decision.code = raw;
+  }
+
+  console.log('[LOGIN] 로그인 판정:', decision.action, '(code:', decision.code, ')');
 
   switch(decision.action){
     case 'NEED_CHURCH_CODE':
@@ -948,8 +953,10 @@ async function _enterChurchImpl(){
         // 013579는 세광 재편 전 폐지된 교회코드. Firestore에 없으면 로컬도 사용 금지
         const legacyChurches = ['013579'];
         if(legacyChurches.includes(decision.code)){
+          const msg = `churchCode:${decision.code}는 더 이상 운영되지 않습니다.\n현재 교회코드: 11111`;
           console.log('[LOGIN-STEP1-LEGACY] 레거시 교회 감지 및 차단:', decision.code);
-          toast(`churchCode:${decision.code}는 더 이상 운영되지 않습니다.\n현재 교회코드: 11111`);
+          console.log('[LOGIN-STEP1-LEGACY-TOAST] 토스트 표시:', msg);
+          toast(msg);
           return;
         }
 
@@ -1287,8 +1294,31 @@ function esc(c){ return c.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g
 let toastT;
 function toast(msg){
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 2000);
+  if (!t) {
+    console.error('[TOAST-ERROR] #toast 엘리먼트를 찾을 수 없습니다');
+    return;
+  }
+
+  // ★ 기존 타이머 취소
+  if(toastT) clearTimeout(toastT);
+
+  // ★ show 클래스가 있으면 먼저 제거 (CSS transition 재시작)
+  if(t.classList.contains('show')) t.classList.remove('show');
+
+  // ★ 텍스트 설정 후 show 클래스 추가 (약간의 딜레이로 transition 트리거)
+  t.textContent = msg;
+
+  // ★ 다음 프레임에서 show 추가 (CSS transition이 작동하도록)
+  requestAnimationFrame(() => {
+    t.classList.add('show');
+    console.log('[TOAST] show 클래스 추가됨:', msg.substring(0, 50));
+  });
+
+  // ★ 토스트 노출 시간: 3초 (오류 메시지 읽을 시간 확보)
+  toastT = setTimeout(() => {
+    t.classList.remove('show');
+    console.log('[TOAST] show 클래스 제거됨');
+  }, 3000);
 }
 
 // ── PWA 설치 ─────────────────────────────────────────────
