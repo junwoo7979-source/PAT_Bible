@@ -957,25 +957,10 @@ async function _enterChurchImpl(){
           console.log('[LOGIN-STEP1-LEGACY] 레거시 교회 감지 및 차단:', decision.code);
           console.log('[LOGIN-STEP1-LEGACY-TOAST] 토스트 표시:', msg);
 
-          // ★ 직접 토스트 엘리먼트에 스타일 적용 (toast 함수 호출 대신)
-          const t = document.getElementById('toast');
-          if (t) {
-            t.textContent = msg;
-            // ★ cssText 대신 개별 속성으로 설정 (더 안정적)
-            t.style.opacity = '1';
-            t.style.pointerEvents = 'auto';
-            t.style.display = 'block';
-            console.log('[LOGIN-STEP1-LEGACY-TOAST-APPLIED] 토스트 직접 적용됨 (opacity=1)');
-
-            // 3.5초 후 숨김
-            if(toastT) clearTimeout(toastT);
-            toastT = setTimeout(() => {
-              console.log('[LOGIN-STEP1-LEGACY-TOAST-TIMEOUT] 토스트 숨김 타이머 실행 (opacity=0)');
-              t.style.opacity = '0';
-            }, 3500);
-          } else {
-            console.error('[LOGIN-STEP1-LEGACY-TOAST-ERROR] #toast 엘리먼트를 찾을 수 없습니다');
-          }
+          // ★ alert() 사용 (가장 확실한 방법)
+          // CSS 스타일 제약이 없어서 100% 표시됨
+          alert(msg);
+          console.log('[LOGIN-STEP1-LEGACY-ALERT] 알림 표시됨');
 
           return;
         }

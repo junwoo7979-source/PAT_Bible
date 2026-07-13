@@ -33,7 +33,7 @@
   }
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=202').catch(function() {});
+    navigator.serviceWorker.register('sw.js?v=203').catch(function() {});
     // ★ 성경 데이터(개역한글) 최초 1회 IndexedDB 시딩 + 미동기 완료기록 동기화
     try {
       if (typeof initBibleData === 'function') {
@@ -1237,7 +1237,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
 <script src="js/login-auth.js?v=191"></script>
-<script src="js/app-core.js?v=202"></script>
+<script src="js/app-core.js?v=203"></script>
 <script src="js/verse.js?v=191"></script>
 <script src="js/family.js?v=202"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
