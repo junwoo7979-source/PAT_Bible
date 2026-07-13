@@ -1102,3 +1102,15 @@ exports.getFamiliesList = onRequest({ cors: true, region: 'us-central1' }, async
     res.json({ total: families.length, families });
   } catch (e) { errRes(res, e); }
 });
+
+// ============================================================
+// ★ 2026-07-13: 가족 초대 기반 로그인 (v2) — 기존 churchCode 시스템과 병렬 운영
+//   families/{familyId} 완전 격리. 스키마: SCHEMA.md 참조.
+//   createFamily / inviteMembers / acceptInvite / loginWithPhone
+// ============================================================
+const { makeFamilyV2Api } = require('./family-v2-api');
+const _familyV2 = makeFamilyV2Api(getPepper);
+exports.createFamily = _familyV2.createFamily;
+exports.inviteMembers = _familyV2.inviteMembers;
+exports.acceptInvite = _familyV2.acceptInvite;
+exports.loginWithPhone = _familyV2.loginWithPhone;
