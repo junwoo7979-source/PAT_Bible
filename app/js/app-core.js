@@ -1299,26 +1299,27 @@ function toast(msg){
     return;
   }
 
-  // ★ 기존 타이머 취소
+  // ★ 기존 타이머 취소 + show 클래스 제거
   if(toastT) clearTimeout(toastT);
+  t.classList.remove('show');
 
-  // ★ show 클래스가 있으면 먼저 제거 (CSS transition 재시작)
-  if(t.classList.contains('show')) t.classList.remove('show');
-
-  // ★ 텍스트 설정 후 show 클래스 추가 (약간의 딜레이로 transition 트리거)
+  // ★ 텍스트 설정
   t.textContent = msg;
+  console.log('[TOAST] 메시지 설정:', msg.substring(0, 50));
 
-  // ★ 다음 프레임에서 show 추가 (CSS transition이 작동하도록)
-  requestAnimationFrame(() => {
+  // ★ 약간의 딜레이 후 show 추가 (CSS transition이 작동하도록)
+  // requestAnimationFrame 대신 setTimeout 0ms 사용 (더 안정적)
+  setTimeout(() => {
     t.classList.add('show');
-    console.log('[TOAST] show 클래스 추가됨:', msg.substring(0, 50));
-  });
+    console.log('[TOAST] show 클래스 추가됨');
 
-  // ★ 토스트 노출 시간: 3초 (오류 메시지 읽을 시간 확보)
-  toastT = setTimeout(() => {
-    t.classList.remove('show');
-    console.log('[TOAST] show 클래스 제거됨');
-  }, 3000);
+    // ★ 토스트 노출 시간: 3.5초 (오류 메시지 읽을 시간 확보)
+    // 추가 0.5초는 CSS transition duration(0.3s) + 안전 마진
+    toastT = setTimeout(() => {
+      t.classList.remove('show');
+      console.log('[TOAST] show 클래스 제거됨');
+    }, 3500);
+  }, 0);
 }
 
 // ── PWA 설치 ─────────────────────────────────────────────
