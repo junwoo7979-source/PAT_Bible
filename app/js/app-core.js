@@ -961,12 +961,16 @@ async function _enterChurchImpl(){
           const t = document.getElementById('toast');
           if (t) {
             t.textContent = msg;
-            t.style.cssText = 'opacity:1 !important; pointer-events:auto !important; display:block !important;';
-            console.log('[LOGIN-STEP1-LEGACY-TOAST-APPLIED] 토스트 직접 적용됨');
+            // ★ cssText 대신 개별 속성으로 설정 (더 안정적)
+            t.style.opacity = '1';
+            t.style.pointerEvents = 'auto';
+            t.style.display = 'block';
+            console.log('[LOGIN-STEP1-LEGACY-TOAST-APPLIED] 토스트 직접 적용됨 (opacity=1)');
 
             // 3.5초 후 숨김
             if(toastT) clearTimeout(toastT);
             toastT = setTimeout(() => {
+              console.log('[LOGIN-STEP1-LEGACY-TOAST-TIMEOUT] 토스트 숨김 타이머 실행 (opacity=0)');
               t.style.opacity = '0';
             }, 3500);
           } else {
