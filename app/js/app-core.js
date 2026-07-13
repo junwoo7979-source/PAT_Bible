@@ -956,7 +956,23 @@ async function _enterChurchImpl(){
           const msg = `churchCode:${decision.code}는 더 이상 운영되지 않습니다.\n현재 교회코드: 11111`;
           console.log('[LOGIN-STEP1-LEGACY] 레거시 교회 감지 및 차단:', decision.code);
           console.log('[LOGIN-STEP1-LEGACY-TOAST] 토스트 표시:', msg);
-          toast(msg);
+
+          // ★ 직접 토스트 엘리먼트에 스타일 적용 (toast 함수 호출 대신)
+          const t = document.getElementById('toast');
+          if (t) {
+            t.textContent = msg;
+            t.style.cssText = 'opacity:1 !important; pointer-events:auto !important; display:block !important;';
+            console.log('[LOGIN-STEP1-LEGACY-TOAST-APPLIED] 토스트 직접 적용됨');
+
+            // 3.5초 후 숨김
+            if(toastT) clearTimeout(toastT);
+            toastT = setTimeout(() => {
+              t.style.opacity = '0';
+            }, 3500);
+          } else {
+            console.error('[LOGIN-STEP1-LEGACY-TOAST-ERROR] #toast 엘리먼트를 찾을 수 없습니다');
+          }
+
           return;
         }
 
