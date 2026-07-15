@@ -19,6 +19,13 @@
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231a2332'/%3E%3Cpath d='M18 14h28a4 4 0 0 1 4 4v34H20a6 6 0 0 1-6-6V18a4 4 0 0 1 4-4z' fill='%2300d4aa'/%3E%3Cpath d='M22 22h20M22 30h20M22 38h14' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 
+<!-- ★ 2026-07-15: 슬래시 해시 라우트(#/…) 조기 캡처.
+     app-core.js가 로드 시점에 history.replaceState로 해시를 제거하기 전에,
+     현재 #/… 경로를 저장해 둔다. router.js 부트스트랩이 이 값으로 딥링크/새로고침을 복원한다. -->
+<script>
+window.__PAT_INITIAL_ROUTE = (location.hash && location.hash.indexOf('#/') === 0) ? location.hash.slice(1) : null;
+</script>
+
 <!-- ★ 서비스워커: '무캐시 패스스루 SW' 등록 (PWA 홈화면 설치조건 충족용)
      - 설치 가능(installable) 조건 = HTTPS + manifest + "fetch 핸들러를 가진 SW".
        기존엔 SW를 매번 unregister 해서 활성 SW가 없었고 → beforeinstallprompt 미발생 →
@@ -304,6 +311,33 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 .award-rank-family{font-weight:700;color:var(--text);}
 .award-rank-detail{font-size:calc(var(--fs) - 2px);color:var(--muted);margin-top:2px;}
 .award-rank-rate{min-width:60px;text-align:right;font-weight:700;color:var(--accent);font-size:calc(var(--fs) + 1px);}
+
+/* ★ 2026-07-15: 플랫폼 관리자(Firebase Auth) 대시보드/회원관리 전용 스타일 */
+.admin-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 16px;background:#1a2332;color:#fff;border-radius:var(--radius);margin-bottom:16px;}
+.admin-topbar .admin-title{font-weight:800;font-size:calc(var(--fs) + 1px);display:flex;align-items:center;gap:8px;}
+.admin-topbar .admin-who{font-size:calc(var(--fs) - 4px);color:#9fb3c8;margin-top:2px;}
+.admin-logout-btn{background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:10px;
+  padding:8px 12px;font-size:calc(var(--fs) - 3px);font-weight:700;cursor:pointer;flex-shrink:0;}
+.admin-logout-btn:active{background:rgba(255,255,255,.28);}
+.admin-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.admin-stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;text-align:center;}
+.admin-stat-num{font-size:calc(var(--fs) + 12px);font-weight:800;line-height:1.1;}
+.admin-stat-label{font-size:calc(var(--fs) - 3px);color:var(--muted);margin-top:4px;}
+.admin-user-row{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid var(--line);}
+.admin-user-info{flex:1;min-width:0;}
+.admin-user-name{font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.admin-user-email{font-size:calc(var(--fs) - 3px);color:var(--muted);word-break:break-all;margin-top:1px;}
+.admin-user-meta{font-size:calc(var(--fs) - 5px);color:var(--muted);margin-top:2px;}
+.admin-badge{font-size:calc(var(--fs) - 6px);font-weight:800;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+.admin-badge-on{background:var(--accent-soft);color:var(--accent-d);}
+.admin-badge-off{background:var(--danger-soft-bg);color:var(--danger-soft-text);}
+.admin-badge-neutral{background:#eef2f7;color:#64748b;}
+.admin-row-btn{flex-shrink:0;border:none;border-radius:10px;padding:9px 14px;font-weight:700;
+  font-size:calc(var(--fs) - 3px);cursor:pointer;}
+.admin-row-btn.off{background:var(--danger);color:#fff;}
+.admin-row-btn.on{background:var(--accent);color:#04231a;}
+.admin-row-btn:disabled{opacity:.5;cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -436,6 +470,50 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <h1 class="center">접근 권한 없음</h1>
     <p class="center muted" style="line-height:1.8">이 페이지는 관리자 전용입니다.<br>권한이 있는 계정으로 로그인하세요.</p>
     <button class="btn ghost" style="margin-top:16px" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/login'):go('s-login'))">홈으로 돌아가기</button>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- ★ 2026-07-15: S-admin-dashboard — 플랫폼 관리자 대시보드 (교회관리자 s-admin과 별개) -->
+  <section class="screen" id="s-admin-dashboard">
+    <div class="admin-topbar">
+      <div>
+        <div class="admin-title">🛡️ 관리자 대시보드</div>
+        <div class="admin-who" id="adminWhoami">관리자</div>
+      </div>
+      <button class="admin-logout-btn" onclick="adminAuthLogout()">로그아웃</button>
+    </div>
+
+    <div class="admin-stats" id="adminStats">
+      <p class="muted center" style="grid-column:1/-1;padding:20px 0">불러오는 중…</p>
+    </div>
+
+    <h2 style="margin:8px 2px 8px">빠른 작업</h2>
+    <button class="btn" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/admin/users'):go('s-admin-users'))">👥 회원 관리</button>
+    <button class="btn ghost" style="margin-top:8px" onclick="renderAdminDashboard()">🔄 통계 새로고침</button>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- ★ 2026-07-15: S-admin-users — 회원 관리 (목록/검색/정지·활성 토글) -->
+  <section class="screen" id="s-admin-users">
+    <div class="admin-topbar">
+      <div>
+        <div class="admin-title">👥 회원 관리</div>
+        <div class="admin-who"><span id="adminUsersCount">0명</span></div>
+      </div>
+      <button class="admin-logout-btn" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/admin'):go('s-admin-dashboard'))">‹ 대시보드</button>
+    </div>
+
+    <input class="field" id="adminUserSearch" placeholder="이름 또는 이메일 검색" autocomplete="off"
+           oninput="onAdminUserFilterChange()" style="margin-bottom:8px">
+    <select class="field" id="adminUserStatusFilter" onchange="renderAdminUsers()" style="margin-bottom:12px">
+      <option value="">전체 상태</option>
+      <option value="active">활성만</option>
+      <option value="suspended">정지만</option>
+    </select>
+
+    <div id="adminUsersList">
+      <p class="muted center" style="padding:24px 0">불러오는 중…</p>
+    </div>
     <div class="spacer"></div>
   </section>
 
@@ -1327,6 +1405,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <!-- ★ 2026-07-15: 회원가입 · 해시 라우터 · 관리자 Firebase Auth (추가형, 기존 로직 미변경) -->
 <script src="js/signup.js?v=204"></script>
 <script src="js/admin-auth.js?v=204"></script>
+<script src="js/admin-panel.js?v=204"></script>
 <script src="js/router.js?v=204"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
