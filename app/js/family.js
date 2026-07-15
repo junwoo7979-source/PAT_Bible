@@ -684,6 +684,50 @@ function openFamilyRegister(tab){
  *  - 네트워크 오류 시에도 로컬 데이터로 진행 가능
  *  - 다중 방 소속 시 rooms.js와 협력
  */
+// ★ 2026-07-15: 가족 비밀번호 강도 검증 (공용)
+//   규칙: 특수문자(!@#$%^&*) + 영문(대/소문자) + 숫자 모두 포함, 8자 이상. (순서 자유)
+//   반환: { ok: boolean, msg: string, checks: {len,special,alpha,num} }
+function checkFamilyPwStrength(pw){
+  pw = String(pw || '');
+  const checks = {
+    len:     pw.length >= 8,
+    special: /[!@#$%^&*]/.test(pw),
+    alpha:   /[A-Za-z]/.test(pw),
+    num:     /[0-9]/.test(pw),
+  };
+  const ok = checks.len && checks.special && checks.alpha && checks.num;
+  let msg = '';
+  if(!ok){
+    if(!checks.len)          msg = '비밀번호는 8자 이상이어야 합니다';
+    else if(!checks.special) msg = '특수문자(!@#$%^&*)를 포함하세요';
+    else if(!checks.alpha)   msg = '영문을 포함하세요';
+    else if(!checks.num)     msg = '숫자를 포함하세요';
+  }
+  return { ok, msg, checks };
+}
+
+// 실시간 피드백: #familyPassword 입력 시 #familyPwHint 갱신 (index.html에서 oninput 연결)
+function updateFamilyPwHint(){
+  const inp  = document.getElementById('familyPassword');
+  const hint = document.getElementById('familyPwHint');
+  if(!inp || !hint) return;
+  const pw = inp.value.trim();
+  if(!pw){
+    hint.innerHTML = '특수문자(!@#$%^&*) + 영문 + 숫자 포함, 8자 이상';
+    hint.style.color = 'var(--muted)';
+    return;
+  }
+  const c = checkFamilyPwStrength(pw).checks;
+  const mk = (ok, label) => `<span style="color:${ok ? 'var(--accent)' : 'var(--muted)'}">${ok ? '✓' : '·'} ${label}</span>`;
+  hint.innerHTML = [
+    mk(c.len, '8자↑'), mk(c.special, '특수문자'), mk(c.alpha, '영문'), mk(c.num, '숫자'),
+  ].join(' &nbsp; ');
+}
+if(typeof window !== 'undefined'){
+  window.checkFamilyPwStrength = checkFamilyPwStrength;
+  window.updateFamilyPwHint = updateFamilyPwHint;
+}
+
 async function saveFamilyProfileAsLeader(){
   // ── STEP 1: 폼에서 입력값 수집 ──
   const roomName   = document.getElementById('familyRoomName').value.trim();
@@ -719,8 +763,10 @@ async function saveFamilyProfileAsLeader(){
     toast('교회 코드와 다른 비밀번호를 설정하세요');
     return;
   }
-  if(familyPassword.length < 4){
-    toast('비밀번호는 4자 이상으로 설정하세요');
+  // ★ 2026-07-15: 비밀번호 강도 규칙 강화 (특수문자+영문+숫자, 8자 이상)
+  const _pwCheck = checkFamilyPwStrength(familyPassword);
+  if(!_pwCheck.ok){
+    toast(_pwCheck.msg);
     return;
   }
 
@@ -749,7 +795,10 @@ async function saveFamilyProfileAsLeader(){
   const members = [leaderName, ...inputMembers].filter(m => m.trim()); // 빈 값 제외
 
   // memberName: 대표자 기기에선 대표자가 "나"
+  // ★ 2026-07-15: 회원가입(signup.js)에서 임시 저장한 이메일을 가족 문서에 함께 귀속
+  const _signupEmail = (localStorage.getItem('pat_signup_email') || '').trim();
   const profileData = { roomName, leaderName, parish, district, familyPassword, members, memberName: leaderName, groupType };
+  if(_signupEmail) profileData.email = _signupEmail;
 
   setFamilyStorage('pat_family_profile', JSON.stringify(profileData));
 

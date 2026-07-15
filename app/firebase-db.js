@@ -348,6 +348,7 @@ window.PAT_DB = (() => {
         groupType: profile.groupType || undefined,
         familyPassword: profile.familyPassword || undefined,
         members: Array.isArray(profile.members) ? profile.members : [],
+        email: profile.email || undefined,
       });
       if (!familyId && data.familyId) localStorage.setItem('pat_family_id', data.familyId);
       return data.familyId;

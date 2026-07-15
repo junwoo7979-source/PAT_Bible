@@ -1114,3 +1114,13 @@ exports.createFamily = _familyV2.createFamily;
 exports.inviteMembers = _familyV2.inviteMembers;
 exports.acceptInvite = _familyV2.acceptInvite;
 exports.loginWithPhone = _familyV2.loginWithPhone;
+
+// ============================================================
+// ★ 2026-07-15: 플랫폼 관리자 전용 보호 API (Firebase Auth + Custom Claims).
+//   매 요청 verifyIdToken + admin claim 재검증. 클라 SDK로 불가한 회원관리 담당.
+//   listUsers / getUser / updateUserStatus
+// ============================================================
+const _adminApi = require('./admin-api');
+exports.listUsers = _adminApi.listUsers;
+exports.getUser = _adminApi.getUser;
+exports.updateUserStatus = _adminApi.updateUserStatus;

@@ -36,7 +36,9 @@ function verifyFamilyPassword(churchCode, password, storedHash, pepper) {
 }
 
 // 클라이언트가 saveFamily로 저장할 수 있는 허용 필드 (화이트리스트)
-const FAMILY_ALLOWED_FIELDS = ['roomName', 'leaderName', 'parish', 'district', 'members', 'groupType'];
+// ★ 2026-07-15: 'email' 추가 — 회원가입(이메일) 후 대표가 가족 등록 시 함께 저장.
+//   role/isAdmin 등 권한 필드는 여전히 화이트리스트에 없어 주입 차단됨(격리 유지).
+const FAMILY_ALLOWED_FIELDS = ['roomName', 'leaderName', 'parish', 'district', 'members', 'groupType', 'email'];
 
 function sanitizeFamilyDataForSave(churchCode, data, pepper) {
   // allowlist만 복사 — 임의 필드(isAdmin, role 등) 주입 차단

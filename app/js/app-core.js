@@ -715,7 +715,7 @@ function go(id, resetScroll=true, animate=false){
   if(!target) return;
   target.classList.add('active');
   const tabbar = document.getElementById('tabbar');
-  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register','s-dev-stats','s-install','s-report'];
+  const noTab = ['s-login','s-adminlogin','s-admin','s-invite','s-reset-pw','s-church-register','s-dev-stats','s-install','s-report','s-signup','s-admin-login','s-unauthorized'];
   tabbar.style.display = noTab.includes(id) ? 'none' : 'flex';
   document.querySelectorAll('.tab').forEach(t=>{
     t.classList.toggle('active', t.dataset.screen===id);

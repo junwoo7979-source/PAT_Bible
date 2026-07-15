@@ -11,6 +11,18 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // ★ 2026-07-15: 플랫폼 관리자 — 오직 Custom Claim(admin===true)으로만 판정.
+    //   (Custom Claim은 Admin SDK/Cloud Functions에서만 설정 가능 → 클라가 스스로 못 얻음)
+    function isPlatformAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // 사용자 문서에서 일반 사용자가 바꾸면 안 되는 권한/상태 필드가 그대로 유지되는지
+    function keepsProtectedUserFields() {
+      return request.resource.data.role == resource.data.role
+        && request.resource.data.status == resource.data.status;
+    }
+
     // 해당 가족방의 구성원인지 (memberUids 배열에 내 uid 포함)
     function isFamilyMember(familyId) {
       return isSignedIn()
@@ -25,10 +37,10 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/churches/$(churchId)).data.adminUids;
     }
 
-    // 교회: 모든 로그인 사용자 읽기 가능(교회명/통계), 수정은 관리자만
+    // 교회: 모든 로그인 사용자 읽기 가능(교회명/통계), 수정은 교회 관리자 또는 플랫폼 관리자
     match /churches/{churchId} {
       allow read: if isSignedIn();
-      allow write: if isChurchAdmin(churchId);
+      allow write: if isChurchAdmin(churchId) || isPlatformAdmin();
     }
 
     // 주간 구절: 교회 구성원 읽기, 등록·수정은 관리자만
@@ -43,14 +55,28 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.leaderUid == request.auth.uid
         && request.auth.uid in request.resource.data.memberUids;
-      // 조회/수정/삭제: 그 가족 구성원만
-      allow read, update, delete: if isFamilyMember(familyId);
+      // 조회/수정/삭제: 그 가족 구성원만 (플랫폼 관리자는 감독 목적 읽기 허용)
+      allow read: if isFamilyMember(familyId) || isPlatformAdmin();
+      allow update, delete: if isFamilyMember(familyId);
     }
 
-    // 사용자 프로필: 본인 것만
+    // 사용자 프로필
+    //  - 읽기: 본인 또는 플랫폼 관리자
+    //  - 생성: 본인 문서이고, role='user' / status='active' 로만 생성(권한 승격 차단)
+    //  - 수정: 본인이되 role/status 등 권한 필드는 변경 불가 (관리자만 변경 가능)
+    //  - 삭제: 플랫폼 관리자만
     match /users/{uid} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == uid;
+      allow read: if (isSignedIn() && request.auth.uid == uid) || isPlatformAdmin();
+
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'user'
+        && request.resource.data.status == 'active';
+
+      allow update: if isPlatformAdmin()
+        || (isSignedIn() && request.auth.uid == uid && keepsProtectedUserFields());
+
+      allow delete: if isPlatformAdmin();
     }
 
     // 암송 기록: 본인 기록만 생성, 같은 가족 구성원만 조회 (가족 현황 공유)
