@@ -52,7 +52,7 @@ When the user gives a modification request:
 
 ## 프로젝트 위치
 
-- 실제 작업 폴더: `C:\Users\SAMSUNG\Desktop\ai\PAT_Bible`
+- 실제 작업 폴더: `C:\projects\PAT_Bible` (위 "프로젝트 위치 규칙" 참고. Desktop 경로는 사용 금지)
 - 작동 프로토타입: `app/index.html`
 - 로컬 실행 주소: `http://localhost:8000/app/index.html`
 
@@ -84,7 +84,7 @@ git diff --check
 ## 기록 규칙
 
 - 작업 결과는 `docs\실행내역서.md`에 계속 기록한다.
-- 사용자 요청에 따라 별도 종합 문서 `C:\Users\SAMSUNG\Desktop\ai\pat-1단계-기획설계-실행문서.md`에도 업데이트한다.
+- 사용자 요청에 따라 별도 종합 문서 `_assets\docs\pat-1단계-기획설계-실행문서.md`에도 업데이트한다.
 - 기존 기능을 삭제하거나 되돌리기 전에 사용자 확인을 받는다.
 
 ## 현재 구현된 검수 기능
