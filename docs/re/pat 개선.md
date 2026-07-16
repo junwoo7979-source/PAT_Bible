@@ -383,4 +383,4 @@ n-gram: 3단어 이상만 제거
 ---
 
 **이 문서는 PAT Bible의 음성 인식 시스템 개선을 위한 기술 검토 요청서입니다.**
-**문서 위치: `C:\Users\SAMSUNG\Desktop\ai\pat 개선.md`**
+**문서 위치: `C:\projects\PAT_Bible\docs\re\pat 개선.md`**

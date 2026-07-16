@@ -85,7 +85,7 @@ functions/
 - 폴링 방식 (10초): onSnapshot 전환은 API 키 재노출 문제로 보류
 
 ### Android APK (TWA) 빌드 완료
-- **APK**: `C:/Users/SAMSUNG/Desktop/ai/PAT_Bible_TWA/pat-bible-v1.apk` (1.1MB)
+- **APK**: `C:\projects\PAT_Bible\_assets\apk\` (TWA 빌드 프로젝트: `_assets\twa\`)
 - 키스토어: `android.keystore` (alias: android, pass: patbible2024)
 - SHA-256: `F4:2B:12:83:...D9:DD`
 - assetlinks.json: https://junwoo7979-source.github.io/.well-known/assetlinks.json
@@ -103,7 +103,7 @@ functions/
 # PowerShell에서
 $env:JAVA_HOME = 'C:\Program Files\Microsoft\jdk-21.0.11.10-hotspot'
 $env:ANDROID_HOME = 'C:\Users\SAMSUNG\AppData\Local\Android\Sdk'
-Set-Location 'C:\Users\SAMSUNG\Desktop\ai\PAT_Bible_TWA'
+Set-Location 'C:\projects\PAT_Bible\_assets\twa'
 .\gradlew.bat assembleRelease
 # 서명
 & 'C:\Users\SAMSUNG\AppData\Local\Android\Sdk\build-tools\34.0.0\apksigner.bat' sign `

@@ -8,8 +8,8 @@ PAT Bible 웹앱과 Apps in Toss 미니앱이 같은 구절, 가족방, 암송 �
 
 ## 현재 상태
 
-- PAT 웹앱 위치: `C:\Users\SAMSUNG\Desktop\ai\PAT_Bible\app\index.html`
-- Toss 앱 위치: `C:\Users\SAMSUNG\Desktop\toss\src\App.tsx`
+- PAT 웹앱 위치: `C:\projects\PAT_Bible\app\index.html`
+- Toss 앱 위치: `C:\projects\toss-granite\src\App.tsx`
 - PAT 웹앱 저장 키: `pat_records`, `pat_verses`, `pat_family_profile`, `pat_church_name`, `pat_app_title`
 - Toss 앱 저장 키: `pat.currentVerse`, `pat.familyRooms`, `pat.adminAccount`
 - 두 앱은 같은 PC에 있어도 브라우저 저장 공간이 분리되므로 localStorage 키를 맞추는 것만으로는 동일 저장이 되지 않는다.

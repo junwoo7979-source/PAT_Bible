@@ -2,7 +2,7 @@
 
 ## 현재 저장 상태
 
-- 저장소: `C:\Users\SAMSUNG\Desktop\ai\PAT_Bible`
+- 저장소: `C:\projects\PAT_Bible`
 - 원격: `https://github.com/junwoo7979-source/PAT_Bible.git`
 - 브랜치: `main`
 - 상태: 로컬 `main`과 `origin/main` 동기화 완료

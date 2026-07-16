@@ -23,7 +23,7 @@ PAT Bible (v62)
 ## 📁 디렉토리 구조
 
 ```
-C:\Users\SAMSUNG\Desktop\ai\PAT_Bible/
+C:\projects\PAT_Bible/
 │
 ├─ 📂 app/                          # 🎯 프론트엔드 PWA 애플리케이션
 │  ├─ index.html                    # 메인 HTML 템플릿 (전체 UI)
@@ -618,7 +618,7 @@ python3 -m http.server 8000 --directory app
 
 ### **1. 변경 전**
 ```bash
-cd C:\Users\SAMSUNG\Desktop\ai\PAT_Bible
+cd C:\projects\PAT_Bible
 git status --short  # 변경 사항 확인
 ```
 
