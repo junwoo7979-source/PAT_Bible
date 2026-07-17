@@ -53,4 +53,13 @@ assert.ok(
   's-login 화면에 이메일 회원가입 진입이 있어야 함'
 );
 
+// 5) 플랫폼 관리자 인증(admin-auth.js)에 하드코딩 자격증명 잔재 없음 (42b7342 정리 회귀 방지)
+const adminAuthSrc = fs.readFileSync('app/js/admin-auth.js', 'utf8');
+['LOCAL_ADMIN', 'isLocalMode', 'pat_admin_local', "pw: '1234'"].forEach((needle) => {
+  assert.ok(
+    !adminAuthSrc.includes(needle),
+    `admin-auth.js에 하드코딩 로컬 로그인 잔재(${needle})가 있으면 안 됨`
+  );
+});
+
 console.log('admin separation: PASS');

@@ -1,23 +1,15 @@
 // ====== PAT Bible — admin-auth.js ======
-// 플랫폼 관리자 인증.
+// 플랫폼 관리자 인증 — Firebase Auth + Custom Claims(admin === true).
 //
-// ⚠️ 2026-07-15 임시 구현: 요청에 따라 하드코딩 자격증명(admin / 1234)만 통과하도록 변경.
-//    로그인 성공 시 로컬 토큰(localStorage: pat_admin_local='1')을 저장하고,
-//    가드(requireAdmin)는 이 로컬 토큰을 관리자 세션으로 인정한다.
-//    ※ 이는 클라이언트 측 임시 방식이다. 실제 운영 보안은 Firebase Auth + Custom Claims
-//      경로(아래 함수들, 그대로 보존)로 전환해야 한다. 보호 API(listUsers 등)는 여전히
-//      실제 Firebase ID 토큰을 요구하므로, 로컬 임시 로그인 상태에서는 회원 데이터가
-//      "Firebase 관리자 연결 후 표시" 안내로 대체된다.
+// ★ 2026-07-17 정리: 42b7342 커밋 메시지·주석에 있던 "하드코딩 로컬 로그인"은 실제로
+//    구현되지 않았고(관련 상수·함수만 선언된 채 미사용), 소스에 자격증명이 남는 보안
+//    위험만 있어 잔재를 제거했다. 인증은 아래 Firebase 경로가 전부다.
 //
 // ★ 일반 사용자(교회코드 + 가족비밀번호) 로그인과 완전히 분리된 별도 인증 경로.
 // ★ Firebase Auth SDK는 (사용 시) 관리자 경로 진입에만 지연 로드 → 일반 사용자 로딩 영향 없음.
 
 (function () {
   'use strict';
-
-  // 임시 하드코딩 관리자 자격증명 (기존 교회관리자 체험 계정과 동일)
-  var LOCAL_ADMIN = { id: 'admin', pw: '1234' };
-  var LOCAL_KEY = 'pat_admin_local';
 
   var SDK_VERSION = '10.12.5';
   var _auth = null;
@@ -27,11 +19,6 @@
   function configured() {
     var c = cfg();
     return !!(c && c.apiKey && c.authDomain && c.projectId);
-  }
-
-  // 로컬(임시) 관리자 세션 여부
-  function isLocalMode() {
-    try { return localStorage.getItem(LOCAL_KEY) === '1'; } catch (e) { return false; }
   }
 
   function loadScript(src) {

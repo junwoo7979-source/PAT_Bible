@@ -89,13 +89,20 @@ Firestore: churches/{churchId}
         ↓
 [교회명 + 성도수 표시]
         ↓
-[가족방 입장 OR 관리자 로그인]
+[가족방 입장]
 ```
+
+> ★ 2026-07-17 관리자 분리: 관리자 로그인은 더 이상 일반 로그인 화면(s-login)에서 진입하지 않는다.
+> 관리자는 별도 URL로만 접근한다 — `#/admin/church-login`(교회 관리자, s-adminlogin),
+> `#/church-register`(교회 셀프 등록), `#/forgot-password`(관리자 비번 초기화),
+> `#/admin/login`(플랫폼 관리자, Firebase Auth + Custom Claims, s-admin-login).
+> 신규 사용자는 로그인 화면의 "✉️ 이메일로 회원가입"(s-signup) → 가족방 생성으로 시작한다.
 
 **관련 파일:**
 - `app-core.js`: showLoginScreen(), validateChurchCode()
 - `firebase-db.js`: getChurch()
 - `index.html`: s-login (로그인 화면)
+- `router.js`: 해시 라우트(#/...) — 관리자 진입 경로 전담
 
 ---
 
