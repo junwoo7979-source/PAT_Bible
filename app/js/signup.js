@@ -52,6 +52,15 @@
       localStorage.setItem('pat_signup_at', new Date().toISOString());
     } catch (e) {}
 
+    // ★ 2026-07-17: 이메일 가입자는 교회코드 입력 단계가 없어 교회 컨텍스트가 비어 있고,
+    //   그 상태로는 가족방 생성(saveFamily)이 불가능하다. 기존 세광 폴백 관례
+    //   (app-core.js 구버전 프로필 폴백)와 동일하게 기본 교회를 적용한다.
+    try {
+      if (typeof adoptChurch === 'function' && !(window.DB && DB.church && DB.church.code)) {
+        adoptChurch('11111', '세광교회');
+      }
+    } catch (e) {}
+
     toast('가입 완료 — 가족방을 만들어 시작하세요');
 
     // 가족방으로 이동. 라우터가 있으면 해시 경로로, 없으면 기존 화면 전환으로 폴백.

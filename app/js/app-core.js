@@ -785,6 +785,12 @@ if(typeof window !== 'undefined' && window.history){
       return;
     }
 
+    // ★ 2026-07-17 FIX: 슬래시 라우트(#/family, #/signup 등)는 router.js 소관.
+    //   location.hash 대입은 popstate 도 발화시키는데, 여기서 '알 수 없는 화면'으로
+    //   오인해 로그인 화면으로 강제 전환+해시 삭제 → "회원가입 후 가족방 이동이
+    //   로그인으로 튕기는" 버그의 원인이었다. 라우터에 맡기고 통과시킨다.
+    if (location.hash.indexOf('#/') === 0) return;
+
     // 현재 보이는 화면이 로그인 화면이면 뒤로가기를 트랩하지 않고 그대로 통과시킨다.
     // → 더 이상 history.forward() 로 가두지 않으므로, 시스템이 TWA 를 종료해 폰 홈으로 나간다.
     const currentActive = document.querySelector('.screen.active');
