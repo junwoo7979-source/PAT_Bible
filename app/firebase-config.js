@@ -21,11 +21,12 @@ window.FIREBASE_READY = true;
 //        아래 빈 칸을 채워 커밋한다. 값이 비어 있으면 관리자 로그인은
 //        "아직 설정되지 않았습니다"로 안전하게 비활성 상태가 된다.
 //   (문서용 키 목록은 저장소 루트의 .env.example 참고)
+// ★ 2026-07-18: Firebase Console 웹 앱(Church Bible Challenge) config 반영 — 관리자 로그인 활성화
 window.FIREBASE_CLIENT_CONFIG = {
-  apiKey: '',
+  apiKey: 'AIzaSyCwK4oTQGaTIKsWJrXGaP2w_gS30gFiZrY',
   authDomain: 'pat-bible-app.firebaseapp.com',
   projectId: 'pat-bible-app',
-  storageBucket: 'pat-bible-app.appspot.com',
-  messagingSenderId: '',
-  appId: '',
+  storageBucket: 'pat-bible-app.firebasestorage.app',
+  messagingSenderId: '353821133805',
+  appId: '1:353821133805:web:54ace8b33ec90e3aee35e4',
 };
