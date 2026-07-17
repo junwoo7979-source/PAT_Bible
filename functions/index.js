@@ -1124,3 +1124,4 @@ const _adminApi = require('./admin-api');
 exports.listUsers = _adminApi.listUsers;
 exports.getUser = _adminApi.getUser;
 exports.updateUserStatus = _adminApi.updateUserStatus;
+exports.listFamilies = _adminApi.listFamilies;

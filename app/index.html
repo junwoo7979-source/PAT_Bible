@@ -485,8 +485,17 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <p class="muted center" style="grid-column:1/-1;padding:20px 0">불러오는 중…</p>
     </div>
 
-    <h2 style="margin:8px 2px 8px">빠른 작업</h2>
+    <h2 style="margin:8px 2px 8px">관리 메뉴</h2>
     <button class="btn" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/admin/users'):go('s-admin-users'))">👥 회원 관리</button>
+    <button class="btn" style="margin-top:8px" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/admin/families'):go('s-admin-families'))">🏠 가족방 관리</button>
+    <!-- ★ 2026-07-18: 준비중 메뉴 — 라우트·권한 가드는 동일 적용, 기능은 후속 작업 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <button class="btn ghost" onclick="PAT_ROUTER.go('/admin/missions')">📖 미션 관리</button>
+      <button class="btn ghost" onclick="PAT_ROUTER.go('/admin/statistics')">📊 통계</button>
+      <button class="btn ghost" onclick="PAT_ROUTER.go('/admin/churches')">🏛️ 교회 관리</button>
+      <button class="btn ghost" onclick="PAT_ROUTER.go('/admin/districts')">🗺️ 교구·구역</button>
+    </div>
+    <button class="btn ghost" style="margin-top:8px" onclick="PAT_ROUTER.go('/admin/system')">⚙️ 시스템 설정</button>
     <button class="btn ghost" style="margin-top:8px" onclick="renderAdminDashboard()">🔄 통계 새로고침</button>
     <div class="spacer"></div>
   </section>
@@ -512,6 +521,41 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div id="adminUsersList">
       <p class="muted center" style="padding:24px 0">불러오는 중…</p>
     </div>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- ★ 2026-07-18: S-admin-families — 가족방 관리 (전체 교회 가족방 목록/검색) -->
+  <section class="screen" id="s-admin-families">
+    <div class="admin-topbar">
+      <div>
+        <div class="admin-title">🏠 가족방 관리</div>
+        <div class="admin-who"><span id="adminFamiliesCount">0개</span></div>
+      </div>
+      <button class="admin-logout-btn" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/admin'):go('s-admin-dashboard'))">‹ 대시보드</button>
+    </div>
+
+    <input class="field" id="adminFamilySearch" placeholder="가족방·대표·교구·이메일 검색" autocomplete="off"
+           oninput="onAdminFamilyFilterChange()" style="margin-bottom:12px">
+
+    <div id="adminFamiliesList">
+      <p class="muted center" style="padding:24px 0">불러오는 중…</p>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- ★ 2026-07-18: S-admin-prep — 준비중 화면(미션/통계/교회/교구/시스템 공용).
+       라우터 가드는 다른 관리자 화면과 동일하게 적용된다. -->
+  <section class="screen" id="s-admin-prep">
+    <div class="admin-topbar">
+      <div>
+        <div class="admin-title" id="adminPrepTitle">준비 중</div>
+        <div class="admin-who">Coming soon</div>
+      </div>
+      <button class="admin-logout-btn" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/admin'):go('s-admin-dashboard'))">‹ 대시보드</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="logo">🚧</div>
+    <p class="center muted" style="line-height:1.8">이 기능은 준비 중입니다.<br>다음 업데이트에서 제공됩니다.</p>
     <div class="spacer"></div>
   </section>
 
@@ -1382,7 +1426,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
 <script src="js/login-auth.js?v=191"></script>
-<script src="js/app-core.js?v=205"></script>
+<script src="js/app-core.js?v=206"></script>
 <script src="js/verse.js?v=191"></script>
 <script src="js/family.js?v=204"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
@@ -1407,8 +1451,8 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <!-- ★ 2026-07-15: 회원가입 · 해시 라우터 · 관리자 Firebase Auth (추가형, 기존 로직 미변경) -->
 <script src="js/signup.js?v=205"></script>
 <script src="js/admin-auth.js?v=205"></script>
-<script src="js/admin-panel.js?v=204"></script>
-<script src="js/router.js?v=205"></script>
+<script src="js/admin-panel.js?v=206"></script>
+<script src="js/router.js?v=206"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';

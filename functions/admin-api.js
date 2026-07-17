@@ -133,4 +133,53 @@ const updateUserStatus = onRequest({ cors: true, region: REGION }, async (req, r
   }
 });
 
-module.exports = { listUsers, getUser, updateUserStatus, requireAdmin, publicUser };
+// ★ 2026-07-18: 가족방 관리 — 전체 교회의 가족방 목록(민감정보 제외).
+//   churches/{code}/families 서브컬렉션을 collectionGroup으로 조회한다.
+//   비밀번호 해시 등 민감 필드는 반환하지 않는다.
+const listFamilies = onRequest({ cors: true, region: REGION }, async (req, res) => {
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const limit = Math.min(Math.max(parseInt((req.query && req.query.limit) || '100', 10) || 100, 1), 500);
+    const q = String((req.query && req.query.q) || '').trim().toLowerCase();
+
+    const snap = await db().collectionGroup('families').limit(limit).get();
+    let families = snap.docs.map((d) => {
+      const f = d.data();
+      // 경로 churches/{code}/families/{id} 에서 교회 코드 추출
+      const churchCode = d.ref.parent.parent ? d.ref.parent.parent.id : '';
+      const members = Array.isArray(f.members) ? f.members : [];
+      return {
+        familyId: d.id,
+        churchCode: churchCode,
+        roomName: f.roomName || '',
+        leaderName: f.leaderName || '',
+        parish: f.parish || '',
+        district: f.district || '',
+        groupType: (f.groupType === '구역') ? '구역' : '가정',
+        memberCount: members.length,
+        email: f.email || '',
+        createdAt: toIso(f.createdAt),
+        updatedAt: toIso(f.updatedAt),
+      };
+    });
+
+    if (q) {
+      families = families.filter((f) =>
+        (f.roomName && f.roomName.toLowerCase().includes(q)) ||
+        (f.leaderName && f.leaderName.toLowerCase().includes(q)) ||
+        (f.parish && f.parish.toLowerCase().includes(q)) ||
+        (f.email && f.email.toLowerCase().includes(q)));
+    }
+    // 최신 생성 순 정렬(클라 표시용)
+    families.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+
+    res.json({ ok: true, count: families.length, families });
+  } catch (e) {
+    console.error('[PAT admin-api] listFamilies:', e.message);
+    res.status(500).json({ ok: false, error: 'SERVER_ERROR' });
+  }
+});
+
+module.exports = { listUsers, getUser, updateUserStatus, listFamilies, requireAdmin, publicUser };

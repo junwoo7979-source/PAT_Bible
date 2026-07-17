@@ -186,8 +186,61 @@
     _searchTimer = setTimeout(renderAdminUsers, 250);
   }
 
+  // ── 가족방 관리 (2026-07-18) ─────────────────────────────
+  async function renderAdminFamilies() {
+    var listEl = document.getElementById('adminFamiliesList');
+    if (listEl) listEl.innerHTML = '<p class="muted center" style="padding:24px 0">불러오는 중…</p>';
+    var q = (document.getElementById('adminFamilySearch') || {}).value || '';
+
+    var qs = '/listFamilies?limit=300';
+    if (q.trim()) qs += '&q=' + encodeURIComponent(q.trim());
+
+    try {
+      var data = await adminApi(qs);
+      drawFamilies((data && data.families) || []);
+    } catch (e) {
+      if (listEl) listEl.innerHTML = errorBox(e.message);
+    }
+  }
+
+  function drawFamilies(families) {
+    var listEl = document.getElementById('adminFamiliesList');
+    var countEl = document.getElementById('adminFamiliesCount');
+    if (countEl) countEl.textContent = families.length + '개';
+    if (!listEl) return;
+    if (!families.length) {
+      listEl.innerHTML = '<p class="muted center" style="padding:24px 0">해당하는 가족방이 없습니다.</p>';
+      return;
+    }
+    listEl.innerHTML = families.map(function (f) {
+      var typeBadge = f.groupType === '구역'
+        ? '<span class="admin-badge admin-badge-neutral">구역</span>'
+        : '<span class="admin-badge admin-badge-on">가정</span>';
+      var place = [f.parish, f.district].filter(Boolean).join(' · ');
+      return '<div class="admin-user-row">' +
+        '<div class="admin-user-info">' +
+          '<div class="admin-user-name">' + esc(f.roomName || '(이름 없음)') + ' ' + typeBadge + '</div>' +
+          '<div class="admin-user-email">대표 ' + esc(f.leaderName || '-') +
+            ' · 구성원 ' + (f.memberCount || 0) + '명' +
+            (f.email ? ' · ' + esc(f.email) : '') + '</div>' +
+          '<div class="admin-user-meta">교회 ' + esc(f.churchCode || '-') +
+            (place ? ' · ' + esc(place) : '') +
+            ' · 생성 ' + fmtDate(f.createdAt) + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  var _familySearchTimer = null;
+  function onAdminFamilyFilterChange() {
+    if (_familySearchTimer) clearTimeout(_familySearchTimer);
+    _familySearchTimer = setTimeout(renderAdminFamilies, 250);
+  }
+
   window.renderAdminDashboard = renderAdminDashboard;
   window.renderAdminUsers = renderAdminUsers;
   window.adminToggleUserStatus = adminToggleUserStatus;
   window.onAdminUserFilterChange = onAdminUserFilterChange;
+  window.renderAdminFamilies = renderAdminFamilies;
+  window.onAdminFamilyFilterChange = onAdminFamilyFilterChange;
 })();

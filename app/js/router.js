@@ -27,6 +27,13 @@
     '/admin/login': 's-admin-login',
     '/admin': { screen: 's-admin-dashboard', admin: true },
     '/admin/users': { screen: 's-admin-users', admin: true },
+    // ★ 2026-07-18: 가족방 관리 + 준비중 화면(§4.2) — 모두 admin 가드 적용
+    '/admin/families': { screen: 's-admin-families', admin: true },
+    '/admin/missions': { screen: 's-admin-prep', admin: true, prepTitle: '📖 미션 관리' },
+    '/admin/statistics': { screen: 's-admin-prep', admin: true, prepTitle: '📊 통계' },
+    '/admin/churches': { screen: 's-admin-prep', admin: true, prepTitle: '🏛️ 교회 관리' },
+    '/admin/districts': { screen: 's-admin-prep', admin: true, prepTitle: '🗺️ 교구·구역 관리' },
+    '/admin/system': { screen: 's-admin-prep', admin: true, prepTitle: '⚙️ 시스템 설정' },
     '/unauthorized': 's-unauthorized',
     // ★ 2026-07-17 관리자 분리: 일반 로그인 화면에서 버튼 제거 → URL로만 접근
     '/admin/church-login': 's-adminlogin',
@@ -34,9 +41,14 @@
   };
 
   // 관리자 화면 진입 후 데이터 렌더 훅
-  function renderFor(screenId) {
+  function renderFor(screenId, route) {
     if (screenId === 's-admin-dashboard' && typeof renderAdminDashboard === 'function') renderAdminDashboard();
     else if (screenId === 's-admin-users' && typeof renderAdminUsers === 'function') renderAdminUsers();
+    else if (screenId === 's-admin-families' && typeof renderAdminFamilies === 'function') renderAdminFamilies();
+    else if (screenId === 's-admin-prep') {
+      var t = document.getElementById('adminPrepTitle');
+      if (t) t.textContent = (route && route.prepTitle) || '준비 중';
+    }
   }
 
   // 현재 해시가 슬래시 경로면 '/xxx' 반환, 아니면 null(=라우터 미처리)
@@ -78,7 +90,7 @@
       show('s-admin-login'); // 검증 동안 중립 화면 유지
       try {
         var res = await window.PAT_ADMIN_AUTH.requireAdmin();
-        if (res && res.admin) { show(route.screen); renderFor(route.screen); }
+        if (res && res.admin) { show(route.screen); renderFor(route.screen, route); }
         else if (res && res.signedIn) show('s-unauthorized');
         else show('s-admin-login');
       } catch (e) {
