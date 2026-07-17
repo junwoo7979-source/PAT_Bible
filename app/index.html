@@ -404,10 +404,10 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
          교회코드가 저장돼 비번모드일 때만 노출. -->
     <button class="btn ghost" id="loginResetChurchBtn" style="margin-top:8px;display:none;color:var(--muted);border-color:var(--line)" onclick="resetLoginState()">🔁 다른 교회 코드로 입장</button>
     <!-- 2026-07-01: 개발자 메뉴 삭제 — 운영 환경에서는 노출하지 않음 -->
-    <button class="btn ghost" style="margin-top:8px" onclick="go('s-church-register')">🏛️ 교회 등록 (관리자)</button>
-    <button class="back" style="margin:12px auto 0;display:block" onclick="go('s-reset-pw')">🔑 교회 관리자 초기화</button>
-    <button class="back" style="margin:8px auto 0;display:block" onclick="go('s-adminlogin')">🔐 교회 관리자 로그인</button>
-    <button class="back" style="margin:8px auto 0;display:block" onclick="openReport()">💬 문의 · 오류 신고</button>
+    <!-- ★ 2026-07-17: 관리자 모드 완전 분리 — 교회 등록/관리자 초기화/관리자 로그인 버튼을
+         일반 사용자 로그인 화면에서 제거. 관리자는 별도 주소(#/admin/church-login,
+         #/church-register, #/forgot-password, #/admin/login)로만 접근한다. -->
+    <button class="back" style="margin:12px auto 0;display:block" onclick="openReport()">💬 문의 · 오류 신고</button>
     <div class="spacer"></div>
   </section>
 
@@ -605,6 +605,10 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <div class="pw-wrap"><input class="field" id="adminPw" type="password" placeholder="비밀번호" autocomplete="off"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
     <button class="btn" onclick="adminLogin()">관리자 입장</button>
     <p class="center muted" style="margin-top:14px">세광교회(체험): <b style="color:var(--accent)">admin / 1234</b></p>
+    <!-- ★ 2026-07-17: 관리자 분리 — 로그인 화면에 있던 관리자용 진입(교회 등록/비번 초기화)을
+         관리자 로그인 화면으로 이동. 일반 사용자 화면에는 노출하지 않는다. -->
+    <button class="btn ghost" style="margin-top:12px" onclick="go('s-church-register')">🏛️ 새 교회 등록</button>
+    <button class="back" style="margin:10px auto 0;display:block" onclick="go('s-reset-pw')">🔑 관리자 비밀번호 초기화</button>
     <div class="spacer"></div>
   </section>
 
@@ -1406,7 +1410,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <script src="js/signup.js?v=204"></script>
 <script src="js/admin-auth.js?v=204"></script>
 <script src="js/admin-panel.js?v=204"></script>
-<script src="js/router.js?v=204"></script>
+<script src="js/router.js?v=205"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';

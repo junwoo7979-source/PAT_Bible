@@ -12,6 +12,9 @@
 //   #/admin            → s-admin-dashboard    (관리자 대시보드, claim 가드)
 //   #/admin/users      → s-admin-users        (회원관리, claim 가드)
 //   #/unauthorized     → s-unauthorized
+//   ★ 2026-07-17 관리자 분리: 로그인 화면에서 관리자 버튼을 제거하고 아래 주소로만 접근
+//   #/admin/church-login → s-adminlogin       (교회 관리자 로그인)
+//   #/church-register    → s-church-register  (새 교회 셀프 등록)
 
 (function () {
   'use strict';
@@ -25,6 +28,9 @@
     '/admin': { screen: 's-admin-dashboard', admin: true },
     '/admin/users': { screen: 's-admin-users', admin: true },
     '/unauthorized': 's-unauthorized',
+    // ★ 2026-07-17 관리자 분리: 일반 로그인 화면에서 버튼 제거 → URL로만 접근
+    '/admin/church-login': 's-adminlogin',
+    '/church-register': 's-church-register',
   };
 
   // 관리자 화면 진입 후 데이터 렌더 훅
