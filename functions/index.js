@@ -177,6 +177,61 @@ exports.adminLogin = onRequest({ cors: true, region: 'us-central1' }, async (req
   } catch (e) { errRes(res, e); }
 });
 
+// ★ 2026-07-18: 레거시 세광(11111) 관리자 계정 서버 부트스트랩(1회성·멱등).
+//   - 기존에 클라이언트에 하드코딩·화면에 공개돼 있던 최초 계정(admin/1234)을 서버
+//     bcrypt 자격으로 이전하기 위한 것. 새 접근 권한을 만들지 않는다.
+//   - adminIds/admin 또는 churches/11111/admin/cred 가 이미 있으면 아무것도 하지
+//     않는다(덮어쓰기 불가) → 관리자가 비밀번호를 변경한 뒤에는 영구히 no-op.
+exports.seedLegacyAdmin = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const idxRef = db.doc('adminIds/admin');
+    const credRef = db.doc('churches/11111/admin/cred');
+    const [idx, cred] = await Promise.all([idxRef.get(), credRef.get()]);
+    if (idx.exists || cred.exists) { res.json({ ok: true, seeded: false, reason: 'EXISTS' }); return; }
+    const pepper = getPepper();
+    await credRef.set({
+      adminId: 'admin',
+      adminPwHash: hashFamilyPassword('11111', '1234', pepper),
+      createdAt: FieldValue.serverTimestamp(),
+      seededBy: 'legacy-bootstrap',
+    });
+    await idxRef.set({ churchCode: '11111', adminId: 'admin', createdAt: FieldValue.serverTimestamp() });
+    res.json({ ok: true, seeded: true });
+  } catch (e) { errRes(res, e); }
+});
+
+// ★ 2026-07-18: 관리자 본인 비밀번호 변경 — 현재 비밀번호 검증 후 갱신.
+//   입력: { adminId, oldPw, newPw }. 새 비밀번호는 교회 관리자 규칙
+//   (특수문자 → 영문 → 숫자 순서, 8자 이상)을 서버에서도 강제한다.
+exports.updateAdminPassword = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  if (!begin(req, res)) return;
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST required' }); return; }
+  try {
+    const { adminId, oldPw, newPw } = req.body || {};
+    if (!ADMIN_ID_RE.test(String(adminId || ''))) { res.status(400).json({ ok: false, error: '아이디 형식이 올바르지 않습니다' }); return; }
+    if (!/^(?=.{8,}$)[^A-Za-z0-9]+[A-Za-z]+[0-9]+$/.test(String(newPw || ''))) {
+      res.status(400).json({ ok: false, error: '새 비밀번호는 특수문자 → 영문 → 숫자 순서로 8자 이상이어야 합니다' }); return;
+    }
+    const idxSnap = await db.doc(`adminIds/${String(adminId).toLowerCase()}`).get();
+    if (!idxSnap.exists) { res.status(404).json({ ok: false, error: '등록되지 않은 관리자 아이디입니다' }); return; }
+    const code = idxSnap.data().churchCode;
+    if (String(newPw) === code) { res.status(400).json({ ok: false, error: '교회 코드와 다른 비밀번호를 사용하세요' }); return; }
+    const credRef = db.doc(`churches/${code}/admin/cred`);
+    const credSnap = await credRef.get();
+    const pepper = getPepper();
+    if (!credSnap.exists || !verifyFamilyPassword(code, String(oldPw || ''), credSnap.data().adminPwHash, pepper)) {
+      res.status(401).json({ ok: false, error: '현재 비밀번호가 올바르지 않습니다' }); return;
+    }
+    await credRef.set({
+      adminPwHash: hashFamilyPassword(code, String(newPw), pepper),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    res.json({ ok: true });
+  } catch (e) { errRes(res, e); }
+});
+
 // ════════════════════════════════════════════════════════
 // 개발자(플랫폼 운영자) 전용 — 전 교회 사용 현황 통계
 // ════════════════════════════════════════════════════════

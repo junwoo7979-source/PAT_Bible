@@ -360,7 +360,10 @@ async function loadChurchConfig(){
 }
 
 // ── 관리자 ────────────────────────────────────────────────
-const ADMIN = { id:'admin', pw:'1234' };
+// ★ 2026-07-18: 하드코딩 자격증명(admin/1234) 제거 — 서버(bcrypt) 인증으로 일원화.
+//   최초 계정 admin/1234는 서버(seedLegacyAdmin)에 등록돼 있고, 로그인 후
+//   관리자 탭에서 비밀번호를 변경하면 즉시 반영된다(하드코딩이 남아 있으면
+//   변경해도 옛 비밀번호가 영원히 통하는 구멍이 됨).
 
 function isAdminLoggedIn() {
   return localStorage.getItem('pat_admin_logged_in') === 'true';
@@ -391,23 +394,7 @@ async function adminLogin(){
   const pw = document.getElementById('adminPw').value.trim();
   if(!id || !pw){ toast('아이디와 비밀번호를 입력하세요'); return; }
 
-  // ── 레거시 세광교회: admin/1234 → 11111 (테스트 기간 현행 유지) ──
-  if(id === ADMIN.id && pw === ADMIN.pw){
-    adoptChurch('11111', '세광교회');
-    localStorage.setItem('pat_admin_id', id);
-    localStorage.setItem('pat_admin_pw', pw);
-    localStorage.setItem('pat_admin_token', 'fbde1052ecb6da2b9720c096ba8ea047a9327207399802d358dc308299e0d7ac');
-    document.getElementById('adminPw').value = '';
-    setAdminLoggedIn(true);
-    try { sessionStorage.setItem('pat_admin_session', '1'); } catch(e) {}
-    if(typeof loadChurchConfig === 'function') await loadChurchConfig();
-    renderAdmin();
-    go('s-admin');
-    toast('✓ 관리자로 로그인되었습니다');
-    return;
-  }
-
-  // ── 신규 교회: 아이디(전역 유일)+비번으로 교회 자동 식별 ──
+  // ── 아이디(전역 유일)+비번으로 교회 자동 식별 — 세광 최초 계정(admin)도 서버 검증 ──
   if(!(window.PAT_DB && PAT_DB.ready())){ toast('서버 연결이 필요합니다'); return; }
   const r = await PAT_DB.adminLogin(id, pw);
   if(r && r.ok){

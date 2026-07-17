@@ -155,6 +155,22 @@ window.PAT_DB = (() => {
     } catch (e) { return { ok: false, error: e.message }; }
   }
 
+  // ★ 2026-07-18: 관리자 본인 비밀번호 변경 (현재 비번 검증 후 서버 bcrypt 갱신)
+  async function updateAdminPassword(adminId, oldPw, newPw) {
+    if (!ready()) return { ok: false, error: '서버 연결이 필요합니다' };
+    try {
+      const r = await fetch(`${API}/updateAdminPassword`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({ adminId, oldPw, newPw }),
+        cache: 'no-store',
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) return { ok: false, error: data.error || ('오류 ' + r.status) };
+      return data;
+    } catch (e) { return { ok: false, error: e.message }; }
+  }
+
   async function checkChurchCode(code) {
     if (!ready()) return null;
     try { return await apiGet('checkChurchCode', { code }); } catch (e) { return null; }
@@ -612,7 +628,7 @@ window.PAT_DB = (() => {
   // ── public API ─────────────────────────────────────────────────
   return {
     init, ready, getDeviceId,
-    registerChurch, adminLogin, checkChurchCode, checkAdminId,
+    registerChurch, adminLogin, updateAdminPassword, checkChurchCode, checkAdminId,
     submitReport, getReports, deleteReport,
     saveVerse, getLatestVerse, subscribeVerse,
     saveFamily, findFamilyByPassword, findFamilyByPasswordGlobal, joinFamily, removeFamilyMember,

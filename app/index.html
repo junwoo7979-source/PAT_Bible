@@ -82,7 +82,7 @@ window.__PAT_INITIAL_ROUTE = (location.hash && location.hash.indexOf('#/') === 0
 
 <!-- Cloud Firestore REST API 연동 -->
 <script src="firebase-config.js?v=204"></script>
-<script src="firebase-db.js?v=204"></script>
+<script src="firebase-db.js?v=207"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -646,7 +646,8 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <input class="field" id="adminId" placeholder="관리자 아이디" autocomplete="off">
     <div class="pw-wrap"><input class="field" id="adminPw" type="password" placeholder="비밀번호" autocomplete="off"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
     <button class="btn" onclick="adminLogin()">관리자 입장</button>
-    <p class="center muted" style="margin-top:14px">세광교회(체험): <b style="color:var(--accent)">admin / 1234</b></p>
+    <p class="center muted" style="margin-top:14px">최초 관리자: <b style="color:var(--accent)">admin / 1234</b><br>
+      <span style="font-size:calc(var(--fs) - 3px)">로그인 후 관리자 탭 → 🔑 비밀번호에서 반드시 변경하세요</span></p>
     <!-- ★ 2026-07-17: 관리자 분리 — 로그인 화면에 있던 관리자용 진입(교회 등록/비번 초기화)을
          관리자 로그인 화면으로 이동. 일반 사용자 화면에는 노출하지 않는다. -->
     <button class="btn ghost" style="margin-top:12px" onclick="go('s-church-register')">🏛️ 새 교회 등록</button>
@@ -934,6 +935,19 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
     <!-- 탭 5: 비밀번호 초기화 -->
     <div id="adminTabPassword" style="display:none">
+
+    <!-- ★ 2026-07-18: 관리자 본인 비밀번호 변경 (최초 admin/1234 → 로그인 후 변경) -->
+    <div class="card" style="margin-top:14px">
+      <h2>🛡️ 관리자 비밀번호 변경</h2>
+      <p class="muted" style="margin:6px 0 12px">최초 비밀번호(1234)는 보안을 위해 반드시 변경하세요</p>
+      <label class="lbl">현재 비밀번호</label>
+      <div class="pw-wrap"><input class="field" id="adminMyPwOld" type="password" placeholder="현재 비밀번호" autocomplete="current-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+      <label class="lbl">새 비밀번호</label>
+      <div class="pw-wrap"><input class="field" id="adminMyPwNew" type="password" placeholder="특수문자→영문→숫자, 8자 이상 (예: #grace2026)" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+      <label class="lbl">새 비밀번호 확인</label>
+      <div class="pw-wrap"><input class="field" id="adminMyPwNew2" type="password" placeholder="새 비밀번호 다시 입력" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)">👁️</button></div>
+      <button class="btn" style="margin-top:4px" onclick="doAdminChangeMyPassword()">🛡️ 비밀번호 변경</button>
+    </div>
 
     <!-- 가족 비밀번호 초기화 (관리자용) -->
     <div class="card" style="margin-top:14px">
@@ -1426,7 +1440,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
 <script src="js/login-auth.js?v=191"></script>
-<script src="js/app-core.js?v=206"></script>
+<script src="js/app-core.js?v=207"></script>
 <script src="js/verse.js?v=191"></script>
 <script src="js/family.js?v=204"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
@@ -1445,7 +1459,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <script src="js/bible-loader.js?v=191"></script>
 <script src="js/reading.js?v=191"></script>
 <script src="js/reset-pw.js?v=202"></script>
-<script src="js/admin.js?v=191"></script>
+<script src="js/admin.js?v=207"></script>
 <script src="js/worship.js?v=191"></script>
 <script src="js/pwa-install.js?v=191"></script>
 <!-- ★ 2026-07-15: 회원가입 · 해시 라우터 · 관리자 Firebase Auth (추가형, 기존 로직 미변경) -->
