@@ -1,11 +1,12 @@
 // ====== PAT Bible — bible-db.js ======
 // IndexedDB 저장소 래퍼. 성경 본문/읽기표/완료기록을 기기 내부에 저장한다.
-// 스토어: books, chapters, verses, reading_plan, app_meta, reading_progress
+// 스토어: books, chapters, verses, reading_plan, app_meta, reading_progress,
+//         audio_chapter_progress(v2 — 장별 청취 근거)
 // 브라우저 전용(테스트에서는 로드하지 않음). 순수 로직은 bible-passage.js 참조.
 
 window.PAT_BIBLE_DB = (() => {
   const DB_NAME = 'pat_bible';
-  const DB_VER  = 1;
+  const DB_VER  = 2;
   let _dbPromise = null;
 
   function supported(){ return typeof indexedDB !== 'undefined' && !!indexedDB; }
@@ -42,6 +43,13 @@ window.PAT_BIBLE_DB = (() => {
           const s = db.createObjectStore('reading_progress', {keyPath:'id'});
           s.createIndex('byUserDate', ['userId','date'], {unique:false});
           s.createIndex('bySynced', 'synced', {unique:false});
+        }
+        // v2: 장별 청취 근거. id = `${userId}|krv|${bookId}|${chapter}` (voice 미포함)
+        // 기존 reading_progress 는 재생성·삭제하지 않는다(완료 기록 보존).
+        if(!db.objectStoreNames.contains('audio_chapter_progress')){
+          const s = db.createObjectStore('audio_chapter_progress', {keyPath:'id'});
+          s.createIndex('byUserTranslation', ['userId','translation'], {unique:false});
+          s.createIndex('byUpdatedAt', 'updatedAt', {unique:false});
         }
       };
       req.onsuccess = () => resolve(req.result);
