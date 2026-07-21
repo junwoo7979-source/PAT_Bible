@@ -43,23 +43,26 @@
 
 - [ ] **Step 1: Write the failing manifest tests**
 
-Test `validateManifest`, `chapterEntry`, and `nextChapter` using a two-book fixture. Require `translation==='krv'`, `voice==='male-1'`, positive duration/bytes, checksum, exact chapter counts, and `available:true`.
+Test `validateManifest`, `chapterEntry`, and `nextChapter` using a partial-provision fixture. Every canonical chapter entry must exist exactly once. `available=true` requires URL, positive duration/bytes, and checksum; `available=false` may omit those asset fields. Automatic transition must stop at an unavailable immediate next chapter and must not skip it.
 
 ```js
 const assert=require('node:assert/strict');
 const M=require('../app/js/audio-manifest.js');
 const fixture={schemaVersion:1,audioVersion:'krv-m1-1',translation:'krv',voice:'male-1',books:[
-  {bookId:'GEN',nameKo:'창세기',chapterCount:2,chapters:[
+  {bookId:'GEN',nameKo:'창세기',chapterCount:3,chapters:[
     {chapter:1,url:'/audio/krv/male-1/GEN/001.mp3',duration:120,bytes:1000,sha256:'a',available:true},
-    {chapter:2,url:'/audio/krv/male-1/GEN/002.mp3',duration:130,bytes:1100,sha256:'b',available:true}
+    {chapter:2,available:false},
+    {chapter:3,url:'/audio/krv/male-1/GEN/003.mp3',duration:130,bytes:1100,sha256:'c',available:true}
   ]}
 ]};
 assert.deepEqual(M.validateManifest(fixture),{ok:true,errors:[]});
-assert.equal(M.chapterEntry(fixture,'GEN',2).duration,130);
-assert.deepEqual(M.nextChapter(fixture,'GEN',1),{bookId:'GEN',chapter:2});
-assert.equal(M.nextChapter(fixture,'GEN',2),null);
-assert.equal(M.validateManifest({...fixture,translation:'krv'}).ok,true);
+assert.equal(M.chapterEntry(fixture,'GEN',2).available,false);
+assert.deepEqual(M.nextChapter(fixture,'GEN',1),{status:'unavailable',bookId:'GEN',chapter:2});
+assert.deepEqual(M.nextChapter(fixture,'GEN',3),{status:'book-end'});
 assert.equal(M.validateManifest({...fixture,translation:'개역개정'}).ok,false);
+const duplicate=structuredClone(fixture);
+duplicate.books[0].chapters[2].chapter=2;
+assert.equal(M.validateManifest(duplicate).ok,false);
 ```
 
 - [ ] **Step 2: Run the test and verify RED**
@@ -78,8 +81,11 @@ function chapterEntry(m,bookId,chapter){
   return b ? (b.chapters||[]).find(x=>x.chapter===Number(chapter))||null : null;
 }
 function nextChapter(m,bookId,chapter){
-  const e=chapterEntry(m,bookId,Number(chapter)+1);
-  return e&&e.available ? {bookId,chapter:Number(chapter)+1}:null;
+  const b=(m.books||[]).find(x=>x.bookId===bookId);
+  const n=Number(chapter)+1;
+  if(!b||n>b.chapterCount) return {status:'book-end'};
+  const e=chapterEntry(m,bookId,n);
+  return e.available ? {status:'available',bookId,chapter:n} : {status:'unavailable',bookId,chapter:n};
 }
 function validateManifest(m){
   const errors=[];
@@ -88,9 +94,14 @@ function validateManifest(m){
   if(!m||m.voice!=='male-1') errors.push('voice');
   for(const b of (m&&m.books)||[]){
     if((b.chapters||[]).length!==b.chapterCount) errors.push('chapterCount:'+b.bookId);
+    const seen=new Set();
     for(const c of b.chapters||[]){
-      if(!c.url||!(c.duration>0)||!(c.bytes>0)||!c.sha256||c.available!==true) errors.push('chapter:'+b.bookId+':'+c.chapter);
+      if(seen.has(c.chapter)) errors.push('duplicateChapter:'+b.bookId+':'+c.chapter);
+      seen.add(c.chapter);
+      if(c.available!==true&&c.available!==false) errors.push('available:'+b.bookId+':'+c.chapter);
+      if(c.available===true&&(!c.url||!(c.duration>0)||!(c.bytes>0)||!c.sha256)) errors.push('chapter:'+b.bookId+':'+c.chapter);
     }
+    for(let n=1;n<=b.chapterCount;n++) if(!seen.has(n)) errors.push('missingChapter:'+b.bookId+':'+n);
   }
   return {ok:errors.length===0,errors};
 }
@@ -319,13 +330,13 @@ On `timeupdate`, pass only short forward deltas while actually playing to `accep
 
 - [ ] **Step 6: Add next-chapter behavior**
 
-After current-session `ended`, record the date evidence. If `nextChapter` exists, create a fresh session and load it; otherwise publish `ended`, show the book-finished event, then settle at `idle`. Preload with a non-playing request only; never create a second audio element.
+After current-session `ended`, record the date evidence. If `nextChapter().status==='available'`, create a fresh session, load it, and retain the current playback rate. If the status is `unavailable`, do not skip forward: show the next-audio-pending notice and settle at `idle`. If it is `book-end`, show the book-finished event without moving to the next book, then settle at `idle`. Preload with a non-playing request only; never create a second audio element. If iOS rejects automatic `play()`, retain the next target and position in `paused` and show “탭하여 계속 듣기”.
 
 - [ ] **Step 7: Verify all controller cases and commit**
 
 Run: `node tests/audio-controller.test.cjs`
 
-Expected: tests pass for transitions, stale events, retry cancellation, autoplay rejection, interval sampling, next chapter, and book end.
+Expected: tests pass for transitions, stale events, retry cancellation, autoplay rejection guidance, interval sampling, next-chapter rate retention, unavailable-next stop without skipping, and book end without next-book movement.
 
 Run: `git add app/js/audio-controller.js tests/audio-controller.test.cjs && git commit -m "feat(audio): add session-safe playback controller"`
 
@@ -480,21 +491,25 @@ Expected: all test files exit 0.
 
 - [ ] **Step 4: Perform Android Chrome/PWA scenarios**
 
-Execute scenarios 1–19 and 23–28 from `docs/superpowers/specs/2026-07-21-bible-tts-v4-design.md`. Record device/OS/browser, network profile, observed start latency, and pass/fail. Capture evidence for rapid selection, seek abuse, daily multi-chapter completion, app reload, network loss, user switch, and one-audio invariant.
+Execute scenarios 1–32 from `docs/superpowers/specs/2026-07-21-bible-tts-v4-design.md`. Record device/OS/browser, network profile, observed start latency, and pass/fail. Android Media Session scenarios 20–22 are required, not excluded. Capture evidence for rapid selection, seek abuse, daily multi-chapter completion, app reload, network loss, user switch, next-chapter rate retention, book-end stop, rotation, and one-audio invariant.
 
 - [ ] **Step 5: Perform iPhone Safari/PWA scenarios**
 
-Execute scenarios 1–28, marking Media Session operations unsupported by that OS/browser as capability-limited rather than application failures. Verify interruption recovery and that the UI never promises uninterrupted background playback.
+Execute scenarios 1–32, marking Media Session operations unsupported by that OS/browser as capability-limited rather than application failures. Verify interruption recovery, automatic-transition `play()` rejection guidance, rotation retention, and that the UI never promises uninterrupted background playback.
 
-- [ ] **Step 6: Validate the production manifest and hosting**
+- [ ] **Step 6: Apply the start-latency acceptance rule**
 
-Verify 66 books, canonical book IDs, exact chapter counts, positive durations and sizes, checksums, HTTPS, `audio/mpeg`, byte-range seek, cache versioning, and CORS from the deployed origin. Do not deploy listening controls as enabled until this passes and the 개역한글 audio license is documented.
+On a normal network with the manifest already loaded and the selected audio absent from cache, measure tap-to-`playing`; the target is at most 1 second. On app cold start or a slow network, do not fail solely for exceeding 1 second; require a visible loading state within 1 second and record the actual latency separately.
 
-- [ ] **Step 7: Bump static asset versions**
+- [ ] **Step 7: Validate the production manifest and hosting**
+
+Verify 66 books, canonical book IDs, every chapter number exactly once, no duplicate or missing chapter entries, and valid `available` booleans. For `available=true`, verify positive duration/size, checksum, HTTPS, `audio/mpeg`, byte-range seek, cache versioning, and CORS from the deployed origin. `available=false` may omit asset metadata but must remain explicitly listed. Do not deploy listening controls as enabled until this passes and the 개역한글 audio license is documented.
+
+- [ ] **Step 8: Bump static asset versions**
 
 Update query versions for all changed/new scripts in `app/index.html`. The project currently unregisters the service worker; only bump `app/sw.js` if deployment inspection confirms it has been re-enabled. Do not change unrelated version pins.
 
-- [ ] **Step 8: Final diff and commit**
+- [ ] **Step 9: Final diff and commit**
 
 Run: `git diff --check`
 
@@ -508,7 +523,7 @@ Run: `git add app/index.html app/sw.js docs/WORKFLOW.md docs/실행내역서.md 
 
 ## Completion criteria
 
-- The 28 real-device scenarios have recorded outcomes.
+- All 32 real-device scenarios have recorded Android Chrome/PWA and iPhone Safari/PWA outcomes.
 - Legacy `reading_progress` rows retain the exact fields `id`, `userId`, `date`, `planId`, `status`, `completedAt`, `synced`, their existing IDs, and their completion display.
 - Today’s `listenDone` requires current-date qualified evidence for every chapter in the track.
 - Rapid target changes, old retries, and old `ended` events cannot affect the latest session.
