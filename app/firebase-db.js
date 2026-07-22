@@ -317,7 +317,8 @@ window.PAT_DB = (() => {
 
     function getConfigHash(config) {
       if (!config) return null;
-      const v = config.verse ? config.verse.ref + '|' + config.verse.text : '';
+      // ★ weekOf 포함 — ref/text 동일하고 날짜(주차)만 바뀐 구절 수정도 모바일이 감지하도록.
+      const v = config.verse ? config.verse.ref + '|' + config.verse.text + '|' + config.verse.weekOf : '';
       const w = config.worship ? (config.worship.title || '') + '|' + (config.worship.content || '') : '';
       return (config.appTitle || '') + '|' + v + '|' + w;
     }

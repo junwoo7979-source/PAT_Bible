@@ -129,8 +129,14 @@ const context = {
     ...baseContext.window,
     SpeechRecognition: FakeSpeechRecognition,
     scrollTo() {},
+    // ★ voice.js insecure 가드(비보안 컨텍스트에서 마이크 차단) 통과용 — 보안 컨텍스트 시뮬레이션
+    isSecureContext: true,
   },
+  // 전역 location 에도 hostname/protocol 부여(insecure 판정 회피)
+  location: { ...baseContext.location, hostname: 'localhost', protocol: 'https:' },
 };
+// ★ acquireGlobalMicStream 은 window.navigator 를 읽는다(voice.js) → window 에도 동일 navigator 연결
+context.window.navigator = context.navigator;
 
 vm.runInNewContext(script, context);
 

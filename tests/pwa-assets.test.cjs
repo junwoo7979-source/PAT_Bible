@@ -24,7 +24,8 @@ assert.match(icon512.purpose, /maskable/);
 assert.match(html, /<link rel="apple-touch-icon" href="icons\/pat-icon-192\.png">/);
 assert.match(sw, /self\.addEventListener\('fetch'/);
 assert.match(sw, /event\.request\.mode === 'navigate'/);
-assert.match(sw, /fetch\(event\.request\)\.catch/);
+// SW v204: 네비게이션은 no-store 옵션으로 네트워크 우선 + 오프라인 폴백(.catch)
+assert.match(sw, /fetch\(event\.request,\s*\{\s*cache:\s*'no-store'\s*\}\)\.catch/);
 assert.doesNotMatch(sw, /cache\.addAll|caches\.open/);
 assert.doesNotMatch(
   html,

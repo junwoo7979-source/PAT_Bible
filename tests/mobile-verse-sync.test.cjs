@@ -13,16 +13,24 @@ assert.match(
   'config polling hash must include weekOf so mobile detects date/week-only verse edits',
 );
 
+// ★ SW v204: 무캐시 패스스루로 재작성됨(크로스오리진 분기 제거). 최신성 보장 방식이 바뀌었다.
+//   ① 네비게이션은 no-store로 항상 네트워크 최신 index.html, ② 그 외 요청은 캐시하지 않고 통과.
 assert.match(
   swSource,
-  /url\.origin\s*!==\s*location\.origin/,
-  'service worker must bypass cache for cross-origin API requests',
+  /event\.request\.mode === 'navigate'/,
+  'service worker must handle navigation explicitly to guarantee fresh index.html',
 );
 
 assert.match(
   swSource,
   /fetch\(event\.request,\s*\{\s*cache:\s*'no-store'\s*\}\)/,
-  'service worker must use no-store fetch for cross-origin API requests',
+  'service worker navigation must use no-store fetch so installed PWAs get the latest app',
+);
+
+assert.doesNotMatch(
+  swSource,
+  /caches\.open\([^)]*\)[\s\S]{0,40}\.put\(/,
+  'service worker must not cache responses (no-cache passthrough prevents stale app JS on mobile)',
 );
 
 assert.match(

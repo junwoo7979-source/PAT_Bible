@@ -461,7 +461,8 @@ function collapseRepeatedNgrams(text){
     }
 
     if(!changed && words.length>=4){
-      outer: for(let size=Math.min(words.length,8);size>=3;size--){
+      // size>=2 까지 확장 — "믿는 자마다 믿는 자마다" 같은 2단어 꼬리 반복도 제거(말더듬 방지)
+      outer: for(let size=Math.min(words.length,8);size>=2;size--){
         for(let i=0;i<words.length-size;i++){
           for(let j=i+size;j<=words.length-size;j++){
             const match=words.slice(i,i+size).every((w,k)=>w===words[j+k]);
