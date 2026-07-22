@@ -213,7 +213,8 @@ function readRecords(ctx) {
   setVal('familyLeaderName', '김예운');
   setVal('familyParish', '1교구');
   setVal('familyDistrict', '');        // ★ 실제 UI처럼 항상 빈 값(hidden, 값 채워지지 않음)
-  setVal('familyPassword', 'pw1234');
+  // ★ 2026-07-15 비밀번호 강화 정책(8자+영문+숫자+특수문자) 충족 값
+  setVal('familyPassword', 'pw1234!a');
 
   ctx.saveFamilyProfileAsLeader();
   const p = JSON.parse(ctx._storage.get('pat_family_profile'));

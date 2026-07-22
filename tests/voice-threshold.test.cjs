@@ -12,17 +12,18 @@ const { getElement } = context;
 
 vm.runInNewContext(script, context);
 
+// ★ 현행 기준(app-core.js TH): 일반 85% / 관대 80%
 const verse = '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라';
-// 70% 분량 — 일반(90%)·관대(80%) 기준 모두 미달
+// 70% 분량(유사도 73%) — 일반(85%)·관대(80%) 기준 모두 미달
 const belowBoth = verse.slice(0, Math.floor(verse.length * 0.7));
-// 85% 분량 — 일반(90%) 미달, 관대(80%)는 통과
-const lenientOnly = verse.slice(0, Math.floor(verse.length * 0.85));
+// 82% 분량(유사도 83%) — 일반(85%) 미달, 관대(80%)는 통과
+const lenientOnly = verse.slice(0, Math.floor(verse.length * 0.82));
 
-// ── 일반 모드: 통과 기준 90% ─────────────────────────────
+// ── 일반 모드: 통과 기준 85% ─────────────────────────────
 context.startMemorize();
 context.evalVoice(belowBoth);
 assert.equal(getElement('voiceNext').disabled, true);
-assert.match(getElement('simLabel').innerHTML, /통과 기준 90%/);
+assert.match(getElement('simLabel').innerHTML, /통과 기준 85%/);
 
 context.evalVoice(verse);
 assert.equal(getElement('voiceNext').disabled, false);
@@ -35,8 +36,8 @@ context.evalVoice(belowBoth);
 assert.equal(getElement('voiceNext').disabled, true);
 assert.match(getElement('simLabel').innerHTML, /통과 기준 80%/);
 
-// 일반 모드에선 막혔던 85% 분량이 관대 모드에선 통과해야 함
+// 일반 모드에선 막혔던 82% 분량(유사도 83%)이 관대 모드에선 통과해야 함
 context.evalVoice(lenientOnly);
 assert.equal(getElement('voiceNext').disabled, false);
 
-console.log('voice threshold: normal 90% / lenient 80%: PASS');
+console.log('voice threshold: normal 85% / lenient 80%: PASS');

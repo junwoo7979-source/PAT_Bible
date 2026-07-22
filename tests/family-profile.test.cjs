@@ -37,6 +37,8 @@ const context = {
     documentElement: { getAttribute() { return 'dark'; }, setAttribute() {} },
     getElementById: getElement,
     querySelectorAll() { return []; },
+    addEventListener() {},
+    removeEventListener() {},
   },
   window: { scrollTo() {}, addEventListener() {}, location: { search: '' } },
   location: { search: '', origin: 'https://example.test', pathname: '/app/index.html' },

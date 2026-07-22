@@ -35,6 +35,8 @@ const context = {
     documentElement: { getAttribute() { return 'dark'; }, setAttribute() {} },
     getElementById: getElement,
     querySelectorAll() { return []; },
+    addEventListener() {},
+    removeEventListener() {},
   },
   window: {
     scrollTo() {},
