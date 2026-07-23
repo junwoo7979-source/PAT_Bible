@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PAT 관리자 · 홈 화면 설치</title>
+
+<!-- ★ 관리자 전용 매니페스트(일반 앱과 다른 아이콘·이름으로 설치) -->
+<link rel="manifest" href="admin-manifest.json?v=207">
+<meta name="theme-color" content="#0b1220">
+
+<!-- iOS: 매니페스트 대신 아래 값으로 홈 화면 아이콘·이름 결정 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PAT 관리자">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/admin-icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/admin-icon-192.png">
+
+<style>
+  :root { --bg:#0b1220; --card:#111c2e; --line:#1e2c44; --text:#e7edf6; --muted:#93a2ba; --gold:#f59e0b; --accent:#16a34a; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; }
+  body {
+    background:radial-gradient(120% 80% at 50% 0%, #1b2942 0%, var(--bg) 60%);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px calc(24px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
+  }
+  .wrap { width:100%; max-width:420px; text-align:center; }
+  .icon { width:112px; height:112px; border-radius:26px; margin:0 auto 18px; display:block;
+          box-shadow:0 12px 40px rgba(0,0,0,.5); }
+  h1 { font-size:24px; margin:0 0 6px; letter-spacing:-.3px; }
+  .sub { color:var(--muted); font-size:14px; line-height:1.7; margin:0 0 24px; }
+  .btn { display:block; width:100%; border:0; border-radius:14px; padding:16px; font-size:16px; font-weight:700;
+         cursor:pointer; margin-top:12px; text-decoration:none; }
+  .btn-gold { background:linear-gradient(180deg,#fcd34d,#f59e0b); color:#3a2a05; }
+  .btn-line { background:transparent; color:var(--text); border:1.5px solid var(--line); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px 18px; text-align:left;
+          margin-top:22px; }
+  .card h2 { font-size:14px; margin:0 0 10px; color:var(--gold); }
+  .steps { margin:0; padding-left:18px; color:var(--muted); font-size:13px; line-height:1.9; }
+  .hint { color:var(--muted); font-size:12px; margin-top:18px; line-height:1.7; }
+  .hide { display:none !important; }
+  b { color:var(--text); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <img class="icon" src="icons/admin-icon-512.png" alt="PAT 관리자 아이콘">
+    <h1>PAT 관리자</h1>
+    <p class="sub">관리자 페이지를 홈 화면에 설치하면<br>아이콘을 눌러 바로 로그인할 수 있어요.</p>
+
+    <!-- Android/데스크톱: 설치 프롬프트 지원 시 노출 -->
+    <button id="installBtn" class="btn btn-gold hide" onclick="doInstall()">📲 홈 화면에 설치하기</button>
+
+    <a class="btn btn-line" href="index.html#/admin/church-login">🔐 관리자 로그인 열기</a>
+
+    <!-- iOS Safari 안내: 설치 프롬프트 미지원 -->
+    <div id="iosGuide" class="card hide">
+      <h2>아이폰(Safari)에서 설치</h2>
+      <ol class="steps">
+        <li>하단 <b>공유</b> 버튼 <b>􀈂</b> 을 누릅니다</li>
+        <li><b>홈 화면에 추가</b> 를 선택합니다</li>
+        <li><b>추가</b> 를 누르면 관리자 아이콘이 생깁니다</li>
+      </ol>
+    </div>
+
+    <div id="installedMsg" class="card hide">
+      <h2>설치 완료</h2>
+      <p class="steps" style="list-style:none;padding:0;margin:0">홈 화면의 <b>PAT 관리자</b> 아이콘으로 실행하세요.</p>
+    </div>
+
+    <p class="hint">일반 사용자 앱과는 별개의 아이콘입니다.<br>관리자 외에는 설치·공유하지 마세요.</p>
+  </div>
+
+<script>
+  // 서비스워커 등록 — 설치 가능(installable) 조건 충족(HTTPS + manifest + fetch SW)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js?v=207').catch(function () {});
+    });
+  }
+
+  // 이미 설치되어 standalone으로 열린 경우 → 곧바로 관리자 로그인으로 이동
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isStandalone) {
+    location.replace('index.html#/admin/church-login');
+  }
+
+  // Android/크롬: 설치 프롬프트 캡처
+  var deferredPrompt = null;
+  var installBtn = document.getElementById('installBtn');
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) installBtn.classList.remove('hide');
+  });
+  window.addEventListener('appinstalled', function () {
+    if (installBtn) installBtn.classList.add('hide');
+    var m = document.getElementById('installedMsg'); if (m) m.classList.remove('hide');
+  });
+  function doInstall() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.finally(function () { deferredPrompt = null; });
+  }
+  window.doInstall = doInstall;
+
+  // iOS Safari(프롬프트 미지원) → 수동 설치 안내 노출
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+  if (isIOS && isSafari && !isStandalone) {
+    var g = document.getElementById('iosGuide'); if (g) g.classList.remove('hide');
+  }
+</script>
+</body>
+</html>
