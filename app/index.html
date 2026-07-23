@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="light">
 <title>PAT Bible — 성경 암송</title>
 <link rel="manifest" href="manifest.json?t=20260617-v46">
-<link rel="apple-touch-icon" href="icons/pat-icon-192.png">
+<link rel="apple-touch-icon" href="/icons/pat-icon-192.png">
 
 <!-- ★ Pretendard 웹폰트 (전세대 가독성·모던·선명) -->
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
@@ -40,7 +40,7 @@ window.__PAT_INITIAL_ROUTE = (location.hash && location.hash.indexOf('#/') === 0
   }
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=204').catch(function() {});
+    navigator.serviceWorker.register('/sw.js?v=204').catch(function() {});
     // ★ 성경 데이터(개역한글) 최초 1회 IndexedDB 시딩 + 미동기 완료기록 동기화
     try {
       if (typeof initBibleData === 'function') {
@@ -81,8 +81,8 @@ window.__PAT_INITIAL_ROUTE = (location.hash && location.hash.indexOf('#/') === 0
 </script>
 
 <!-- Cloud Firestore REST API 연동 -->
-<script src="firebase-config.js?v=204"></script>
-<script src="firebase-db.js?v=208"></script>
+<script src="/firebase-config.js?v=204"></script>
+<script src="/firebase-db.js?v=208"></script>
 <style>
 /* DESIGN UPDATE 2026-06-16: Bright colors, improved typography */
 :root{
@@ -358,7 +358,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <button id="installBtn" style="display:none" onclick="pwaInstall()" aria-hidden="true"></button>
 
     <div class="brand brand-logo" aria-label="PAT Bible">
-      <img class="brand-logo-img" src="icons/pat-logo.png?v=173" alt="PAT Bible 로고">
+      <img class="brand-logo-img" src="/icons/pat-logo.png?v=173" alt="PAT Bible 로고">
       <span class="brand-church">세광교회</span>
       <span id="loginAppTitle" style="display:none" aria-hidden="true"></span>
     </div>
@@ -413,7 +413,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
   <section class="screen" id="s-signup">
     <button class="back" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/login'):go('s-login'))">‹ 로그인으로</button>
     <div class="brand brand-logo" aria-label="PAT Bible" style="margin-top:8px">
-      <img class="brand-logo-img" src="icons/pat-logo.png?v=173" alt="PAT Bible 로고" style="max-width:160px">
+      <img class="brand-logo-img" src="/icons/pat-logo.png?v=173" alt="PAT Bible 로고" style="max-width:160px">
     </div>
     <h1 class="center" style="margin-top:12px">회원가입</h1>
     <p class="center muted" style="line-height:1.7">이메일로 가입한 뒤,<br>가족방을 만들어 시작하세요.</p>
@@ -1441,34 +1441,34 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 </div>
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
-<script src="js/login-auth.js?v=191"></script>
-<script src="js/app-core.js?v=209"></script>
-<script src="js/verse.js?v=191"></script>
-<script src="js/family.js?v=204"></script>
+<script src="/js/login-auth.js?v=191"></script>
+<script src="/js/app-core.js?v=210"></script>
+<script src="/js/verse.js?v=191"></script>
+<script src="/js/family.js?v=204"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
-<script src="js/history.js?v=191"></script>
-<script src="js/voice.js?v=208"></script>
-<script src="js/voice-ui.js?v=191"></script>
-<script src="js/progress-store.js?v=191"></script>
-<script src="js/whisper-asr.js?v=191"></script>
-<script src="js/groq-asr.js?v=191"></script>
-<script src="js/memorize.js?v=191"></script>
-<script src="js/prayer.js?v=191"></script>
-<script src="js/reading-plan.js?v=191"></script>
-<script src="js/bible-passage.js?v=191"></script>
-<script src="js/bible-db.js?v=208"></script>
-<script src="js/reading-progress.js?v=208"></script>
-<script src="js/bible-loader.js?v=191"></script>
-<script src="js/reading.js?v=191"></script>
-<script src="js/reset-pw.js?v=202"></script>
-<script src="js/admin.js?v=207"></script>
-<script src="js/worship.js?v=191"></script>
-<script src="js/pwa-install.js?v=191"></script>
+<script src="/js/history.js?v=191"></script>
+<script src="/js/voice.js?v=208"></script>
+<script src="/js/voice-ui.js?v=191"></script>
+<script src="/js/progress-store.js?v=191"></script>
+<script src="/js/whisper-asr.js?v=191"></script>
+<script src="/js/groq-asr.js?v=191"></script>
+<script src="/js/memorize.js?v=191"></script>
+<script src="/js/prayer.js?v=191"></script>
+<script src="/js/reading-plan.js?v=191"></script>
+<script src="/js/bible-passage.js?v=191"></script>
+<script src="/js/bible-db.js?v=208"></script>
+<script src="/js/reading-progress.js?v=208"></script>
+<script src="/js/bible-loader.js?v=191"></script>
+<script src="/js/reading.js?v=191"></script>
+<script src="/js/reset-pw.js?v=202"></script>
+<script src="/js/admin.js?v=207"></script>
+<script src="/js/worship.js?v=191"></script>
+<script src="/js/pwa-install.js?v=191"></script>
 <!-- ★ 2026-07-15: 회원가입 · 해시 라우터 · 관리자 Firebase Auth (추가형, 기존 로직 미변경) -->
-<script src="js/signup.js?v=205"></script>
-<script src="js/admin-auth.js?v=205"></script>
-<script src="js/admin-panel.js?v=206"></script>
-<script src="js/router.js?v=206"></script>
+<script src="/js/signup.js?v=205"></script>
+<script src="/js/admin-auth.js?v=205"></script>
+<script src="/js/admin-panel.js?v=206"></script>
+<script src="/js/router.js?v=206"></script>
 <script>
 // 관리자: 교구별 현황 — 단일 저장 키 (전체 인원만 저장, 완료는 자동 집계)
 const ADMIN_PARISH_KEY = 'pat_admin_parish_edit';

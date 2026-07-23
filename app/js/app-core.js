@@ -200,6 +200,8 @@ function determineInitialScreen(){
   //   덮어쓰지 않는다 — 라우터(router.js)가 정확한 관리자 화면을 표시한다.
   //   (관리자 앱을 새로고침하면 사용자 화면으로 넘어가던 문제 해결)
   try {
+    // 관리자 전용 경로(/admin/)로 열렸으면 항상 관리자 모드 — 독립 설치 앱 진입점
+    if((location.pathname || '').indexOf('/admin') === 0) return 's-adminlogin';
     // 세션 내 관리자 모드 플래그 우선(새로고침해도 유지 — 해시 제거와 무관)
     if(sessionStorage.getItem('pat_admin_mode')) return 's-adminlogin';
     var _h = location.hash || '';
@@ -291,7 +293,8 @@ function completeAppInitialization(){
   let _adminDeepLink = false;
   try {
     var _h2 = location.hash || '';
-    _adminDeepLink = !!sessionStorage.getItem('pat_admin_mode')
+    _adminDeepLink = (location.pathname || '').indexOf('/admin') === 0
+      || !!sessionStorage.getItem('pat_admin_mode')
       || (_h2.indexOf('#/admin') === 0 || _h2.indexOf('#/church-register') === 0 || _h2.indexOf('#/forgot-password') === 0);
   } catch(e) {}
 
