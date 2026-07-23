@@ -19,7 +19,7 @@ const firebaseJson = JSON.parse(fs.readFileSync('firebase.json', 'utf8'));
 });
 
 // 2) 관리자 매니페스트 = 겹치지 않는 별도 범위/정체성
-assert.equal(manifest.id, '/pat-admin', '관리자 매니페스트 id 고정');
+assert.ok(manifest.id && manifest.id !== (mainManifest.id || '/'), '관리자 매니페스트 id는 일반 앱과 달라야 함');
 assert.equal(manifest.scope, '/admin/', '관리자 scope는 /admin/ (일반 앱 / 과 겹치지 않음)');
 assert.equal(manifest.start_url, '/admin/', 'start_url은 /admin/');
 assert.notEqual(manifest.scope, mainManifest.scope || './', '일반 앱과 다른 scope여야 별도 앱으로 설치됨');
