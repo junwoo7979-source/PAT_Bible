@@ -200,6 +200,8 @@ function determineInitialScreen(){
   //   덮어쓰지 않는다 — 라우터(router.js)가 정확한 관리자 화면을 표시한다.
   //   (관리자 앱을 새로고침하면 사용자 화면으로 넘어가던 문제 해결)
   try {
+    // 세션 내 관리자 모드 플래그 우선(새로고침해도 유지 — 해시 제거와 무관)
+    if(sessionStorage.getItem('pat_admin_mode')) return 's-adminlogin';
     var _h = location.hash || '';
     if(_h.indexOf('#/admin') === 0 || _h.indexOf('#/church-register') === 0 || _h.indexOf('#/forgot-password') === 0){
       return 's-adminlogin';
@@ -289,7 +291,8 @@ function completeAppInitialization(){
   let _adminDeepLink = false;
   try {
     var _h2 = location.hash || '';
-    _adminDeepLink = (_h2.indexOf('#/admin') === 0 || _h2.indexOf('#/church-register') === 0 || _h2.indexOf('#/forgot-password') === 0);
+    _adminDeepLink = !!sessionStorage.getItem('pat_admin_mode')
+      || (_h2.indexOf('#/admin') === 0 || _h2.indexOf('#/church-register') === 0 || _h2.indexOf('#/forgot-password') === 0);
   } catch(e) {}
 
   // 1️⃣ 저장된 가족방이 있으면 가족방으로 이동
@@ -716,6 +719,15 @@ function go(id, resetScroll=true, animate=false){
   try {
     if(id === 's-login') sessionStorage.setItem('pat_stay_login', '1');
     else if(id === 's-family' || id === 's-admin') sessionStorage.removeItem('pat_stay_login');
+  } catch(e) {}
+  // ★ 2026-07-23: 관리자 모드 유지 플래그(pat_admin_mode).
+  //   앱이 부팅 시 URL의 딥링크 해시를 제거하므로, 새로고침 시 관리자 화면을 잃고
+  //   가족 화면으로 복원되던 문제를 세션 플래그로 해결(해시에 의존하지 않음).
+  //   관리자 계열 화면 진입 시 세트, 일반 로그인/가족 화면 진입 시 해제.
+  try {
+    var _adminScreens = ['s-adminlogin','s-admin','s-admin-login','s-admin-dashboard','s-admin-users','s-admin-families','s-admin-prep'];
+    if(_adminScreens.indexOf(id) !== -1) sessionStorage.setItem('pat_admin_mode', '1');
+    else if(id === 's-login' || id === 's-family') sessionStorage.removeItem('pat_admin_mode');
   } catch(e) {}
   // animate는 항상 false (애니메이션 완전 제거)
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','no-motion'));

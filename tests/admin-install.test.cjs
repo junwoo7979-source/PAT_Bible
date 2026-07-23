@@ -54,5 +54,10 @@ const appCore = fs.readFileSync('app/js/app-core.js', 'utf8');
 const guardCount = (appCore.match(/indexOf\('#\/admin'\)\s*===\s*0/g) || []).length;
 assert.ok(guardCount >= 2, '부팅 로직 2곳(determineInitialScreen·completeAppInitialization)에 관리자 딥링크 가드 필요');
 assert.ok(/_adminDeepLink/.test(appCore), 'completeAppInitialization에 관리자 딥링크 분기 필요');
+// 세션 플래그(pat_admin_mode)로 새로고침(해시 제거)에도 관리자 모드 유지
+assert.ok(/setItem\('pat_admin_mode'/.test(appCore), 'go()에서 관리자 화면 진입 시 pat_admin_mode 세트 필요');
+assert.ok(/removeItem\('pat_admin_mode'/.test(appCore), 's-login/s-family 진입 시 pat_admin_mode 해제 필요');
+const modeChecks = (appCore.match(/getItem\('pat_admin_mode'\)/g) || []).length;
+assert.ok(modeChecks >= 2, '부팅 2곳에서 pat_admin_mode 확인 필요(새로고침 유지)');
 
 console.log('admin install: PASS');
