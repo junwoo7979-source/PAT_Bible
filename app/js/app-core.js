@@ -196,6 +196,15 @@ function applyStoredData(){
 }
 
 function determineInitialScreen(){
+  // ★ 2026-07-23: 관리자 딥링크로 열렸으면(관리자 앱 아이콘/URL) 저장된 가족 세션으로
+  //   덮어쓰지 않는다 — 라우터(router.js)가 정확한 관리자 화면을 표시한다.
+  //   (관리자 앱을 새로고침하면 사용자 화면으로 넘어가던 문제 해결)
+  try {
+    var _h = location.hash || '';
+    if(_h.indexOf('#/admin') === 0 || _h.indexOf('#/church-register') === 0 || _h.indexOf('#/forgot-password') === 0){
+      return 's-adminlogin';
+    }
+  } catch(e) {}
   // localStorage 빠른 확인
   try {
     // ★ 로그인 화면에 머무르려는 의도(세션) → 자동 로그인 건너뜀
@@ -275,12 +284,24 @@ function completeAppInitialization(){
   let _stayLogin = false;
   try { _stayLogin = !!sessionStorage.getItem('pat_stay_login'); } catch(e) {}
 
+  // ★ 2026-07-23: 관리자 딥링크(관리자 앱/URL)로 열렸으면 저장된 가족 세션으로
+  //   덮어쓰지 않는다 — 라우터가 관리자 화면을 표시(새로고침 시 사용자 화면 튕김 방지).
+  let _adminDeepLink = false;
+  try {
+    var _h2 = location.hash || '';
+    _adminDeepLink = (_h2.indexOf('#/admin') === 0 || _h2.indexOf('#/church-register') === 0 || _h2.indexOf('#/forgot-password') === 0);
+  } catch(e) {}
+
   // 1️⃣ 저장된 가족방이 있으면 가족방으로 이동
   // ★ 중대버그 수정: familyId는 프로필 객체가 아니라 별도 키(pat_family_id)에 저장된다.
   //   기존 조건 savedFamily.familyId 는 항상 undefined → 가족이 있어도 관리자로 튕기던 원인.
   //   determineInitialScreen 과 동일하게 "프로필 존재"만으로 가족방 우선.
   const savedFamily = loadFamilyProfile();
-  if(_stayLogin){
+  if(_adminDeepLink){
+    initialScreen = 's-adminlogin';
+    reason = '관리자 딥링크';
+  }
+  else if(_stayLogin){
     initialScreen = 's-login';
     reason = '로그인 화면 유지';
   }

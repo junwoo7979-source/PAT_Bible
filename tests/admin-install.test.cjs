@@ -47,4 +47,12 @@ const loginEnd = indexHtml.indexOf('<section', loginStart + 10);
 const loginSection = indexHtml.slice(loginStart, loginEnd);
 assert.ok(!loginSection.includes('admin.html'), '일반 로그인 화면에 관리자 설치 진입 노출 금지');
 
+// 6) 부팅 로직: 관리자 딥링크로 열리면 저장된 가족 세션으로 덮어쓰지 않아야 함
+//    (관리자 앱 새로고침 시 사용자 화면으로 넘어가던 문제 회귀 방지)
+const appCore = fs.readFileSync('app/js/app-core.js', 'utf8');
+// determineInitialScreen + completeAppInitialization 두 곳 모두 admin 딥링크 가드 필요
+const guardCount = (appCore.match(/indexOf\('#\/admin'\)\s*===\s*0/g) || []).length;
+assert.ok(guardCount >= 2, '부팅 로직 2곳(determineInitialScreen·completeAppInitialization)에 관리자 딥링크 가드 필요');
+assert.ok(/_adminDeepLink/.test(appCore), 'completeAppInitialization에 관리자 딥링크 분기 필요');
+
 console.log('admin install: PASS');
