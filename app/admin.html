@@ -17,11 +17,15 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/admin-icon-192.png">
 
 <style>
-  :root { --bg:#0b1220; --card:#111c2e; --line:#1e2c44; --text:#e7edf6; --muted:#93a2ba; --gold:#f59e0b; --accent:#16a34a; }
+  :root { --bg:#0b1220; --card:#111c2e; --line:#1e2c44; --text:#e7edf6; --muted:#93a2ba; --gold:#f59e0b; --accent:#16a34a; color-scheme:dark; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { margin:0; height:100%; }
+  /* ★ 단색 배경을 먼저 깔아, 그라데이션을 안 그리는 인앱 브라우저에서도
+     밝은 글자가 흰 배경에 묻혀 '아이콘만 보이는' 현상을 막는다. */
+  html { background:#0b1220; }
+  html,body { margin:0; min-height:100%; }
   body {
-    background:radial-gradient(120% 80% at 50% 0%, #1b2942 0%, var(--bg) 60%);
+    background-color:#0b1220;
+    background-image:radial-gradient(120% 80% at 50% 0%, #1b2942 0%, #0b1220 60%);
     color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
     display:flex; align-items:center; justify-content:center;
@@ -35,7 +39,7 @@
   .btn { display:block; width:100%; border:0; border-radius:14px; padding:16px; font-size:16px; font-weight:700;
          cursor:pointer; margin-top:12px; text-decoration:none; }
   .btn-gold { background:linear-gradient(180deg,#fcd34d,#f59e0b); color:#3a2a05; }
-  .btn-line { background:transparent; color:var(--text); border:1.5px solid var(--line); }
+  .btn-line { background:#111c2e; color:var(--text); border:1.5px solid var(--line); }
   .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px 18px; text-align:left;
           margin-top:22px; }
   .card h2 { font-size:14px; margin:0 0 10px; color:var(--gold); }
