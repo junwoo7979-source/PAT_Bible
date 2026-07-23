@@ -3,7 +3,7 @@
   "short_name": "PAT Bible",
   "description": "교회, 가족, 개인 성경 암송 관리 앱 - 음성 인식으로 정확도 검증, 실시간 동기화, 개인정보 보호",
   "start_url": "./index.html",
-  "scope": "./",
+  "scope": "/index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#e8ecf1",
