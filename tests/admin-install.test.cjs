@@ -11,6 +11,10 @@ const mainManifest = JSON.parse(fs.readFileSync('app/manifest.json', 'utf8'));
 const indexHtml = fs.readFileSync('app/index.html', 'utf8');
 const appCore = fs.readFileSync('app/js/app-core.js', 'utf8');
 const firebaseJson = JSON.parse(fs.readFileSync('firebase.json', 'utf8'));
+// 2026-07-24 호스트 분리: hosting은 [user, admin] 2-사이트 배열
+const hostingList = Array.isArray(firebaseJson.hosting) ? firebaseJson.hosting : [firebaseJson.hosting];
+const userHosting = hostingList.find((h) => h.target === 'user') || hostingList[0];
+const adminHosting = hostingList.find((h) => h.target === 'admin');
 
 // 1) 아이콘 파일 실제 존재 + 비어있지 않음
 ['app/icons/admin-icon-192.png', 'app/icons/admin-icon-512.png'].forEach((p) => {
@@ -47,10 +51,22 @@ assert.ok(pathChecks >= 2, '부팅 2곳에서 /admin 경로 확인 필요');
 assert.ok(/setItem\('pat_admin_mode'/.test(appCore) && /removeItem\('pat_admin_mode'/.test(appCore),
   'pat_admin_mode 세트/해제 로직 필요');
 
-// 6) firebase.json: /admin/ no-store (업데이트 즉시 반영)
-const adminHeader = (firebaseJson.hosting.headers || []).find((h) => /\/admin/.test(h.source));
-assert.ok(adminHeader, 'firebase.json에 /admin 경로 헤더 규칙 필요');
+// 6) firebase.json: 관리자 사이트(/admin/) no-store (업데이트 즉시 반영)
+assert.ok(adminHosting, 'firebase.json에 admin 호스팅 타깃(pat-bible-admin) 필요');
+const adminHeader = (adminHosting.headers || []).find((h) => /\/admin/.test(h.source));
+assert.ok(adminHeader, 'admin 타깃에 /admin 경로 헤더 규칙 필요');
 assert.ok(adminHeader.headers.some((x) => /no-store/.test(x.value)), '/admin no-store 필요');
+
+// 6-1) 호스트 분리 회귀 고정
+//  - admin 사이트: 루트 → /admin/ 리디렉션 (scope 밖 진입 방지)
+assert.ok((adminHosting.redirects || []).some((r) => r.source === '/' && r.destination === '/admin/'),
+  'admin 사이트 루트는 /admin/으로 리디렉션');
+//  - user 사이트: /admin 경로를 관리자 호스트로 이관 (범위 중첩 재발 방지)
+assert.ok((userHosting.redirects || []).some((r) => /\/admin/.test(r.source) && /pat-bible-admin\.web\.app/.test(r.destination)),
+  'user 사이트 /admin은 pat-bible-admin.web.app으로 리디렉션');
+//  - user 사이트 공개 디렉토리에 구 관리자/실험 매니페스트 잔재 없음
+assert.ok(!fs.existsSync('app/admin-manifest.json'), '구 admin-manifest.json 잔재 금지');
+assert.ok(!fs.existsSync('app/app/manifest.json'), '구 /app/ 실험 매니페스트 잔재 금지');
 
 // 7) 일반 사용자 로그인 화면에는 관리자 진입이 노출되면 안 됨
 const loginStart = indexHtml.indexOf('id="s-login"');

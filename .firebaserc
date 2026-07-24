@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "pat-bible-app"
+  },
+  "targets": {
+    "pat-bible-app": {
+      "hosting": {
+        "user": ["pat-bible-app"],
+        "admin": ["pat-bible-admin"]
+      }
+    }
   }
 }

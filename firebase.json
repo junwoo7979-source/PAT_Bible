@@ -1,119 +1,207 @@
 {
-    "hosting": {
-        "public": "app",
-        "ignore": [
-            "firebase.json",
-            "**/.*",
-            "!**/.well-known",
-            "!**/.well-known/**",
-            "**/node_modules/**"
-        ],
-        "rewrites": [
-            {
-                "source": "**",
-                "destination": "/index.html"
-            }
-        ],
-        "headers": [
-            {
-                "source": "**",
-                "headers": [
-                    {
-                        "key": "Cross-Origin-Opener-Policy",
-                        "value": "same-origin"
-                    },
-                    {
-                        "key": "Cross-Origin-Embedder-Policy",
-                        "value": "credentialless"
-                    },
-                    {
-                        "key": "Content-Security-Policy",
-                        "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://us-central1-pat-bible-app.cloudfunctions.net https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-src 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost http://localhost:3000 http://localhost:5000 http://localhost:8080 http://127.0.0.1 http://127.0.0.1:3000 http://127.0.0.1:5000 http://127.0.0.1:8080; frame-ancestors 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost http://localhost:3000 http://localhost:5000 http://localhost:8080 http://127.0.0.1 http://127.0.0.1:3000 http://127.0.0.1:5000 http://127.0.0.1:8080;"
-                    }
-                ]
-            },
-            {
-                "source": "**/*.js",
-                "headers": [
-                    { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-                ]
-            },
-            {
-                "source": "**/*.@(css|json|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot)",
-                "headers": [
-                    { "key": "Cache-Control", "value": "public, max-age=3600" }
-                ]
-            },
-            {
-                "source": "index.html",
-                "headers": [
-                    { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-                    { "key": "Pragma", "value": "no-cache" },
-                    { "key": "Expires", "value": "0" }
-                ]
-            },
-            {
-                "source": "/",
-                "headers": [
-                    { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-                    { "key": "Pragma", "value": "no-cache" },
-                    { "key": "Expires", "value": "0" }
-                ]
-            },
-            {
-                "source": "sw.js",
-                "headers": [
-                    { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-                ]
-            },
-            {
-                "source": "manifest.json",
-                "headers": [
-                    { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-                    { "key": "Pragma", "value": "no-cache" },
-                    { "key": "Expires", "value": "0" }
-                ]
-            },
-            {
-                "source": "icons/**/*.png",
-                "headers": [
-                    { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-                ]
-            },
-            {
-                "source": "admin.html",
-                "headers": [
-                    { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-                    { "key": "Pragma", "value": "no-cache" },
-                    { "key": "Expires", "value": "0" }
-                ]
-            },
-            {
-                "source": "admin-manifest.json",
-                "headers": [
-                    { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-                    { "key": "Pragma", "value": "no-cache" },
-                    { "key": "Expires", "value": "0" }
-                ]
-            },
-            {
-                "source": "/admin{,/**}",
-                "headers": [
-                    { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-                    { "key": "Pragma", "value": "no-cache" },
-                    { "key": "Expires", "value": "0" }
-                ]
-            },
-            {
-                "source": "/app{,/**}",
-                "headers": [
-                    { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-                    { "key": "Pragma", "value": "no-cache" },
-                    { "key": "Expires", "value": "0" }
-                ]
-            }
-        ]
-    },
+    "hosting": [
+        {
+            "target": "user",
+            "public": "app",
+            "ignore": [
+                "firebase.json",
+                "**/.*",
+                "!**/.well-known",
+                "!**/.well-known/**",
+                "**/node_modules/**",
+                "voice-samples/**"
+            ],
+            "redirects": [
+                {
+                    "source": "/admin",
+                    "destination": "https://pat-bible-admin.web.app/admin/",
+                    "type": 301
+                },
+                {
+                    "source": "/admin/**",
+                    "destination": "https://pat-bible-admin.web.app/admin/",
+                    "type": 301
+                },
+                {
+                    "source": "/admin.html",
+                    "destination": "https://pat-bible-admin.web.app/admin/",
+                    "type": 301
+                },
+                {
+                    "source": "/admin-manifest.json",
+                    "destination": "https://pat-bible-admin.web.app/admin/manifest.json",
+                    "type": 301
+                }
+            ],
+            "rewrites": [
+                {
+                    "source": "**",
+                    "destination": "/index.html"
+                }
+            ],
+            "headers": [
+                {
+                    "source": "**",
+                    "headers": [
+                        {
+                            "key": "Cross-Origin-Opener-Policy",
+                            "value": "same-origin"
+                        },
+                        {
+                            "key": "Cross-Origin-Embedder-Policy",
+                            "value": "credentialless"
+                        },
+                        {
+                            "key": "Content-Security-Policy",
+                            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://us-central1-pat-bible-app.cloudfunctions.net https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-src 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost http://localhost:3000 http://localhost:5000 http://localhost:8080 http://127.0.0.1 http://127.0.0.1:3000 http://127.0.0.1:5000 http://127.0.0.1:8080; frame-ancestors 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost http://localhost:3000 http://localhost:5000 http://localhost:8080 http://127.0.0.1 http://127.0.0.1:3000 http://127.0.0.1:5000 http://127.0.0.1:8080;"
+                        }
+                    ]
+                },
+                {
+                    "source": "**/*.js",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+                    ]
+                },
+                {
+                    "source": "**/*.@(css|json|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot)",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "public, max-age=3600" }
+                    ]
+                },
+                {
+                    "source": "index.html",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+                        { "key": "Pragma", "value": "no-cache" },
+                        { "key": "Expires", "value": "0" }
+                    ]
+                },
+                {
+                    "source": "/",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+                        { "key": "Pragma", "value": "no-cache" },
+                        { "key": "Expires", "value": "0" }
+                    ]
+                },
+                {
+                    "source": "sw.js",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+                    ]
+                },
+                {
+                    "source": "manifest.json",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+                        { "key": "Pragma", "value": "no-cache" },
+                        { "key": "Expires", "value": "0" }
+                    ]
+                },
+                {
+                    "source": "icons/**/*.png",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+                    ]
+                }
+            ]
+        },
+        {
+            "target": "admin",
+            "public": "app",
+            "ignore": [
+                "firebase.json",
+                "**/.*",
+                "!**/.well-known",
+                "!**/.well-known/**",
+                "**/node_modules/**",
+                "voice-samples/**"
+            ],
+            "redirects": [
+                {
+                    "source": "/",
+                    "destination": "/admin/",
+                    "type": 302
+                },
+                {
+                    "source": "/index.html",
+                    "destination": "/admin/",
+                    "type": 302
+                },
+                {
+                    "source": "/manifest.json",
+                    "destination": "/admin/manifest.json",
+                    "type": 302
+                }
+            ],
+            "rewrites": [
+                {
+                    "source": "**",
+                    "destination": "/index.html"
+                }
+            ],
+            "headers": [
+                {
+                    "source": "**",
+                    "headers": [
+                        {
+                            "key": "Cross-Origin-Opener-Policy",
+                            "value": "same-origin"
+                        },
+                        {
+                            "key": "Cross-Origin-Embedder-Policy",
+                            "value": "credentialless"
+                        },
+                        {
+                            "key": "Content-Security-Policy",
+                            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://us-central1-pat-bible-app.cloudfunctions.net https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-src 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost http://localhost:3000 http://localhost:5000 http://localhost:8080 http://127.0.0.1 http://127.0.0.1:3000 http://127.0.0.1:5000 http://127.0.0.1:8080; frame-ancestors 'self' http://ttpreview.localhost http://ttpreview.localhost/ http://localhost http://localhost:3000 http://localhost:5000 http://localhost:8080 http://127.0.0.1 http://127.0.0.1:3000 http://127.0.0.1:5000 http://127.0.0.1:8080;"
+                        }
+                    ]
+                },
+                {
+                    "source": "**/*.js",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+                    ]
+                },
+                {
+                    "source": "**/*.@(css|json|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot)",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "public, max-age=3600" }
+                    ]
+                },
+                {
+                    "source": "index.html",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+                        { "key": "Pragma", "value": "no-cache" },
+                        { "key": "Expires", "value": "0" }
+                    ]
+                },
+                {
+                    "source": "sw.js",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+                    ]
+                },
+                {
+                    "source": "/admin{,/**}",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+                        { "key": "Pragma", "value": "no-cache" },
+                        { "key": "Expires", "value": "0" }
+                    ]
+                },
+                {
+                    "source": "icons/**/*.png",
+                    "headers": [
+                        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+                    ]
+                }
+            ]
+        }
+    ],
     "functions": {
         "runtime": "nodejs22",
         "source": "functions"

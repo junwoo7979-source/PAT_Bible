@@ -503,45 +503,39 @@ Firestore CRUD
 
 ## 🚀 배포 & 캐싱 전략
 
-### **Service Worker (v62)**
+### **Service Worker (무캐시 패스스루)**
 ```
-app/sw.js
+app/sw.js  (v204~)
   ↓
-캐시 전략:
-  1️⃣ 스태틱 에셋 (index.html, js, css)
-     → Cache First (30일)
-  
-  2️⃣ API 요청 (firebase-db.js)
-     → Network First (타임아웃 5초)
-  
-  3️⃣ 이미지 (교회로고)
-     → Stale While Revalidate
-  ↓
-[오프라인 모드 지원]
+아무것도 캐시하지 않는다 (설치조건 충족용 fetch 핸들러만 제공)
+  · 네비게이션: no-store 네트워크 우선 + 오프라인 안내 폴백
+  · 그 외 요청: 개입하지 않음 (JS 버전관리는 index.html의 ?v=NNN 쿼리)
+  · 기동 시 옛 Cache Storage 전부 삭제 → 캐시 이름/충돌 없음
 ```
 
-### **PWA 배포**
+### **PWA 배포 — 2-호스트 분리 (2026-07-24)**
 ```
-firebase.json
+firebase.json  (hosting = [user, admin] 2-사이트 배열, .firebaserc targets 매핑)
   ↓
 $ firebase deploy --only hosting
   ↓
-Firebase Hosting
+┌─ 사용자 앱: https://pat-bible-app.web.app        (target: user)
+│    · manifest: /manifest.json (scope ./)
+│    · /admin* 요청은 관리자 호스트로 301 리디렉션
+└─ 관리자 앱: https://pat-bible-admin.web.app      (target: admin)
+     · 루트(/) → /admin/ 302 리디렉션 (scope 안에서 부팅)
+     · manifest: /admin/manifest.json (id·scope·start_url = /admin/)
   ↓
-CDN Global Edge (Cloudflare)
-  ↓
-사용자 브라우저
-  ↓
-Service Worker 설치
-  ↓
-"홈화면에 추가" → 설치 가능
+origin이 달라 두 PWA는 완전 독립: manifest 정체성·SW 등록·저장소가 서로 격리
+→ 같은 폰에 사용자 앱 + 관리자 앱을 각각의 아이콘으로 동시 설치 가능
 ```
 
 **관련 파일:**
-- `app/sw.js`: Service Worker 로직 (v62)
-- `app/manifest.json`: PWA 메타데이터
-- `firebase.json`: 배포 설정
-- `.firebaserc`: 프로젝트 ID 설정
+- `app/sw.js`: Service Worker (무캐시 패스스루, 두 호스트가 각자 origin에 등록)
+- `app/manifest.json`: 사용자 앱 매니페스트 (기존 설치 보존 위해 id/scope 불변)
+- `app/admin/manifest.json`: 관리자 앱 매니페스트
+- `firebase.json`: 2-사이트 배포 설정 (redirects 포함)
+- `.firebaserc`: 프로젝트 ID + hosting targets (user/admin)
 
 ---
 

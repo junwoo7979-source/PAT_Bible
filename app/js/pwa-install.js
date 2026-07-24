@@ -64,7 +64,10 @@
       if(hint) hint.textContent = '카카오톡에서는 바로 설치가 안 돼요. 아래 버튼을 누르면 기본 브라우저(Chrome/Safari)로 열립니다. 그 화면에서 다시 “홈화면에 설치하기”를 누르세요.';
       if(btn)  btn.textContent = '🌐 다른 브라우저로 열기';
     } else {
-      if(hint) hint.textContent = '설치 버튼을 누르면 홈화면에 앱 아이콘이 추가됩니다.';
+      // 진단: 미설치 + beforeinstallprompt 미발생(크롬이 설치 조건을 아직 안 줌)
+      if(hint) hint.textContent = getPrompt()
+        ? '설치 버튼을 누르면 홈화면에 앱 아이콘이 추가됩니다.'
+        : '설치 버튼을 눌러도 창이 안 뜨면, 브라우저 메뉴(⋮)의 “앱 설치”를 이용해 주세요. (설치 준비 중이거나 이 브라우저가 자동 설치를 지원하지 않습니다)';
       if(btn)  btn.textContent = '홈화면에 설치하기';
     }
     promo.style.display = 'block';

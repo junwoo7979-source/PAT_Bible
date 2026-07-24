@@ -46,10 +46,14 @@ assert.ok(
   ),
   'assetlinks.json must include the signed APK certificate fingerprint'
 );
-assert.ok(
-  firebaseConfig.hosting.ignore.includes('!**/.well-known/**'),
-  'Firebase Hosting must not ignore .well-known assetlinks files'
-);
+// 2026-07-24 호스트 분리: hosting은 [user, admin] 배열 — 모든 타깃이 .well-known을 서빙해야 함
+const hostingTargets = Array.isArray(firebaseConfig.hosting) ? firebaseConfig.hosting : [firebaseConfig.hosting];
+hostingTargets.forEach((h) => {
+  assert.ok(
+    h.ignore.includes('!**/.well-known/**'),
+    'Firebase Hosting must not ignore .well-known assetlinks files'
+  );
+});
 
 console.log('pwa assets: PASS');
 
