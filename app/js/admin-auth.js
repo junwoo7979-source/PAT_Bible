@@ -1,15 +1,23 @@
 // ====== PAT Bible — admin-auth.js ======
-// 플랫폼 관리자 인증 — Firebase Auth + Custom Claims(admin === true).
+// 플랫폼 관리자 인증.
 //
-// ★ 2026-07-17 정리: 42b7342 커밋 메시지·주석에 있던 "하드코딩 로컬 로그인"은 실제로
-//    구현되지 않았고(관련 상수·함수만 선언된 채 미사용), 소스에 자격증명이 남는 보안
-//    위험만 있어 잔재를 제거했다. 인증은 아래 Firebase 경로가 전부다.
+// ⚠️ 2026-07-24 임시 구현(요청): 관리자 로그인은 하드코딩 자격증명(admin / 1234)만 통과.
+//    - 로그인 성공 시 로컬 토큰(localStorage: pat_admin_local='1') 저장.
+//    - 가드(requireAdmin)는 이 로컬 토큰을 관리자 세션으로 인정.
+//    - 로컬 모드에서는 서버 ID 토큰이 없으므로 getIdToken()은 null 반환
+//      (보호 API 호출은 서버가 401로 거부 → 기존 오류 안내 그대로 노출).
+//    ※ 이는 명시적으로 요청된 임시 다운그레이드다. 정식 운영 전 Firebase Auth +
+//      Custom Claims 경로(아래 로직 유지)로 복귀할 것.
 //
 // ★ 일반 사용자(교회코드 + 가족비밀번호) 로그인과 완전히 분리된 별도 인증 경로.
 // ★ Firebase Auth SDK는 (사용 시) 관리자 경로 진입에만 지연 로드 → 일반 사용자 로딩 영향 없음.
 
 (function () {
   'use strict';
+
+  // 하드코딩 임시 자격증명 (교회관리자 체험 계정과 동일)
+  var LOCAL_ADMIN = { id: 'admin', pw: '1234' };
+  var LOCAL_KEY = 'pat_admin_local';
 
   var SDK_VERSION = '10.12.5';
   var _auth = null;
@@ -19,6 +27,16 @@
   function configured() {
     var c = cfg();
     return !!(c && c.apiKey && c.authDomain && c.projectId);
+  }
+
+  function isLocalMode() {
+    try { return localStorage.getItem(LOCAL_KEY) === '1'; } catch (e) { return false; }
+  }
+  function setLocalMode(on) {
+    try {
+      if (on) localStorage.setItem(LOCAL_KEY, '1');
+      else localStorage.removeItem(LOCAL_KEY);
+    } catch (e) {}
   }
 
   function loadScript(src) {
@@ -54,25 +72,50 @@
     return _auth;
   }
 
-  // 로그인 → claim 검증. 관리자 아니면 즉시 로그아웃(정보 최소 노출).
-  async function login(email, pw) {
-    var auth = await initAuth();
-    var cred = await auth.signInWithEmailAndPassword(String(email || '').trim(), String(pw || ''));
-    var tok = await cred.user.getIdTokenResult(true);
-    if (tok.claims && tok.claims.admin === true) {
-      return { ok: true, admin: true, email: cred.user.email };
+  // 로그인 → 하드코딩 자격증명 우선 확인. 일치하면 로컬 관리자 세션 시작.
+  //          불일치 시에는 (설정돼 있으면) Firebase Auth + admin claim 검증으로 폴백.
+  async function login(id, pw) {
+    var uid = String(id || '').trim();
+    var upw = String(pw || '');
+
+    // 1) 하드코딩 로컬 자격증명
+    if (uid === LOCAL_ADMIN.id && upw === LOCAL_ADMIN.pw) {
+      setLocalMode(true);
+      return { ok: true, admin: true, email: LOCAL_ADMIN.id };
     }
-    try { await auth.signOut(); } catch (e) {}
+
+    // 2) Firebase Auth 경로(설정된 경우) — 정식 운영용
+    if (configured()) {
+      var auth = await initAuth();
+      var cred = await auth.signInWithEmailAndPassword(uid, upw);
+      var tok = await cred.user.getIdTokenResult(true);
+      if (tok.claims && tok.claims.admin === true) {
+        return { ok: true, admin: true, email: cred.user.email };
+      }
+      try { await auth.signOut(); } catch (e) {}
+      return { ok: false, admin: false };
+    }
+
     return { ok: false, admin: false };
   }
 
   async function logout() {
+    setLocalMode(false);
     try { if (_auth) await _auth.signOut(); } catch (e) {}
   }
 
   // 가드용: 현재 세션 관리자 여부. 반환 { signedIn, admin, email }
   function requireAdmin() {
     return new Promise(function (resolve) {
+      // 로컬 모드가 최우선
+      if (isLocalMode()) {
+        resolve({ signedIn: true, admin: true, email: LOCAL_ADMIN.id });
+        return;
+      }
+      if (!configured()) {
+        resolve({ signedIn: false, admin: false, error: 'NOT_CONFIGURED' });
+        return;
+      }
       initAuth().then(function (auth) {
         var done = false;
         var unsub = auth.onAuthStateChanged(async function (user) {
@@ -90,8 +133,10 @@
     });
   }
 
-  // 서버 API 호출용 현재 ID 토큰
+  // 서버 API 호출용 현재 ID 토큰 (로컬 모드에는 서버 토큰이 없음 → null)
   async function getIdToken() {
+    if (isLocalMode()) return null;
+    if (!configured()) return null;
     var auth = await initAuth();
     var u = auth.currentUser;
     return u ? await u.getIdToken() : null;
@@ -103,6 +148,7 @@
     requireAdmin: requireAdmin,
     getIdToken: getIdToken,
     configured: configured,
+    isLocalMode: isLocalMode,
   };
 
   // ── 관리자 로그인 화면 핸들러 (s-admin-login) ──
@@ -114,24 +160,22 @@
     function showErr(m) { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } }
     if (errEl) errEl.style.display = 'none';
 
-    var email = (emailEl && emailEl.value || '').trim();
+    var id = (emailEl && emailEl.value || '').trim();
     var pw = (pwEl && pwEl.value || '');
-    if (!email || !pw) { showErr('이메일과 비밀번호를 입력하세요'); return; }
-    if (!configured()) { showErr('관리자 인증이 아직 설정되지 않았습니다. 관리자에게 문의하세요.'); return; }
+    if (!id || !pw) { showErr('아이디와 비밀번호를 입력하세요'); return; }
 
     if (btn) { if (btn.dataset.busy === '1') return; btn.dataset.busy = '1'; btn.disabled = true; btn.textContent = '확인 중…'; }
     try {
-      var res = await login(email, pw);
+      var res = await login(id, pw);
       if (res.ok && res.admin) {
         if (pwEl) pwEl.value = '';
         if (window.PAT_ROUTER) window.PAT_ROUTER.go('/admin');
-        else if (typeof go === 'function') go('s-admin');
+        else if (typeof go === 'function') go('s-admin-dashboard');
       } else {
-        // 관리자 권한 없음/자격 불일치 — 일반화된 메시지(시스템 정보 미노출)
-        showErr('로그인할 수 없습니다. 계정 또는 권한을 확인하세요.');
+        showErr('로그인할 수 없습니다. 아이디 또는 비밀번호를 확인하세요.');
       }
     } catch (e) {
-      showErr('로그인할 수 없습니다. 계정 또는 권한을 확인하세요.');
+      showErr('로그인할 수 없습니다. 아이디 또는 비밀번호를 확인하세요.');
     } finally {
       if (btn) { btn.dataset.busy = '0'; btn.disabled = false; btn.textContent = '관리자 로그인'; }
     }

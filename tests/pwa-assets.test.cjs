@@ -21,7 +21,8 @@ assert.equal(icon512.sizes, '512x512');
 assert.equal(icon512.type, 'image/png');
 assert.match(icon512.purpose, /maskable/);
 
-assert.match(html, /<link rel="apple-touch-icon" href="icons\/pat-icon-192\.png">/);
+// f9b0be1(/admin/ 독립 범위 분리)에서 index.html 자산이 루트 절대경로로 전환됨
+assert.match(html, /<link rel="apple-touch-icon" href="\/icons\/pat-icon-192\.png">/);
 assert.match(sw, /self\.addEventListener\('fetch'/);
 assert.match(sw, /event\.request\.mode === 'navigate'/);
 // SW v204: 네비게이션은 no-store 옵션으로 네트워크 우선 + 오프라인 폴백(.catch)

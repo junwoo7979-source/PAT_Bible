@@ -53,13 +53,19 @@ assert.ok(
   's-login 화면에 이메일 회원가입 진입이 있어야 함'
 );
 
-// 5) 플랫폼 관리자 인증(admin-auth.js)에 하드코딩 자격증명 잔재 없음 (42b7342 정리 회귀 방지)
+// 5) ⚠️ 2026-07-24 임시: 플랫폼 관리자 로그인을 하드코딩(admin/1234) 로컬 모드로 다운그레이드(사용자 요청).
+//    임시 구현이 온전한지(로컬 모드 + Firebase 폴백 공존)를 고정한다.
+//    ※ 정식 Firebase Auth 복귀 시 이 블록을 "잔재 없음" 가드(42b7342 형태)로 되돌릴 것.
 const adminAuthSrc = fs.readFileSync('app/js/admin-auth.js', 'utf8');
-['LOCAL_ADMIN', 'isLocalMode', 'pat_admin_local', "pw: '1234'"].forEach((needle) => {
+['LOCAL_ADMIN', 'isLocalMode', 'pat_admin_local'].forEach((needle) => {
   assert.ok(
-    !adminAuthSrc.includes(needle),
-    `admin-auth.js에 하드코딩 로컬 로그인 잔재(${needle})가 있으면 안 됨`
+    adminAuthSrc.includes(needle),
+    `admin-auth.js 임시 로컬 로그인 구성요소(${needle}) 필요`
   );
 });
+assert.ok(
+  adminAuthSrc.includes('signInWithEmailAndPassword'),
+  '정식 복귀용 Firebase Auth 경로가 유지되어야 함'
+);
 
 console.log('admin separation: PASS');
