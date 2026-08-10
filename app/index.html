@@ -388,6 +388,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <button type="button" id="loginPwToggleBtn" class="pw-toggle" style="display:none" onclick="toggleLoginPwVisibility(this)">👁️</button>
     </div>
     <button class="btn" id="loginStartBtn" onclick="enterChurch()">시작하기</button>
+    <p class="center" style="margin-top:10px"><a href="#/forgot-password" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/forgot-password'):go('s-reset-pw'));return false" style="color:var(--muted);font-size:calc(var(--fs) - 2px);text-decoration:underline">비밀번호를 잊으셨나요?</a></p>
     <!-- ★ 2026-07-15: 신규 사용자 이메일 회원가입 진입 (기존 교회코드 로그인과 별개 경로) -->
     <button class="btn ghost" style="margin-top:8px" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/signup'):go('s-signup'))">✉️ 이메일로 회원가입</button>
     <!-- (복구) 대표/가족 등록은 로그인 화면에 두지 않고, 입장 후 홈 화면에서 진행한다.
