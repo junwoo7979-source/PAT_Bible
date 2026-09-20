@@ -49,8 +49,11 @@ const context = {
 
 vm.runInNewContext(script, context);
 
-// 대표 등록 버튼 존재 확인 (2026-07-01: 구성원 등록 버튼은 제거 — 대표가 통일 관리)
-assert.match(html, /openFamilyRegister\('leader'\)/);
+// ★ 2026-09-20: 홈 화면의 '대표 등록' 버튼은 개인 앱 전환으로 삭제됐다.
+//   버튼은 사라졌지만 등록 폼 로직(openFamilyRegister)은 로그인 경로에서 계속 쓰이므로
+//   'HTML에 버튼이 있는지'가 아니라 '함수가 살아 있는지'를 검사한다.
+assert.equal(typeof context.openFamilyRegister, 'function', 'openFamilyRegister 함수는 유지돼야 함');
+assert.ok(!/openFamilyRegister\('leader'\)/.test(html), "홈 화면에 '대표 등록' 버튼이 남아 있으면 안 됨");
 
 getElement('familyRoomName').value = '믿음 가족방';
 getElement('familyLeaderName').value = '김민수';
