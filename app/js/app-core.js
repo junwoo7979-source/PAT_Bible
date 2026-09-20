@@ -24,6 +24,14 @@ function saveRec(r){ localStorage.setItem('pat_records', JSON.stringify(r)); }
 function loadVerses(){ try{ return JSON.parse(localStorage.getItem('pat_verses')||'[]'); }catch(e){ return []; } }
 function saveVerses(v){ localStorage.setItem('pat_verses', JSON.stringify(v)); }
 
+// ── ★ 2026-09-20 개인 단독 모드(SOLO_MODE) ─────────────────
+// PAT을 "혼자 프로그램을 따라가는 앱"으로 전환하는 중이다.
+//   · 회원가입·로그인 관문 없음 → 앱을 열면 바로 프로그램으로 진입
+//   · 가족방/교구는 이후 단계에서 순차 제거 (1단계는 관문 제거만)
+// 되돌리려면 SOLO_MODE 를 false 로 두면 기존 교회코드 로그인 흐름으로 복귀한다.
+const SOLO_MODE = true;
+const SOLO_CHURCH_CODE = '11111';   // 구절·설정 조회용 내부 기본값 (사용자에게 노출되지 않음)
+
 // ── 교구/목장 그룹 설정 ───────────────────────────────────
 // 교회별 설정이 없으면 기본값(세광 호환: 교구 1·2·3 + 블레싱)으로 폴백.
 const PARISH_DEFAULT = { term: '교구', groups: ['1교구','2교구','3교구','블레싱'] };
@@ -147,11 +155,16 @@ function applyStoredData(){
   //   - 코드 저장됨(신규 사용자) → 그 교회
   //   - 코드 없지만 가족 프로필에 churchCode 있음(2026-07-01 수정) → 그 교회
   //   - 코드 없지만 가족 프로필만 있음(구버전) → 세광 11111 폴백(회귀 방지)
-  //   - 그 외(신규 방문자) → 중립(code 빈 값) → "교회 코드를 입력하세요" 화면
+  //   - 그 외(신규 방문자) → 2026-09-20부터 SOLO_MODE 기본 교회로 자동 진입
   try {
     const savedCode = localStorage.getItem('pat_church_code');
     if(savedCode){
       DB.church.code = savedCode;
+    } else if(SOLO_MODE){
+      // ★ 2026-09-20 개인 단독 모드: 교회코드 입력 화면 없이 기본 교회로 바로 진입
+      DB.church.code = SOLO_CHURCH_CODE;
+      try { localStorage.setItem('pat_church_code', SOLO_CHURCH_CODE); } catch(e) {}
+      console.log('[INIT] 개인 단독 모드 → 기본 교회 진입:', SOLO_CHURCH_CODE);
     } else {
       const profile = loadFamilyProfile();
       if(profile){
@@ -167,6 +180,24 @@ function applyStoredData(){
       }
     }
   } catch(e) {}
+
+  // ★ 2026-09-20 개인 단독 모드: 최초 실행이면 1인 프로필을 만들어 둔다.
+  //   회원가입·가족방 등록 없이 바로 프로그램을 따라갈 수 있게 하는 최소 프로필이며,
+  //   이름은 설정 화면에서 바꾼다. (가족방 개념 제거는 다음 단계에서 진행)
+  if(SOLO_MODE){
+    try {
+      if(!localStorage.getItem('pat_family_profile')){
+        localStorage.setItem('pat_family_profile', JSON.stringify({
+          churchCode: DB.church.code || SOLO_CHURCH_CODE,
+          roomName: '나의 암송',
+          leaderName: '나',
+          memberName: '나',
+          members: ['나']   // ★ members 는 이름 문자열 배열이다 (familyMemberNames 참고)
+        }));
+        console.log('[INIT] 개인 단독 모드 → 1인 프로필 생성');
+      }
+    } catch(e) {}
+  }
 
   // ★ 개발자 통계 숨김 진입: ?dev=1 → 개발자 통계 화면 (일반 라우팅 건너뜀)
   if(params.has('dev')){
@@ -227,6 +258,13 @@ function determineInitialScreen(){
     }
   } catch(e) {
     console.error('[PAT] localStorage 확인 중 오류:', e.message);
+  }
+
+  // ★ 2026-09-20 개인 단독 모드: 로그인 관문 없이 바로 프로그램 화면으로.
+  //   (위 관리자 경로 판정은 그대로 유지 — 관리자는 #/admin 으로만 들어온다)
+  if(SOLO_MODE){
+    console.log('[PAT-STARTUP] 개인 단독 모드 → 바로 진입');
+    return 's-family';
   }
 
   // 기본값: 로그인 페이지
