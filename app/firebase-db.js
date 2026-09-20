@@ -521,12 +521,7 @@ window.PAT_DB = (() => {
   // ════════════════════════════════════════════════════════════════
   // 대시보드 / 순위 / 통계
   // ════════════════════════════════════════════════════════════════
-  async function getDashboardStats(churchCode, verseRef) {
-    if (!ready()) return null;
-    try {
-      return await apiGet('getDashboard', { churchCode, verseRef });
-    } catch (e) { console.warn('[PAT_DB] getDashboardStats:', e.message); return null; }
-  }
+  // ★ 2026-09-20: getDashboardStats(교구·교회 단위 집계 조회) 제거 — 실천율은 개인·가족 단위만.
 
   async function getFamiliesList(churchCode) {
     if (!ready()) return null;
@@ -635,7 +630,7 @@ window.PAT_DB = (() => {
     saveFamily, findFamilyByPassword, findFamilyByPasswordGlobal, joinFamily, removeFamilyMember,
     getFamilyMembers, getFamilyInfo, subscribeFamily,
     saveRecord, saveRecordCtx, hasRecord,
-    getDashboardStats, getFamilyStats, getFamilyProgress,
+    getFamilyStats, getFamilyProgress,
     transcribeAudio, getAwardRanking, getFamiliesList,
     resetFamilyPassword,
     savePrayer, getPrayers,

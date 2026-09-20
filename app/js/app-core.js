@@ -88,13 +88,9 @@ function applyCloudConfig(config){
     DB.worship = config.worship || null;
     try { localStorage.setItem('pat_worship', JSON.stringify(DB.worship)); } catch(e){}
   }
-  // ★ 교구별 전체인원: 서버(config)가 단일 진실 소스 → 모든 기기 localStorage 에 미러링.
-  //   (관리자/성도 어느 기기든 동일한 분모를 보게 되어 관리자↔대시보드 불일치 해소)
-  if(config.parishTotals && typeof config.parishTotals === 'object'){
-    try { localStorage.setItem('pat_admin_parish_edit', JSON.stringify(config.parishTotals)); } catch(e){}
-  }
+  // ★ 2026-09-20: 교구별 전체인원(parishTotals) 미러링 제거 — 교구 단위 집계 폐지.
   // ★ 교회별 교구/그룹 설정도 미러링 (없으면 기본 1·2·3교구+블레싱으로 폴백 — getParishConfig())
-  //   단, 서버값이 깨진(mojibake) 경우 미러링하지 않음 → 교구 집계 매칭 깨짐 방지.
+  //   단, 서버값이 깨진(mojibake) 경우 미러링하지 않음 → 소속 목록 깨짐 방지.
   if(config.parishConfig && typeof config.parishConfig === 'object'){
     if(typeof _parishConfigBroken === 'function' && _parishConfigBroken(config.parishConfig)){
       console.warn('[PAT] 깨진 parishConfig 무시(서버 데이터 손상):', config.parishConfig);
@@ -649,10 +645,8 @@ function renderAdmin(){
   renderPreview();
   loadChurchLogoPreview();
 
-  // 관리자 교구별 현황 편집 폼은 index.html의 renderAdminParishFromStorage()가
-  // s-admin 진입 시 처리 (전체 인원 복원 + 완료 인원 자동 집계).
-  // 성도용 대시보드(dParishList)는 여기서 렌더하지 않는다 — 관리자 화면에서
-  // 비동기로 dParishList를 건드리면 대시보드 렌더와 경쟁(race)이 생기기 때문.
+  // 관리자 교구/목장 편성 설정은 index.html의 renderAdminParishFromStorage()가
+  // s-admin 진입 시 처리 (편성 설정만 — 교구 단위 집계는 2026-09-20 폐지).
 }
 
 // ── 저장된 교회 로고 미리보기 로드 ──
@@ -1596,9 +1590,8 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// 관리자 교구별 현황 편집은 index.html 인라인 스크립트로 일원화됨
-// (renderAdminParishFromStorage / saveAdminParishData / applyAggregatedToAdmin)
-// 저장 키: pat_admin_parish_edit (전체 인원만 저장, 완료는 자동 집계)
+// 관리자 교구/목장 편성 설정 편집은 index.html 인라인 스크립트로 일원화됨
+// (renderAdminParishFromStorage / renderParishConfigEditor / saveParishConfig)
 
 // ── DOM 이벤트 (body 내 스크립트이므로 DOM 준비 완료) ─────
 document.getElementById('churchCode').addEventListener('keyup',e=>{ if(e.key==='Enter') enterChurch(); });
