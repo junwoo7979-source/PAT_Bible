@@ -1283,7 +1283,7 @@ function refreshLoginMode(){
       input.style.letterSpacing='normal';
     }
     if(pwToggleBtn) pwToggleBtn.style.display='block';  // 눈 아이콘 표시
-    if(startBtn) startBtn.textContent = '입장하기';
+    if(startBtn && !SOLO_MODE) startBtn.textContent = '입장하기';  // ★ 2026-09-21: 단독 모드에선 '시작하기' 유지
     if(devResetBtn) devResetBtn.style.display='none';   // 다른 교회 선택 버튼 숨김
     if(resetChurchBtn) resetChurchBtn.style.display='block';  // ★ 교회코드 있을 때 탈출구 노출
   } else {

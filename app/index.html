@@ -71,7 +71,7 @@ window.__PAT_INITIAL_ROUTE = (location.hash && location.hash.indexOf('#/') === 0
         input.style.letterSpacing = 'normal';
       }
       if (prompt) prompt.style.display = 'none';
-      if (startBtn) startBtn.textContent = '입장하기';
+      // ★ 2026-09-21: 버튼 이름은 항상 '시작하기' — 로그인 단계가 없어져 '입장하기'로 바꾸지 않는다.
       if (pwToggleBtn) pwToggleBtn.style.display = 'block';
       // 참고: '다른 교회 코드로 입장' 버튼 노출은 DOM 준비 후 refreshLoginMode()에서 처리
       //       (이 인라인 스크립트는 로그인 요소보다 먼저 실행돼 버튼이 아직 없음)
@@ -367,7 +367,9 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
          개인 앱 전환으로 교회코드/가족 비밀번호 입력이 필요 없어졌다.
          이 요소들을 참조하는 JS 는 모두 널 가드가 있거나 이번에 널 가드를 추가했다
          (app-core.js: _enterChurchImpl, keyup 리스너). -->
-    <button class="btn" id="loginStartBtn" onclick="enterChurch()">시작하기</button>
+    <!-- ★ 2026-09-21: 시작하기 → 첫 페이지(홈 s-family)로 바로 이동.
+         입력창이 사라져 enterChurch() 는 더 이상 할 일이 없다. -->
+    <button class="btn" id="loginStartBtn" onclick="enterMemberHome()">시작하기</button>
     <!-- ★ 2026-09-21: '비밀번호를 잊으셨나요?' 링크 삭제 (d7b180d 에서 추가했던 것).
          개인 앱 전환으로 본인 직접 재설정 경로가 필요 없어졌다.
          비밀번호 재설정 화면 자체는 라우트(#/forgot-password)로만 남는다.
@@ -1301,7 +1303,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
 <script src="/js/login-auth.js?v=191"></script>
-<script src="/js/app-core.js?v=219"></script>
+<script src="/js/app-core.js?v=220"></script>
 <script src="/js/verse.js?v=191"></script>
 <script src="/js/family.js?v=217"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
