@@ -61,8 +61,9 @@ const context = {
 
 vm.runInNewContext(script, context);
 
-assert.match(html, /id="churchCode"[^>]*autocomplete="off"/);
-assert.equal(getElement('churchCode').value, '');
+// ★ 2026-09-21: 로그인 입력창(#churchCode)은 개인 앱 전환으로 삭제됐다.
+//   존재 검사 → 부재 검사로 교체. (앱 제목 로직 자체는 아래에서 계속 검증한다)
+assert.ok(!/id="churchCode"/.test(html), '로그인 입력창(#churchCode)이 남아 있으면 안 됨');
 
 // ★ 중립 시작 정책(2026-07): 교회 미선택이면 커스텀 타이틀 대신 항상 "PAT Bible".
 //   커스텀 타이틀 표시는 교회가 선택된 상태에서만 검증한다.

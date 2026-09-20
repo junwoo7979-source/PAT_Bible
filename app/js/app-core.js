@@ -946,7 +946,10 @@ async function enterChurch(){
 }
 
 async function _enterChurchImpl(){
-  const raw = (document.getElementById('churchCode').value || '').trim();
+  // ★ 2026-09-21: 로그인 입력창이 삭제돼 요소가 없을 수 있다 → 없으면 조용히 중단.
+  const _codeEl = document.getElementById('churchCode');
+  if(!_codeEl) return;
+  const raw = (_codeEl.value || '').trim();
 
   // ★ 핵심 수정: 새로운 교회 코드 입력이면 상태 초기화
   // 문제 원인: DB.church.code가 계속 남아있어서 모든 입력이 "비밀번호"로 인식됨
@@ -1636,5 +1639,9 @@ document.addEventListener('visibilitychange', () => {
 // (renderAdminParishFromStorage / renderParishConfigEditor / saveParishConfig)
 
 // ── DOM 이벤트 (body 내 스크립트이므로 DOM 준비 완료) ─────
-document.getElementById('churchCode').addEventListener('keyup',e=>{ if(e.key==='Enter') enterChurch(); });
-document.getElementById('adminPw').addEventListener('keyup',e=>{ if(e.key==='Enter') adminLogin(); });
+// ★ 2026-09-21: churchCode 입력창은 삭제됐다. 가드 없이 addEventListener 를 부르면
+//   여기서 TypeError 가 나면서 아래 초기화가 통째로 중단된다 → 반드시 널 체크할 것.
+{ const _cc = document.getElementById('churchCode');
+  if(_cc) _cc.addEventListener('keyup',e=>{ if(e.key==='Enter') enterChurch(); }); }
+{ const _ap = document.getElementById('adminPw');
+  if(_ap) _ap.addEventListener('keyup',e=>{ if(e.key==='Enter') adminLogin(); }); }

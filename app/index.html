@@ -363,13 +363,10 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <span id="loginAppTitle" style="display:none" aria-hidden="true"></span>
     <p class="center" style="line-height:1.8;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--text)">말씀과 기도로 가족의 신앙을 세워가요.<br>매일 작은 실천이 큰 변화를 만듭니다</p>
     <div class="spacer"></div>
-    <!-- ★ 2026-07-01: 교회 코드 표시 제거, 입력창 높이 축소 -->
-    <p class="muted center" id="loginPrompt" style="margin-bottom:12px;display:none">교회 코드를 입력하세요</p>
-    <div class="pw-wrap" id="loginInputWrapper">
-      <!-- ★ 2026-07-01: "교회 코드" placeholder 완전 제거 (요청에 따라 아무 텍스트도 안 보이게) -->
-      <input class="field code-input" id="churchCode" maxlength="20" placeholder="" autocomplete="off" style="letter-spacing:4px;padding-right:52px;height:44px;padding:8px 12px">
-      <button type="button" id="loginPwToggleBtn" class="pw-toggle" style="display:none" onclick="toggleLoginPwVisibility(this)">👁️</button>
-    </div>
+    <!-- ★ 2026-09-21: 입력창(#churchCode)과 보기 토글(#loginPwToggleBtn), 안내문(#loginPrompt) 삭제.
+         개인 앱 전환으로 교회코드/가족 비밀번호 입력이 필요 없어졌다.
+         이 요소들을 참조하는 JS 는 모두 널 가드가 있거나 이번에 널 가드를 추가했다
+         (app-core.js: _enterChurchImpl, keyup 리스너). -->
     <button class="btn" id="loginStartBtn" onclick="enterChurch()">시작하기</button>
     <!-- ★ 2026-09-21: '비밀번호를 잊으셨나요?' 링크 삭제 (d7b180d 에서 추가했던 것).
          개인 앱 전환으로 본인 직접 재설정 경로가 필요 없어졌다.
@@ -1304,7 +1301,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 
 <!-- 모듈 분리: app/js/ 아래 6개 파일 -->
 <script src="/js/login-auth.js?v=191"></script>
-<script src="/js/app-core.js?v=218"></script>
+<script src="/js/app-core.js?v=219"></script>
 <script src="/js/verse.js?v=191"></script>
 <script src="/js/family.js?v=217"></script>
 <!-- ★ 2026-07-01: rooms.js 삭제 — 다중 소속 기능 제거 -->
