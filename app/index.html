@@ -727,7 +727,6 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
            버튼 순서가 admin.js 의 tabButtons 인덱스와 1:1로 대응하므로 순서를 바꾸지 말 것. -->
       <button class="admin-tab active" onclick="switchAdminTab('verse')">📖 구절 등록</button>
       <button class="admin-tab" onclick="switchAdminTab('worship')">✝️ 예배</button>
-      <button class="admin-tab" onclick="switchAdminTab('families')">📋 등록가정</button>
       <button class="admin-tab" onclick="switchAdminTab('password')">🔑 비밀번호</button>
     </div>
 
@@ -833,15 +832,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- ★ 2026-09-20: '시상 관리' 탭(adminTabAward) 삭제 — 순위·개인 실천율 조회·시상 대상·기간별 기록 조회 전부 제거. -->
 
 
-    <!-- 탭 4: 등록가정 -->
-    <div id="adminTabFamilies" style="display:none">
-    <div class="card" style="margin-top:14px">
-      <h2>📋 등록가정</h2>
-      <p class="muted" style="margin:6px 0 12px">교회에 등록된 가족방·대표·구성원 인원을 한눈에 관리합니다</p>
-      <div id="registeredFamiliesSummary" class="muted" style="margin-bottom:8px;font-weight:700"></div>
-      <div id="registeredFamiliesList"></div>
-    </div>
-    </div><!-- end adminTabFamilies -->
+    <!-- ★ 2026-09-20: '등록가정' 탭(adminTabFamilies) 삭제 — 가족방 개념을 걷어내는 중. -->
 
     <!-- 탭 5: 비밀번호 초기화 -->
     <div id="adminTabPassword" style="display:none">
@@ -1351,7 +1342,7 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
 <script src="/js/bible-loader.js?v=191"></script>
 <script src="/js/reading.js?v=191"></script>
 <script src="/js/reset-pw.js?v=202"></script>
-<script src="/js/admin.js?v=215"></script>
+<script src="/js/admin.js?v=216"></script>
 <script src="/js/worship.js?v=191"></script>
 <script src="/js/pwa-install.js?v=212"></script>
 <!-- ★ 2026-07-15: 회원가입 · 해시 라우터 · 관리자 Firebase Auth (추가형, 기존 로직 미변경) -->

@@ -1,23 +1,21 @@
 // ====== PAT Bible — admin.js ======
-// 관리자 페이지 탭 관리 (구절 등록 · 예배 · 등록가정 · 비밀번호)
+// 관리자 페이지 탭 관리 (구절 등록 · 예배 · 비밀번호)
 
 // ── 관리자 탭 전환 ────────────────────────────────────
 function switchAdminTab(tabName) {
   // 모든 탭 숨기기
   document.getElementById('adminTabVerse').style.display = 'none';
   document.getElementById('adminTabPassword').style.display = 'none';
-  const _famTab = document.getElementById('adminTabFamilies'); if(_famTab) _famTab.style.display = 'none';
   const _worTab = document.getElementById('adminTabWorship'); if(_worTab) _worTab.style.display = 'none';
 
   // 모든 탭 버튼 비활성화
   document.querySelectorAll('.admin-tab').forEach(btn => btn.classList.remove('active'));
 
   // 선택한 탭 표시
-  // ★ 2026-09-20: '교회 정보'(church)·'시상 관리'(award) 탭 삭제
+  // ★ 2026-09-20: '교회 정보'(church)·'시상 관리'(award)·'등록가정'(families) 탭 삭제
   const tabMap = {
     verse: 'adminTabVerse',
     worship: 'adminTabWorship',
-    families: 'adminTabFamilies',
     password: 'adminTabPassword'
   };
 
@@ -31,7 +29,6 @@ function switchAdminTab(tabName) {
   const titleMap = {
     verse: '📖 구절 등록',
     worship: '✝️ 예배',
-    families: '📋 등록가정',
     password: '🔑 비밀번호'
   };
   const titleEl = document.getElementById('adminTabTitle');
@@ -44,71 +41,19 @@ function switchAdminTab(tabName) {
   const tabButtons = {
     verse: document.querySelectorAll('.admin-tab')[0],
     worship: document.querySelectorAll('.admin-tab')[1],
-    families: document.querySelectorAll('.admin-tab')[2],
-    password: document.querySelectorAll('.admin-tab')[3]
+    password: document.querySelectorAll('.admin-tab')[2]
   };
   const btn = tabButtons[tabName];
   if (btn) btn.classList.add('active');
 
   // 각 탭별 초기화 작업
-  if (tabName === 'families') {
-    renderFamiliesList();
-  } else if (tabName === 'worship') {
+  if (tabName === 'worship') {
     if (typeof loadWorshipToAdmin === 'function') loadWorshipToAdmin();
   }
 }
 
-// ── 등록가정 목록 렌더링 (교회 전체 가족·대표·구성원 인원) ──
-async function renderFamiliesList() {
-  const churchCode = DB?.church?.code || '11111';
-  const summaryEl = document.getElementById('registeredFamiliesSummary');
-  const listEl = document.getElementById('registeredFamiliesList');
-  if (!listEl) return;
-  listEl.innerHTML = '<p class="muted" style="text-align:center;padding:16px 0">불러오는 중…</p>';
-
-  let data = null;
-  if (window.PAT_DB && PAT_DB.ready && PAT_DB.ready() && PAT_DB.getFamiliesList) {
-    data = await PAT_DB.getFamiliesList(churchCode);
-  }
-  const families = (data && Array.isArray(data.families)) ? data.families : [];
-
-  if (!families.length) {
-    if (summaryEl) summaryEl.textContent = '';
-    listEl.innerHTML = '<p class="muted" style="text-align:center;padding:16px 0">등록된 가정이 없습니다</p>';
-    return;
-  }
-
-  const totalMembers = families.reduce((s, f) => s + (f.memberCount || 0), 0);
-  if (summaryEl) summaryEl.textContent = `총 ${families.length}가정 · ${totalMembers}명`;
-
-  // 표(행열) — 칸(셀)마다 테두리로 구분: 번호 · 교구 · 구역 · 가족 이름 · 참여 인원
-  const th = 'padding:8px 6px;text-align:left;color:var(--text);font-weight:700;border:1px solid var(--line);background:var(--bg)';
-  const td = 'padding:8px 6px;border:1px solid var(--line);vertical-align:top';
-  const rows = families.map((f, i) => {
-    const parishLabel = f.parish ? (/교구$/.test(f.parish) ? f.parish : f.parish + '교구') : '-';
-    const districtLabel = f.district ? (/구역$/.test(f.district) ? f.district : f.district + '구역') : '-';
-    return `<tr>
-      <td style="${td};text-align:center">${i + 1}</td>
-      <td style="${td}">${esc(parishLabel)}</td>
-      <td style="${td}">${esc(districtLabel)}</td>
-      <td style="${td}"><b>${esc(f.roomName || '(이름없음)')}</b>${f.leaderName ? `<br><small class="muted">대표 ${esc(f.leaderName)}</small>` : ''}</td>
-      <td style="${td};text-align:right;font-weight:700;white-space:nowrap">${f.memberCount || 0}명</td>
-    </tr>`;
-  }).join('');
-  listEl.innerHTML = `
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:calc(var(--fs) - 2px)">
-        <thead><tr>
-          <th style="${th};text-align:center">번호</th>
-          <th style="${th}">교구</th>
-          <th style="${th}">구역</th>
-          <th style="${th}">가족 이름</th>
-          <th style="${th};text-align:right">참여 인원</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-}
+// ★ 2026-09-20: '등록가정' 탭 삭제에 따라 renderFamiliesList() 제거.
+//   서버 API(getFamiliesList)는 로그인·가족 조회에서 계속 쓰이므로 그대로 둔다.
 
 // ★ 2026-09-20: '시상 관리' 탭 삭제에 따라 시상 전용 로직을 통째로 제거했다.
 //   (개인/가족 1년 실천율 계산, 가족 순위, 가족 검색·상세, 시상 대상 생성)
