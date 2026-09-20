@@ -357,27 +357,10 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
     <!-- 옛 참조 호환용(숨김) -->
     <button id="installBtn" style="display:none" onclick="pwaInstall()" aria-hidden="true"></button>
 
-    <div class="brand brand-logo" aria-label="PAT Bible">
-      <img class="brand-logo-img" src="/icons/pat-logo.png?v=173" alt="PAT Bible 로고">
-      <span class="brand-church">세광교회</span>
-      <span id="loginAppTitle" style="display:none" aria-hidden="true"></span>
-    </div>
-    <script>
-    // 로고 너비 = '세광교회' 텍스트 렌더 폭. 높이는 height:auto(원본 종횡비)로 자동.
-    (function(){
-      function fitLogoToChurch(){
-        var t=document.querySelector('.brand-church'), im=document.querySelector('.brand-logo-img');
-        if(!t||!im) return;
-        var w=Math.round(t.getBoundingClientRect().width);
-        if(w>0) im.style.width=w+'px';
-      }
-      window.fitLogoToChurch=fitLogoToChurch;
-      window.addEventListener('load',fitLogoToChurch);
-      window.addEventListener('resize',fitLogoToChurch);
-      if(document.readyState!=='loading') fitLogoToChurch(); else document.addEventListener('DOMContentLoaded',fitLogoToChurch);
-      if(document.fonts&&document.fonts.ready) document.fonts.ready.then(fitLogoToChurch);
-    })();
-    </script>
+    <!-- ★ 2026-09-21: PAT 로고 이미지와 '세광교회' 표기 삭제 (개인 앱 전환 — 교회 브랜딩 제거).
+         로고 폭을 교회명 폭에 맞추던 fitLogoToChurch 스크립트도 대상이 사라져 함께 제거.
+         아래 숨김 span 은 앱 제목 로직(app-core.js applyAppTitle)과 테스트가 참조하므로 남긴다. -->
+    <span id="loginAppTitle" style="display:none" aria-hidden="true"></span>
     <p class="center" style="line-height:1.8;font-size:calc(var(--fs) + 2px);font-weight:700;color:var(--text)">말씀과 기도로 가족의 신앙을 세워가요.<br>매일 작은 실천이 큰 변화를 만듭니다</p>
     <div class="spacer"></div>
     <!-- ★ 2026-07-01: 교회 코드 표시 제거, 입력창 높이 축소 -->
