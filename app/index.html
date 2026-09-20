@@ -388,7 +388,11 @@ h2{font-size:var(--fs-lg);line-height:var(--lh-title);margin-bottom:4px;}
       <button type="button" id="loginPwToggleBtn" class="pw-toggle" style="display:none" onclick="toggleLoginPwVisibility(this)">👁️</button>
     </div>
     <button class="btn" id="loginStartBtn" onclick="enterChurch()">시작하기</button>
-    <p class="center" style="margin-top:10px"><a href="#/forgot-password" onclick="(window.PAT_ROUTER?PAT_ROUTER.go('/forgot-password'):go('s-reset-pw'));return false" style="color:var(--muted);font-size:calc(var(--fs) - 2px);text-decoration:underline">비밀번호를 잊으셨나요?</a></p>
+    <!-- ★ 2026-09-21: '비밀번호를 잊으셨나요?' 링크 삭제 (d7b180d 에서 추가했던 것).
+         개인 앱 전환으로 본인 직접 재설정 경로가 필요 없어졌다.
+         비밀번호 재설정 화면 자체는 라우트(#/forgot-password)로만 남는다.
+         ⚠️ 이 영역에 관리자 화면 id 를 문자열로도 쓰지 말 것 —
+            admin-separation 테스트가 주석까지 포함해 검사한다. -->
     <!-- ★ 2026-09-20: 개인 단독 모드 전환 — 이메일 회원가입 진입 버튼 제거.
          가입 없이 바로 프로그램을 따라가는 구조라 신규 가입 경로가 필요 없다.
          (s-signup 화면 자체는 남겨 둠 — 다음 단계에서 화면째 정리) -->
