@@ -240,7 +240,10 @@ function determineInitialScreen(){
   try {
     // ★ 로그인 화면에 머무르려는 의도(세션) → 자동 로그인 건너뜀
     //   (로그인 화면에서 새로고침/당겨서 새로고침 시 가족화면으로 튕기던 오류 방지)
-    if(sessionStorage.getItem('pat_stay_login')) return 's-login';
+    // ★ 2026-09-20: 개인 단독 모드에서는 이 플래그를 무시한다.
+    //   go('s-login')이 한 번이라도 불리면 플래그가 남아, 통과할 수 없는 로그인 화면에
+    //   갇히기 때문. 단독 모드에서 로그인 화면은 더 이상 정상 경로가 아니다.
+    if(!SOLO_MODE && sessionStorage.getItem('pat_stay_login')) return 's-login';
     const familyProfile = localStorage.getItem('pat_family_profile');
     const adminId = localStorage.getItem('pat_admin_id');
     const adminPw = localStorage.getItem('pat_admin_pw');
@@ -879,7 +882,8 @@ if(typeof window !== 'undefined' && window.history){
 
 // ── 교회 입장 ─────────────────────────────────────────────
 function enterMemberHome(){
-  document.getElementById('churchName').textContent = memberHomeTitle();
+  // ★ 2026-09-20: 홈 헤더 교회명 삭제 — 요소가 없으면 조용히 건너뛴다.
+  { const _cn = document.getElementById('churchName'); if(_cn) _cn.textContent = memberHomeTitle(); }
   renderMemberDateLabels();
   renderFamily();
   go('s-family');

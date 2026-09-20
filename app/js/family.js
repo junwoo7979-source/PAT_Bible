@@ -975,7 +975,8 @@ async function joinFamilyFromInvite(){
     }));
   }
   window._inviteData = null;
-  document.getElementById('churchName').textContent = memberHomeTitle();
+  // ★ 2026-09-20: 홈 헤더 교회명 삭제 — 요소가 없으면 조용히 건너뛴다.
+  { const _cn = document.getElementById('churchName'); if(_cn) _cn.textContent = memberHomeTitle(); }
   renderMemberDateLabels();
   renderFamily();
   go('s-family');
@@ -1417,7 +1418,8 @@ function renderFamily(){
   renderFamilyProfile();
   const invBtn = document.getElementById('inviteLinkBtn');
   if(invBtn) invBtn.style.display = loadFamilyProfile() ? 'block' : 'none';
-  document.getElementById('churchName').textContent = memberHomeTitle();
+  // ★ 2026-09-20: 홈 헤더 교회명 삭제 — 요소가 없으면 조용히 건너뛴다.
+  { const _cn = document.getElementById('churchName'); if(_cn) _cn.textContent = memberHomeTitle(); }
   renderMemberDateLabels();
   document.getElementById('famVerseRef').textContent  = DB.verse.ref;
   document.getElementById('famVerseText').textContent = DB.verse.text;
